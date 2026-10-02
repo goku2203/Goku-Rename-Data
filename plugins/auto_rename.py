@@ -10,7 +10,7 @@ from script import script
 # ---------------------------------------------------------------
 # CONFIG: indha tag mattum filename START-la irukkum. "" na disable.
 # ---------------------------------------------------------------
-KEEP_TAG = script.CUSTOM_TAG
+KEEP_TAG = "" # Disabled to prevent duplicate prefix
 
 _EXTS = (
     "mkv|mp4|avi|webm|mov|m4v|ts|flv|wmv|mp3|m4a|flac|aac|ogg|wav|"
@@ -28,7 +28,7 @@ RE_DOMAIN = re.compile(
     re.IGNORECASE,
 )
 RE_DOMAIN_SPACED = re.compile(rf"^\s*[A-Za-z0-9\-]+[\s_]+(?:{_TLDS})(?=[\s_\-.|:\]\)]|$)\s*[\s_\-.|:]*\s*", re.IGNORECASE)
-RE_USER = re.compile(r"^\s*@[A-Za-z0-9_]{2,32}?(?=[\s\-|:]|$)\s*[\-|:]*\s*")
+RE_USER = re.compile(r"(?i)\s*@[A-Za-z0-9_]+\s*")
 
 class EnhancedAutoRenamer:
     def __init__(self):
@@ -59,10 +59,7 @@ class EnhancedAutoRenamer:
             base = cls._strip_keep_tag(base)
             base = RE_DOMAIN.sub("", base)
             base = RE_DOMAIN_SPACED.sub("", base)
-
-            m = RE_USER.match(base)
-            if m and base[m.end():].strip():
-                base = base[m.end():]
+            base = RE_USER.sub(" ", base) # removes @usernames anywhere
             if base == old:
                 break
 
