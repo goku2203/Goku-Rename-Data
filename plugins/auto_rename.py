@@ -1,20 +1,15 @@
-# (c) @RknDeveloperr
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-
 import re
 from pathlib import Path
 from typing import Dict
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from helper.database import digital_botz
+from script import script
 
 # ---------------------------------------------------------------
 # CONFIG: indha tag mattum filename START-la irukkum. "" na disable.
 # ---------------------------------------------------------------
-KEEP_TAG = "@anime_love9"
+KEEP_TAG = script.CUSTOM_TAG
 
 _EXTS = (
     "mkv|mp4|avi|webm|mov|m4v|ts|flv|wmv|mp3|m4a|flac|aac|ogg|wav|"
@@ -23,19 +18,15 @@ _EXTS = (
 _EXT_RE = re.compile(rf"\.({_EXTS})$", re.IGNORECASE)
 
 _TLDS = "com|net|org|in|cc|site|bz|me|tv|xyz|co|info|club|pro|to|ws|ink|cool|vip|wiki|art"
-_SEP = r"[\s_\-.|:]"            # separators after a prefix
-_END = rf"(?=[\s_\-.|:\]\)]|$)"  # prefix must end at a separator / end
+_SEP = r"[\s_\-.|:]"            
+_END = rf"(?=[\s_\-.|:\]\)]|$)"  
 
-# --- START-only prefix patterns (all anchored with ^) ---
-RE_BOX = re.compile(r"^\s*(?:\[[^\]]*\]|\((?!(?:19|20)\d{2}\))[^)]*\)|\{[^}]*\})\s*")
+RE_BOX = re.compile(r"^\s*(?:\[[^\]]*\]|\((?!(?:19\vert{}20)\d{2}\))[^)]*\)|\{[^}]*\})\s*")
 RE_DOMAIN = re.compile(
     rf"^\s*(?:https?://)?(?:www\.)?[A-Za-z0-9][A-Za-z0-9\-]*(?:\.[A-Za-z0-9\-]+)*\.(?:{_TLDS}){_END}{_SEP}*",
     re.IGNORECASE,
 )
-# already-spaced domain: "HindiAnimeZone com Liar Game"
-# already-spaced or underscored domain: "HindiAnimeZone com" or "HindiAnimeZone_com"
 RE_DOMAIN_SPACED = re.compile(rf"^\s*[A-Za-z0-9\-]+[\s_]+(?:{_TLDS})(?=[\s_\-.|:\]\)]|$)\s*[\s_\-.|:]*\s*", re.IGNORECASE)
-# other @username (space / - | : after it). Underscore-joined names handled below
 RE_USER = re.compile(r"^\s*@[A-Za-z0-9_]{2,32}?(?=[\s\-|:]|$)\s*[\-|:]*\s*")
 
 class EnhancedAutoRenamer:
@@ -51,7 +42,6 @@ class EnhancedAutoRenamer:
 
     @staticmethod
     def _strip_keep_tag(base: str) -> str:
-        """Known tag (@anime_love9) + underscore-joined name -> exact strip."""
         if not KEEP_TAG:
             return base
         m = re.match(rf"^\s*{re.escape(KEEP_TAG)}(?={_SEP}|$)\s*[_\-.|:\s]*", base, re.IGNORECASE)
@@ -59,7 +49,6 @@ class EnhancedAutoRenamer:
 
     @classmethod
     def _clean_source_filename(cls, filename: str) -> tuple:
-        """Remove ONLY the leading [box] / @username / domain. Middle/end untouched."""
         base, extension = cls._split_ext(filename)
         base = re.sub(r"[\u200b-\u200f\u202a-\u202e\ufeff]", "", base)
 
@@ -70,14 +59,12 @@ class EnhancedAutoRenamer:
             base = RE_DOMAIN.sub("", base)
             base = RE_DOMAIN_SPACED.sub("", base)
 
-            # other @username: only strip if something is still left after it
             m = RE_USER.match(base)
             if m and base[m.end():].strip():
                 base = base[m.end():]
             if base == old:
                 break
 
-        # underscores / dots -> spaces (extension already separated)
         base = base.replace("_", " ").replace(".", " ")
         base = re.sub(r"\s+", " ", base).strip(" -|:")
         return base, extension
@@ -88,7 +75,6 @@ class EnhancedAutoRenamer:
                     video_codec="", audio_codec="", language="", bit_depth="", hdr="",
                     release_group="", original_name=cleaned, extension=extension)
 
-        # TITLE = start-la irundhu first S01 / year / 480p varaikkum mattum
         t = re.search(
             r"^(.+?)(?=\s+(?:S\d{1,2}(?:\s?(?:E|EP)\s?\d{1,4})?(?![A-Za-z0-9])|Season\s*\d+|"
             r"(?:19|20)\d{2}(?!\d)|\d{3,4}p(?![A-Za-z0-9])|4K\b)|$)",
@@ -130,12 +116,10 @@ class EnhancedAutoRenamer:
 
     @staticmethod
     def _normalize_output_name(filename: str) -> str:
-        """Final name: underscores/dots -> spaces, single @KEEP_TAG at start."""
         stem, ext = Path(filename).stem, Path(filename).suffix
-        if not _EXT_RE.search(filename):          # fake suffix (e.g. ".S01E03") -> treat as part of name
+        if not _EXT_RE.search(filename):          
             stem, ext = filename, ""
         if KEEP_TAG:
-            # template-la tag + underscore irundha ("@anime_love9_{title}") -> munnadiye spaces aakku
             stem = re.sub(rf"^\s*{re.escape(KEEP_TAG)}(?=[_.\s\-]|$)", "", stem, flags=re.IGNORECASE)
         stem = stem.replace("_", " ").replace(".", " ")
         stem = re.sub(r"\s+", " ", stem).strip(" -|:")
@@ -159,7 +143,6 @@ class EnhancedAutoRenamer:
 
 @Client.on_message(filters.command(["autorename", "setformat"]))
 async def set_format_command(client: Client, message: Message):
-    """Set auto rename format template"""
     user_id = message.from_user.id
     
     if len(message.command) < 2:
@@ -219,7 +202,6 @@ async def set_format_command(client: Client, message: Message):
 
 @Client.on_callback_query(filters.regex(r"^format_"))
 async def format_callback(client, callback_query):
-    """Handle format selection callback"""
     user_id = callback_query.from_user.id
     data = callback_query.data
     
