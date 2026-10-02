@@ -1,34 +1,28 @@
 class script(object):
-    # part of text configuration
-    START_TXT = """<b>Hi {} 👋
-
-    Welcome to the Advanced Rename Bot! 🚀
     
-    What I can do:
-    • Rename your files easily 📁
+START_TXT = """<b>Hello {} 👋\n
+    "Welcome to the Advanced Rename Bot!"
+    
+    "What I can do:
+    • Auto and Manual Rename your files easily 📁
     • Change or add custom thumbnails 🖼️
     • Convert Video to File & File to Video 🔄
-    • Set custom captions for your files 📝
+    • Set Prefix & Suffix ✨
+    • Powerful Auto Rename Format ⚡
+    • Set custom captions for your files 📝"
 
     Created By : @Goku_Stark 💞</b>"""
 
-    ABOUT_TXT = """<b>╭───────────⍟
-├🤖 ᴍy ɴᴀᴍᴇ : {}
-├🖥️ Dᴇᴠᴇʟᴏᴩᴇʀꜱ : {}
-├👨‍💻 Pʀᴏɢʀᴀᴍᴇʀ : {}
-├📕 Lɪʙʀᴀʀy : {}
-├✏️ Lᴀɴɢᴜᴀɢᴇ: {}
-├💾 Dᴀᴛᴀ Bᴀꜱᴇ: {}
-├📊 ᴠᴇʀsɪᴏɴ: <a href=https://github.com/DigitalBotz/Digital-Auto-Rename-Bot>{}</a></b>     
-╰───────────────⍟ """
+    ABOUT_TXT = """<b>
+⦿ 🤖 ᴍy ɴᴀᴍᴇ : {}
+⦿ 🖥️ Dᴇᴠᴇʟᴏᴩᴇʀꜱ : {}
+⦿ ✏️ Lᴀɴɢᴜᴀɢᴇ: {}
+⦿ 💾 Dᴀᴛᴀ Bᴀꜱᴇ: {}
+⦿ 📊 ᴠᴇʀsɪᴏɴ: <a href=https://t.me/Goku_Stark>{}</a></b>"""
 
     HELP_TXT = """
-<b>•></b> /start Tʜᴇ Bᴏᴛ.
-
 ✏️ <b><u>Hᴏᴡ Tᴏ Rᴇɴᴀᴍᴇ A Fɪʟᴇ</u></b>
-<b>•></b> Sᴇɴᴅ Aɴy Fɪʟᴇ Aɴᴅ Tyᴩᴇ Nᴇᴡ Fɪʟᴇ Nɴᴀᴍᴇ \nAɴᴅ Aᴇʟᴇᴄᴛ Tʜᴇ Fᴏʀᴍᴀᴛ [ document, video, audio ].           
-ℹ️ 𝗔𝗻𝘆 𝗢𝘁𝗵𝗲𝗿 𝗛𝗲𝗹𝗽 𝗖𝗼𝗻𝘁𝗮𝗰𝘁 :- <a href=https://t.me/DigitalBotz_Support>𝑺𝑼𝑷𝑷𝑶𝑹𝑻 𝑮𝑹𝑶𝑼𝑷</a>
-"""
+<b>•</b> Send any file, enter a new file name, and select the format: **Document, Video, or Audio**."""
     
     THUMBNAIL = """
 🌌 <b><u>Hᴏᴡ Tᴏ Sᴇᴛ Tʜᴜᴍʙɴɪʟᴇ</u></b>
@@ -45,7 +39,8 @@ class script(object):
 <b>•></b> /see_caption - Uꜱᴇ Tʜɪꜱ Cᴏᴍᴍᴀɴᴅ Tᴏ Vɪᴇᴡ Yᴏᴜʀ Cᴜꜱᴛᴏᴍ Cᴀᴩᴛɪᴏɴ
 <b>•></b> /del_caption - Uꜱᴇ Tʜɪꜱ Cᴏᴍᴍᴀɴᴅ Tᴏ Dᴇʟᴇᴛᴇ Yᴏᴜʀ Cᴜꜱᴛᴏᴍ Cᴀᴩᴛɪᴏɴ
 
-Exᴀᴍᴩʟᴇ:- `/set_caption 📕 Fɪʟᴇ Nᴀᴍᴇ: {filename}
+Exᴀᴍᴩʟᴇ:-/n
+/set_caption 📕 Fɪʟᴇ Nᴀᴍᴇ: {filename}
 💾 Sɪᴢᴇ: {filesize}
 ⏰ Dᴜʀᴀᴛɪᴏɴ: {duration}`
 """
@@ -84,14 +79,12 @@ V𝟹.𝟶.𝟶 [STABLE]
 
     RKN_PROGRESS = """<b>
 
-「 🚀 Goku Stark PROCESSING 」
+⦿ 📦 Sɪᴢᴇ    : {1} / {2}
+⦿ 📊 Pʀᴏɢʀᴇss: {0}%
+⦿ ⚡ Sᴘᴇᴇᴅ   : {3}/s
+⦿ ⏱ ETA      : {4}
 
-├ 📦 Size    : {1} / {2}
-├ 📊 Progress: {0}%
-├ ⚡ Speed   : {3}/s
-├ ⏱ ETA      : {4}
-│
-╰─「 Please wait... 」
+────「 Please wait... 」────
 </b>"""
 
     # Custom Metadata & Tags
