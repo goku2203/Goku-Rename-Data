@@ -41,7 +41,7 @@ class DigitalAutoRenameBot(Client):
             workers=200,
             plugins={"root": "plugins"},
             sleep_threshold=5,
-            max_concurrent_transmissions=50
+            max_concurrent_transmissions=10
         )
                 
          
