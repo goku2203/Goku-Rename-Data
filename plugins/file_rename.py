@@ -208,9 +208,31 @@ async def upload_doc(bot, update):
         format_template = user_data.get('format_template', "{filename}")
         if format_template is None:
             format_template = "{filename}"
+            
+        # --- Smart Title Limit Logic ---
+        prefix = user_data.get('prefix', None)
+        suffix = user_data.get('suffix', None)
+        p_len = len(prefix) + 1 if prefix else 0
+        s_len = len(suffix) + 1 if suffix else 0
+        
+        # Generate temp name to check total length
+        temp_name = renamer.apply_format_template(info, format_template)
+        if not temp_name.endswith(f".{info['extension']}"):
+            temp_name += f".{info['extension']}"
+            
+        total_len = p_len + len(temp_name) + s_len
+        
+        # If length exceeds 60 characters, cut only the title
+        if total_len > 60:
+            excess = total_len - 60
+            if len(info['title']) > excess + 3:
+                info['title'] = info['title'][:-(excess + 3)].strip() + "..."
+                
+        # Rebuild final name with safely shortened title
         new_name = renamer.apply_format_template(info, format_template)
         if not new_name.endswith(f".{info['extension']}"):
             new_name += f".{info['extension']}"
+        # -------------------------------
 
     # Add Prefix and Suffix
     if "." in new_name:
