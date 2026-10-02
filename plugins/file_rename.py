@@ -211,7 +211,7 @@ async def upload_doc(bot, update):
         new_name = renamer.apply_format_template(info, format_template)
         if not new_name.endswith(f".{info['extension']}"):
             new_name += f".{info['extension']}"
-            
+
     # Add Prefix and Suffix
     if "." in new_name:
         name_without_ext = new_name.rsplit('.', 1)[0]
@@ -219,19 +219,21 @@ async def upload_doc(bot, update):
     else:
         name_without_ext = new_name
         ext = ""
-
+        
+    # 1. First file name-la irukka underscores-a space ah maathidrom
+    name_without_ext = name_without_ext.replace("_", " ")
+        
     prefix = user_data.get('prefix', None)
     suffix = user_data.get('suffix', None)
     
+    # 2. Appuram Prefix and Suffix add pandrom (Ippo prefix-la ulla _ azhiyathu)
     if prefix:
         name_without_ext = f"{prefix} {name_without_ext}"
     if suffix:
         name_without_ext = f"{name_without_ext} {suffix}"
-            
+        
     new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
-    new_filename = new_filename.replace("_", " ")
     
-    # Intha idathula print add pannanum
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
     file_path = f"Renames/{new_filename}"
