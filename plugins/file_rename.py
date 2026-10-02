@@ -227,11 +227,13 @@ async def upload_doc(bot, update):
         name_without_ext = f"{prefix} {name_without_ext}"
     if suffix:
         name_without_ext = f"{name_without_ext} {suffix}"
-        
+            
     new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
-    new_filename = new_filename.replace("_", " ") # Force remove underlines everywhere
-    print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}")
-        
+    new_filename = new_filename.replace("_", " ")
+    
+    # Intha idathula print add pannanum
+    print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
+    
     file_path = f"Renames/{new_filename}"
     
     # Ithukku keela irukka code (Try To Download...) apdiye thodarum...
