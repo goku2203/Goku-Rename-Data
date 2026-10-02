@@ -21,10 +21,12 @@ class Database:
             _id=int(id),
             file_id=None,
             caption=None,
+            prefix=None,
+            suffix=None,
             join_date=datetime.date.today().isoformat(),
             format_template="{filename}",            
             upload_type=None,
-            rename_mode="auto", # Pudhusa add panna mode
+            rename_mode="auto",
             ban_status=dict(
                 is_banned=False,
                 ban_duration=0,
@@ -121,12 +123,25 @@ class Database:
         user = await self.col.find_one({'_id': int(id)})
         return user.get('upload_type', None) if user else None
 
-    # Pudhusa add panna mode functions
     async def set_rename_mode(self, id, rename_mode):
         await self.col.update_one({'_id': int(id)}, {'$set': {'rename_mode': rename_mode}})
 
     async def get_rename_mode(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return user.get('rename_mode', 'auto') if user else 'auto'
+
+    async def set_prefix(self, id, prefix):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'prefix': prefix}})
+
+    async def get_prefix(self, id):
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('prefix', None) if user else None
+
+    async def set_suffix(self, id, suffix):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'suffix': suffix}})
+
+    async def get_suffix(self, id):
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('suffix', None) if user else None
     
 digital_botz = Database(Config.DB_URL, Config.DB_NAME)
