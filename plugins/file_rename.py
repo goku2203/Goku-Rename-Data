@@ -47,8 +47,12 @@ async def rename_start(client, message):
     dcid = FileId.decode(rkn_file.file_id).dc_id
     extension_type = mime_type.split('/')[0]
     
+    # Intha idathula upload_type kooda serthu rename_mode um edukurom
     upload_type = await digital_botz.get_upload_type(user_id)
-    if upload_type:
+    rename_mode = await digital_botz.get_rename_mode(user_id)
+    
+    # Condition ah maathitom: upload_type set aagi irukanum AND mode "auto" aaga irukanum
+    if upload_type and rename_mode == "auto":
         class DummyUpdate:
             def __init__(self, msg, usr, u_type):
                 self.message = msg
@@ -64,6 +68,7 @@ async def rename_start(client, message):
         await upload_doc(client, dummy_update)
         return
 
+    # Manual mode aaga iruntha intha default buttons kitta vanthudum
     button = [[InlineKeyboardButton("📁 Dᴏᴄᴜᴍᴇɴᴛ",callback_data = "upload#document")]]
     if message.media in [MessageMediaType.VIDEO, MessageMediaType.DOCUMENT]:
         button.append([InlineKeyboardButton("🎥 Vɪᴅᴇᴏ", callback_data = "upload#video")])
@@ -285,6 +290,10 @@ async def set_type_callback(client, callback_query):
 
 @Client.on_message(filters.private & filters.command("mode"))
 async def set_mode_cmd(client, message):
+    user_id = message.from_user.id
+    # Database la irunthu current mode ah edukurom
+    current_mode = await digital_botz.get_rename_mode(user_id) 
+    
     buttons = [
         [
             InlineKeyboardButton("🤖 Auto Rename", callback_data="rename_mode_auto"),
@@ -295,7 +304,7 @@ async def set_mode_cmd(client, message):
         ]
     ]
     await message.reply_text(
-        "**Select Rename Mode:**\n\n**Auto Rename** - Automatic ah file rename aagum.\n**Manual Rename** - Neenga name type pandra varai wait pannum.",
+        f"**Select Rename Mode:**\n\n**Current Mode:** `{current_mode.upper()}`\n\n**Auto Rename** - Automatic ah file rename aagum.\n**Manual Rename** - Neenga name type pandra varai wait pannum.",
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
     )
