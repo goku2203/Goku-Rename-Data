@@ -211,8 +211,24 @@ async def upload_doc(bot, update):
         new_name = renamer.apply_format_template(info, format_template)
         if not new_name.endswith(f".{info['extension']}"):
             new_name += f".{info['extension']}"
+            
+    # Add Prefix and Suffix
+    if "." in new_name:
+        name_without_ext = new_name.rsplit('.', 1)[0]
+        ext = new_name.rsplit('.', 1)[1]
+    else:
+        name_without_ext = new_name
+        ext = ""
+
+    prefix = user_data.get('prefix', None)
+    suffix = user_data.get('suffix', None)
+    
+    if prefix:
+        name_without_ext = f"{prefix} {name_without_ext}"
+    if suffix:
+        name_without_ext = f"{name_without_ext} {suffix}"
         
-    new_filename = new_name
+    new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}")
         
     file_path = f"Renames/{new_filename}"
@@ -234,8 +250,8 @@ async def upload_doc(bot, update):
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
     
-    # Using specific username from script for ALL metadata titles instead of the full filename
-    custom_metadata_title = script.METADATA_TITLE
+    # Ippo metadata title original filename ah illama, puthu filename (ext illama) set aagum
+    custom_metadata_title = name_without_ext
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
     
@@ -346,7 +362,7 @@ async def set_media_cmd(client, message):
     await message.reply_text(
         "**Select Default Output Format:**\n\nIthula neenga select pandra format la thaan ini automatic ah file veliya varum.",
         reply_markup=InlineKeyboardMarkup(buttons),
-        reply_to_message_id=message.id # Ithu command ah track panna
+        reply_to_message_id=message.id
     )
 
 @Client.on_callback_query(filters.regex(r"^set_type_"))
@@ -361,7 +377,6 @@ async def set_type_callback(client, callback_query):
         await digital_botz.set_upload_type(user_id, "video")
         await callback_query.answer("✅ Default Output set to: VIDEO", show_alert=True)
         
-    # User anupina command um, bot reply um delete aagum
     try:
         await callback_query.message.delete()
         if callback_query.message.reply_to_message:
@@ -372,7 +387,6 @@ async def set_type_callback(client, callback_query):
 @Client.on_message(filters.private & filters.command("mode"))
 async def set_mode_cmd(client, message):
     user_id = message.from_user.id
-    # Database la irunthu current mode ah edukurom
     current_mode = await digital_botz.get_rename_mode(user_id) 
     
     buttons = [
@@ -402,10 +416,75 @@ async def rename_mode_callback(client, callback_query):
         await digital_botz.set_rename_mode(user_id, "manual")
         await callback_query.answer("✅ Mode set to: MANUAL RENAME", show_alert=True)
         
-    # User anupina command um, bot reply um delete aagum
     try:
         await callback_query.message.delete()
         if callback_query.message.reply_to_message:
             await callback_query.message.reply_to_message.delete()
+    except:
+        pass
+
+# --- Prefix and Suffix Commands ---
+
+@Client.on_message(filters.private & filters.command("set_prefix"))
+async def set_prefix_cmd(client, message):
+    if len(message.command) == 1:
+        msg = await message.reply_text("**Example:** `/set_prefix @Goku_Stark`")
+        await asyncio.sleep(5)
+        try:
+            await message.delete()
+            await msg.delete()
+        except:
+            pass
+        return
+    prefix = message.text.split(" ", 1)[1]
+    await digital_botz.set_prefix(message.from_user.id, prefix)
+    msg = await message.reply_text(f"✅ Prefix set to: `{prefix}`")
+    await asyncio.sleep(5)
+    try:
+        await message.delete()
+        await msg.delete()
+    except:
+        pass
+
+@Client.on_message(filters.private & filters.command("del_prefix"))
+async def del_prefix_cmd(client, message):
+    await digital_botz.set_prefix(message.from_user.id, None)
+    msg = await message.reply_text("❌ Prefix deleted.")
+    await asyncio.sleep(5)
+    try:
+        await message.delete()
+        await msg.delete()
+    except:
+        pass
+
+@Client.on_message(filters.private & filters.command("set_suffix"))
+async def set_suffix_cmd(client, message):
+    if len(message.command) == 1:
+        msg = await message.reply_text("**Example:** `/set_suffix @Goku_Stark`")
+        await asyncio.sleep(5)
+        try:
+            await message.delete()
+            await msg.delete()
+        except:
+            pass
+        return
+    suffix = message.text.split(" ", 1)[1]
+    await digital_botz.set_suffix(message.from_user.id, suffix)
+    msg = await message.reply_text(f"✅ Suffix set to: `{suffix}`")
+    await asyncio.sleep(5)
+    try:
+        await message.delete()
+        await msg.delete()
+    except:
+        pass
+
+@Client.on_message(filters.private & filters.command("del_suffix"))
+async def del_suffix_cmd(client, message):
+    await digital_botz.set_suffix(message.from_user.id, None)
+    msg = await message.reply_text("❌ Suffix deleted.")
+    await asyncio.sleep(5)
+    try:
+        await message.delete()
+        await msg.delete()
     except:
         pass
