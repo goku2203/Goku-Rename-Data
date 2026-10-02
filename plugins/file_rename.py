@@ -259,7 +259,8 @@ async def set_media_cmd(client, message):
     ]
     await message.reply_text(
         "**Select Default Output Format:**\n\nIthula neenga select pandra format la thaan ini automatic ah file veliya varum.",
-        reply_markup=InlineKeyboardMarkup(buttons)
+        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_to_message_id=message.id # Ithu command ah track panna
     )
 
 @Client.on_callback_query(filters.regex(r"^set_type_"))
@@ -269,7 +270,52 @@ async def set_type_callback(client, callback_query):
     
     if data == "set_type_doc":
         await digital_botz.set_upload_type(user_id, "doc")
-        await callback_query.message.edit_text("✅ Default Output set to: **DOCUMENT**\n\nIni automatic ah file Document ah convert aagum!")
+        await callback_query.answer("✅ Default Output set to: DOCUMENT", show_alert=True)
     elif data == "set_type_video":
         await digital_botz.set_upload_type(user_id, "video")
-        await callback_query.message.edit_text("✅ Default Output set to: **VIDEO**\n\nIni automatic ah file Video ah convert aagum!")
+        await callback_query.answer("✅ Default Output set to: VIDEO", show_alert=True)
+        
+    # User anupina command um, bot reply um delete aagum
+    try:
+        await callback_query.message.delete()
+        if callback_query.message.reply_to_message:
+            await callback_query.message.reply_to_message.delete()
+    except:
+        pass
+
+@Client.on_message(filters.private & filters.command("mode"))
+async def set_mode_cmd(client, message):
+    buttons = [
+        [
+            InlineKeyboardButton("🤖 Auto Rename", callback_data="rename_mode_auto"),
+            InlineKeyboardButton("✍️ Manual Rename", callback_data="rename_mode_manual")
+        ],
+        [
+            InlineKeyboardButton("✖️ Cancel", callback_data="close")
+        ]
+    ]
+    await message.reply_text(
+        "**Select Rename Mode:**\n\n**Auto Rename** - Automatic ah file rename aagum.\n**Manual Rename** - Neenga name type pandra varai wait pannum.",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_to_message_id=message.id
+    )
+
+@Client.on_callback_query(filters.regex(r"^rename_mode_"))
+async def rename_mode_callback(client, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data
+    
+    if data == "rename_mode_auto":
+        await digital_botz.set_rename_mode(user_id, "auto")
+        await callback_query.answer("✅ Mode set to: AUTO RENAME", show_alert=True)
+    elif data == "rename_mode_manual":
+        await digital_botz.set_rename_mode(user_id, "manual")
+        await callback_query.answer("✅ Mode set to: MANUAL RENAME", show_alert=True)
+        
+    # User anupina command um, bot reply um delete aagum
+    try:
+        await callback_query.message.delete()
+        if callback_query.message.reply_to_message:
+            await callback_query.message.reply_to_message.delete()
+    except:
+        pass
