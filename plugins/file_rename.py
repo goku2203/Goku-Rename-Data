@@ -110,7 +110,14 @@ async def custom_rename_handler(client, message):
     if not upload_type:
         return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` command use panni Document or Video select pannunga, appuram file anuppunga.")
         
-    processing_msg = await message.reply("`Please Wait...`", reply_to_message_id=message.id)
+    # Processing message-a anuppitu, mela irukka messages-a udane delete pandrom
+    processing_msg = await client.send_message(message.chat.id, "`Please Wait...`")
+    
+    try:
+        await prompt_msg.delete()
+        await message.delete()
+    except:
+        pass
     
     # File ah link pandrom upload_doc kku
     processing_msg.reply_to_message = file_msg 
@@ -182,7 +189,8 @@ async def upload_doc(bot, update):
 
     file = update.message.reply_to_message
     if not file:
-        return await rkn_processing.edit("Error: Original file message is missing or deleted! Please resend the file.")
+        await rkn_processing.edit("Error: Original file message is missing or deleted! Please resend the file.")
+        return False
     media = getattr(file, file.media.value)
     
     # Custom name irukka nu check pandrom
@@ -214,7 +222,14 @@ async def upload_doc(bot, update):
     try:            
         dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(DOWNLOAD_TEXT, rkn_processing, time.time()))                    
     except Exception as e:        
-        return await rkn_processing.edit(f"Download Error: {e}")
+        await rkn_processing.edit(f"Download Error: {e}")
+        return False
+        
+    # Download mudinja udane original file-a auto delete pandrom
+    try:
+        await file.delete()
+    except:
+        pass
     
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
@@ -254,7 +269,8 @@ async def upload_doc(bot, update):
          try:
              caption = c_caption.format(filename=new_filename, filesize=humanbytes(media.file_size), duration=convert(duration))
          except Exception as e:             
-             return await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
+             await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
+             return False
     else:
          caption = f"**{new_filename}**"
  
@@ -285,7 +301,8 @@ async def upload_doc(bot, update):
 
         if error:            
             await remove_path(ph_path, file_path, dl_path)
-            return await rkn_processing.edit(f"Upload Error: {error}")
+            await rkn_processing.edit(f"Upload Error: {error}")
+            return False
         
         from_chat = filw.chat.id
         mg_id = filw.id
@@ -300,10 +317,20 @@ async def upload_doc(bot, update):
                    
         if error:            
             await remove_path(ph_path, file_path, dl_path)
-            return await rkn_processing.edit(f"Upload Error: {error}")        
+            await rkn_processing.edit(f"Upload Error: {error}")        
+            return False
 
     await remove_path(ph_path, file_path, dl_path)
-    return await rkn_processing.edit("Uploaded Successfully....")
+    await rkn_processing.edit("Uploaded Successfully....")
+    
+    # 5 seconds wait panni success message-a mattum auto delete pandrom
+    await asyncio.sleep(5)
+    try:
+        await rkn_processing.delete()
+    except:
+        pass
+        
+    return True
 
 @Client.on_message(filters.private & filters.command("set_type"))
 async def set_media_cmd(client, message):
