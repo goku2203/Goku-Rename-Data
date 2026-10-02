@@ -100,7 +100,7 @@ async def custom_rename_handler(client, message):
         # Oruvela telegram cache la illana API moolama edukurom
         file_msg = await client.get_messages(message.chat.id, prompt_msg.reply_to_message_id)
         if not file_msg or not file_msg.media:
-            return await message.reply_text("❌ Original file kedaikala! Marubadiyum file ah anuppunga.")
+            return await message.reply_text("❌ Original file not found! Please send the file again.")
             
     custom_name = message.text
     user_id = message.from_user.id
@@ -108,7 +108,7 @@ async def custom_rename_handler(client, message):
     # 3. User set_type pannirukkangala nu check pandrom
     upload_type = await digital_botz.get_upload_type(user_id)
     if not upload_type:
-        return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` command use panni Document or Video select pannunga, appuram file anuppunga.")
+        return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` Use the command to select **Document** or **Video**, then send your file.")
         
     # Processing message-a anuppitu, mela irukka messages-a udane delete pandrom
     processing_msg = await client.send_message(message.chat.id, "`Please Wait...`")
@@ -360,7 +360,7 @@ async def set_media_cmd(client, message):
         ]
     ]
     await message.reply_text(
-        "**Select Default Output Format:**\n\nIthula neenga select pandra format la thaan ini automatic ah file veliya varum.",
+        "**Select Default Output Format:**\n\nThe file will be automatically renamed using the format you select here.",
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
     )
