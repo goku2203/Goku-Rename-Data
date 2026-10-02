@@ -81,7 +81,7 @@ async def rename_start(client, message):
 
     # Manual Mode Logic
     await message.reply(
-        text=script.MANUAL_RENAME_TXT.format(filename, filesize),
+        text=script.MANUAL_RENAME_TXT.format(filename, extension_type.upper(), filesize, mime_type, dcid),
         reply_to_message_id=message.id,
         reply_markup=ForceReply(True)
     )
@@ -91,7 +91,7 @@ async def custom_rename_handler(client, message):
     prompt_msg = message.reply_to_message
     
     # 1. Reply pandrathu namma bot oda prompt msg thana nu text ah vachu check pandrom
-    if not prompt_msg.text or "ᴇɴᴛᴇʀ ɴᴇᴡ ꜰɪʟᴇ ɴᴀᴍᴇ" not in prompt_msg.text:
+    if not prompt_msg.text or "Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ" not in prompt_msg.text:
         return
     
     # 2. Original file msg ah edukurom
