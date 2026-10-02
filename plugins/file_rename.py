@@ -47,39 +47,80 @@ async def rename_start(client, message):
     dcid = FileId.decode(rkn_file.file_id).dc_id
     extension_type = mime_type.split('/')[0]
     
-    # Intha idathula upload_type kooda serthu rename_mode um edukurom
     upload_type = await digital_botz.get_upload_type(user_id)
     rename_mode = await digital_botz.get_rename_mode(user_id)
     
-    # Condition ah maathitom: upload_type set aagi irukanum AND mode "auto" aaga irukanum
-    if upload_type and rename_mode == "auto":
-        class DummyUpdate:
-            def __init__(self, msg, usr, u_type):
-                self.message = msg
-                self.data = f"upload#{u_type}"
-                self.from_user = usr
+    # Auto mode logic
+    if rename_mode == "auto":
+        if upload_type:
+            class DummyUpdate:
+                def __init__(self, msg, usr, u_type):
+                    self.message = msg
+                    self.data = f"upload#{u_type}"
+                    self.from_user = usr
+                    
+            processing_msg = await message.reply("`Please Wait...`", reply_to_message_id=message.id)
+            processing_msg.reply_to_message = message
+            actual_type = "document" if upload_type == "doc" else "video"
+            dummy_update = DummyUpdate(processing_msg, message.from_user, actual_type)
+            await upload_doc(client, dummy_update)
+            return
+        else:
+            # Auto mode but set_type not set
+            button = [[InlineKeyboardButton("📁 Dᴏᴄᴜᴍᴇɴᴛ",callback_data = "upload#document")]]
+            if message.media in [MessageMediaType.VIDEO, MessageMediaType.DOCUMENT]:
+                button.append([InlineKeyboardButton("🎥 Vɪᴅᴇᴏ", callback_data = "upload#video")])
+            elif message.media == MessageMediaType.AUDIO:
+                button.append([InlineKeyboardButton("🎵 Aᴜᴅɪᴏ", callback_data = "upload#audio")])
                 
-        processing_msg = await message.reply("`Please Wait...`", reply_to_message_id=message.id)
-        processing_msg.reply_to_message = message
-        
-        actual_type = "document" if upload_type == "doc" else "video"
-        dummy_update = DummyUpdate(processing_msg, message.from_user, actual_type)
-        
-        await upload_doc(client, dummy_update)
-        return
+            await message.reply(
+                    text=f"**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{filename}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{extension_type.upper()}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{filesize}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{mime_type}`\n◈ ᴅᴄ ɪᴅ: `{dcid}`....__**",        
+                    reply_to_message_id=message.id,
+                    reply_markup=InlineKeyboardMarkup(button)
+                )
+            return
 
-    # Manual mode aaga iruntha intha default buttons kitta vanthudum
-    button = [[InlineKeyboardButton("📁 Dᴏᴄᴜᴍᴇɴᴛ",callback_data = "upload#document")]]
-    if message.media in [MessageMediaType.VIDEO, MessageMediaType.DOCUMENT]:
-        button.append([InlineKeyboardButton("🎥 Vɪᴅᴇᴏ", callback_data = "upload#video")])
-    elif message.media == MessageMediaType.AUDIO:
-        button.append([InlineKeyboardButton("🎵 Aᴜᴅɪᴏ", callback_data = "upload#audio")])
-        
+    # Manual mode logic - Ask for new name directly
     await message.reply(
-            text=f"**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{filename}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{extension_type.upper()}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{filesize}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{mime_type}`\n◈ ᴅᴄ ɪᴅ: `{dcid}`....__**",        
-            reply_to_message_id=message.id,
-            reply_markup=InlineKeyboardMarkup(button)
-        )
+        text=f"**✏️ ᴇɴᴛᴇʀ ɴᴇᴡ ꜰɪʟᴇ ɴᴀᴍᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{filename}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{filesize}`__**\n\n👉 Intha message-ku unga puthiya file name ah text ah reply pannunga.",        
+        reply_to_message_id=message.id,
+        reply_markup=ForceReply(True)
+    )
+
+@Client.on_message(filters.private & filters.text & filters.reply)
+async def custom_rename_handler(client, message):
+    prompt_msg = message.reply_to_message
+    # Reply pandrathu bot oda ForceReply message aaganu check pandrom
+    if not prompt_msg.reply_markup or not isinstance(prompt_msg.reply_markup, ForceReply):
+        return
+    
+    if not prompt_msg.reply_to_message or not prompt_msg.reply_to_message.media:
+        return
+        
+    file_msg = prompt_msg.reply_to_message
+    custom_name = message.text
+    user_id = message.from_user.id
+    
+    # User set_type pannirukkangala nu check pandrom
+    upload_type = await digital_botz.get_upload_type(user_id)
+    if not upload_type:
+        return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` command use panni Document or Video select pannunga, appuram file anuppunga.")
+        
+    processing_msg = await message.reply("`Please Wait...`", reply_to_message_id=message.id)
+    # File ah link pandrom upload_doc kku
+    processing_msg.reply_to_message = file_msg 
+    
+    actual_type = "document" if upload_type == "doc" else "video"
+    
+    class DummyUpdate:
+        def __init__(self, msg, usr, u_type, c_name):
+            self.message = msg
+            self.data = f"upload#{u_type}"
+            self.from_user = usr
+            self.custom_name = c_name
+            
+    dummy = DummyUpdate(processing_msg, message.from_user, actual_type, custom_name)
+    await upload_doc(client, dummy)
 
 async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption, duration, rkn_processing):
     try:
@@ -133,30 +174,38 @@ async def upload_doc(bot, update):
     rkn_processing = await update.message.edit("`Processing...`")
         
     user_id = int(update.message.chat.id) 
-    new_name = update.message.text
 
     file = update.message.reply_to_message
     if not file:
         return await rkn_processing.edit("Error: Original file message is missing or deleted! Please resend the file.")
     media = getattr(file, file.media.value)
     
-    info = renamer.extract_all_info(media.file_name)
+    # Custom name irukka nu check pandrom
+    custom_name = getattr(update, "custom_name", None)
     user_data = await digital_botz.get_user_data(user_id)
-    format_template = user_data.get('format_template', "{filename}")
-    if format_template is None:
-        format_template = "{filename}"
     
-    new_name = renamer.apply_format_template(info, format_template)
-    
-    if not new_name.endswith(f".{info['extension']}"):
-        new_name += f".{info['extension']}"
+    if custom_name:
+        new_name = custom_name
+        # Oruvela neenga extension (.mkv) poda marantha automatic ah add pannum
+        if "." not in new_name:
+            info = renamer.extract_all_info(media.file_name)
+            new_name += f".{info['extension']}"
+    else:
+        info = renamer.extract_all_info(media.file_name)
+        format_template = user_data.get('format_template', "{filename}")
+        if format_template is None:
+            format_template = "{filename}"
+        new_name = renamer.apply_format_template(info, format_template)
+        if not new_name.endswith(f".{info['extension']}"):
+            new_name += f".{info['extension']}"
         
     new_filename = new_name
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}")
         
     file_path = f"Renames/{new_filename}"
     
-    await rkn_processing.edit("`Try To Download....`")    
+    # Ithukku keela irukka code (Try To Download...) apdiye thodarum...
+    await rkn_processing.edit("`Try To Download....`")
     try:            
         dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(DOWNLOAD_TEXT, rkn_processing, time.time()))                    
     except Exception as e:        
