@@ -1,34 +1,3 @@
-# (c) @RknDeveloperr
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-# Special Thanks To @ReshamOwner
-# Update Channel @Digital_Botz & @DigitalBotz_Support
-"""
-Apache License 2.0
-Copyright (c) 2025 @Digital_Botz
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Telegram Link : https://t.me/Digital_Botz 
-Repo Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot
-License Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot/blob/main/LICENSE
-"""
-
 # pyrogram imports
 from pyrogram import Client, filters
 from pyrogram.enums import MessageMediaType
@@ -45,18 +14,17 @@ from PIL import Image
 from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path
 from helper.database import digital_botz
 from config import Config
+from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
 
 # extra imports
 from asyncio import sleep
 import os, time, asyncio
 
-
 UPLOAD_TEXT = """Uploading Started...."""
 DOWNLOAD_TEXT = """Download Started..."""
 
 app = Client("4gb_FileRenameBot", api_id=Config.API_ID, api_hash=Config.API_HASH, session_string=Config.STRING_SESSION)
-
 
 @Client.on_message(filters.private & (filters.audio | filters.document | filters.video))
 async def rename_start(client, message):
@@ -109,12 +77,6 @@ async def rename_start(client, message):
         )
 
 async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption, duration, rkn_processing):
-    """
-    Unified function to upload files based on type
-    - Supports both 2GB and 4GB files
-    - Uses same function for all file sizes
-    - Handles document, video, and audio files
-    """
     try:
         if not os.path.exists(file_path):
             return None, f"File not found: {file_path}"
@@ -158,7 +120,6 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
         return filw, None
         
     except Exception as e:
-        # Return error if upload fails
         return None, str(e)
 
 renamer = EnhancedAutoRenamer()
@@ -169,32 +130,25 @@ async def upload_doc(bot, update):
     user_id = int(update.message.chat.id) 
     new_name = update.message.text
 
-    # msg file location 
     file = update.message.reply_to_message
     if not file:
         return await rkn_processing.edit("Error: Original file message is missing or deleted! Please resend the file.")
     media = getattr(file, file.media.value)
-
     
-    # Extract information
     info = renamer.extract_all_info(media.file_name)
-
     user_data = await digital_botz.get_user_data(user_id)
     format_template = user_data.get('format_template', "{filename}")
     if format_template is None:
         format_template = "{filename}"
     
-    # Apply user's format template
     new_name = renamer.apply_format_template(info, format_template)
     
-    # Add extension if not present
     if not new_name.endswith(f".{info['extension']}"):
         new_name += f".{info['extension']}"
         
     new_filename = new_name
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}")
         
-    # File paths for download
     file_path = f"Renames/{new_filename}"
     
     await rkn_processing.edit("`Try To Download....`")    
@@ -206,8 +160,8 @@ async def upload_doc(bot, update):
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
     
-    # Using your specific username for ALL metadata titles instead of the full filename
-    custom_metadata_title = "@anime_love9"
+    # Using specific username from script for ALL metadata titles instead of the full filename
+    custom_metadata_title = script.METADATA_TITLE
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
     
@@ -239,7 +193,6 @@ async def upload_doc(bot, update):
 
     if c_caption:
          try:
-             # adding custom caption 
              caption = c_caption.format(filename=new_filename, filesize=humanbytes(media.file_size), duration=convert(duration))
          except Exception as e:             
              return await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
@@ -247,7 +200,6 @@ async def upload_doc(bot, update):
          caption = f"**{new_filename}**"
  
     if (media.thumbs or c_thumb):
-         # downloading thumbnail path
          try:
              if c_thumb:
                  ph_path = await bot.download_media(c_thumb) 
@@ -265,10 +217,8 @@ async def upload_doc(bot, update):
 
     upload_type = update.data.split("#")[1]
     
-    # Use the correct file path based on metadata mode
     final_file_path = file_path    
     if media.file_size > 2000 * 1024 * 1024:
-        # Upload file using unified function for large files
         filw, error = await upload_files(
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
@@ -284,7 +234,6 @@ async def upload_doc(bot, update):
         await bot.copy_message(update.from_user.id, from_chat, mg_id)
         await bot.delete_messages(from_chat, mg_id)        
     else:
-        # Upload file using unified function for regular files
         filw, error = await upload_files(
             bot, update.message.chat.id, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
@@ -294,7 +243,6 @@ async def upload_doc(bot, update):
             await remove_path(ph_path, file_path, dl_path)
             return await rkn_processing.edit(f"Upload Error: {error}")        
 
-    # Clean up files
     await remove_path(ph_path, file_path, dl_path)
     return await rkn_processing.edit("Uploaded Successfully....")
 
@@ -325,12 +273,3 @@ async def set_type_callback(client, callback_query):
     elif data == "set_type_video":
         await digital_botz.set_upload_type(user_id, "video")
         await callback_query.message.edit_text("✅ Default Output set to: **VIDEO**\n\nIni automatic ah file Video ah convert aagum!")
-
-# @RknDeveloper
-# ✅ Team-RknDeveloper
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-# Special Thanks To @ReshamOwner
-# Update Channel @Digital_Botz & @DigitalBotz_Support
