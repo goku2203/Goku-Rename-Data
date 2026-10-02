@@ -29,9 +29,9 @@ class Config(object):
     
     #force subs
     try:
-        FORCE_SUB = int(os.environ.get("FORCE_SUB", "https://t.me/goku_n")) 
+        FORCE_SUB = int(os.environ.get("FORCE_SUB", "goku_n")) 
     except:
-        FORCE_SUB = os.environ.get("FORCE_SUB", "")
+        FORCE_SUB = os.environ.get("FORCE_SUB", "goku_n")
         
     # wes response configuration     
     PORT = int(os.environ.get("PORT", "8080"))
