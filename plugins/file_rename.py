@@ -50,7 +50,7 @@ async def rename_start(client, message):
     upload_type = await digital_botz.get_upload_type(user_id)
     rename_mode = await digital_botz.get_rename_mode(user_id)
     
-    # Auto mode logic
+    # Auto Mode Logic
     if rename_mode == "auto":
         if upload_type:
             class DummyUpdate:
@@ -66,7 +66,6 @@ async def rename_start(client, message):
             await upload_doc(client, dummy_update)
             return
         else:
-            # Auto mode but set_type not set
             button = [[InlineKeyboardButton("📁 Dᴏᴄᴜᴍᴇɴᴛ",callback_data = "upload#document")]]
             if message.media in [MessageMediaType.VIDEO, MessageMediaType.DOCUMENT]:
                 button.append([InlineKeyboardButton("🎥 Vɪᴅᴇᴏ", callback_data = "upload#video")])
@@ -74,15 +73,15 @@ async def rename_start(client, message):
                 button.append([InlineKeyboardButton("🎵 Aᴜᴅɪᴏ", callback_data = "upload#audio")])
                 
             await message.reply(
-                    text=script.FILE_INFO_TXT.format(filename, extension_type.upper(), filesize, mime_type, dcid),        
-                    reply_to_message_id=message.id,
-                    reply_markup=InlineKeyboardMarkup(button)
-                )
+                text=script.FILE_INFO_TXT.format(filename, extension_type.upper(), filesize, mime_type, dcid),
+                reply_to_message_id=message.id,
+                reply_markup=InlineKeyboardMarkup(button)
+            )
             return
 
-    # Manual mode logic - Ask for new name directly
+    # Manual Mode Logic
     await message.reply(
-        text=f"**✏️ ᴇɴᴛᴇʀ ɴᴇᴡ ꜰɪʟᴇ ɴᴀᴍᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{filename}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{filesize}`__**\n\n👉 Intha message-ku unga puthiya file name ah text ah reply pannunga.",        
+        text=script.MANUAL_RENAME_TXT.format(filename, filesize),
         reply_to_message_id=message.id,
         reply_markup=ForceReply(True)
     )
@@ -90,23 +89,29 @@ async def rename_start(client, message):
 @Client.on_message(filters.private & filters.text & filters.reply)
 async def custom_rename_handler(client, message):
     prompt_msg = message.reply_to_message
-    # Reply pandrathu bot oda ForceReply message aaganu check pandrom
-    if not prompt_msg.reply_markup or not isinstance(prompt_msg.reply_markup, ForceReply):
+    
+    # 1. Reply pandrathu namma bot oda prompt msg thana nu text ah vachu check pandrom
+    if not prompt_msg.text or "ᴇɴᴛᴇʀ ɴᴇᴡ ꜰɪʟᴇ ɴᴀᴍᴇ" not in prompt_msg.text:
         return
     
-    if not prompt_msg.reply_to_message or not prompt_msg.reply_to_message.media:
-        return
-        
+    # 2. Original file msg ah edukurom
     file_msg = prompt_msg.reply_to_message
+    if not file_msg or not file_msg.media:
+        # Oruvela telegram cache la illana API moolama edukurom
+        file_msg = await client.get_messages(message.chat.id, prompt_msg.reply_to_message_id)
+        if not file_msg or not file_msg.media:
+            return await message.reply_text("❌ Original file kedaikala! Marubadiyum file ah anuppunga.")
+            
     custom_name = message.text
     user_id = message.from_user.id
     
-    # User set_type pannirukkangala nu check pandrom
+    # 3. User set_type pannirukkangala nu check pandrom
     upload_type = await digital_botz.get_upload_type(user_id)
     if not upload_type:
         return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` command use panni Document or Video select pannunga, appuram file anuppunga.")
         
     processing_msg = await message.reply("`Please Wait...`", reply_to_message_id=message.id)
+    
     # File ah link pandrom upload_doc kku
     processing_msg.reply_to_message = file_msg 
     
