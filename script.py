@@ -1,7 +1,7 @@
 class script(object):
-    
-START_TXT = """<b>Hello {} 👋\n
-    "Welcome to the Advanced Rename Bot!"
+    # part of text configuration
+    START_TXT = """<b>Hi {} 👋\n
+    "Welcome to the Advanced Rename Bot! 🚀"
     
     "What I can do:
     • Auto and Manual Rename your files easily 📁
