@@ -399,7 +399,7 @@ async def set_mode_cmd(client, message):
         ]
     ]
     await message.reply_text(
-        f"**Select Rename Mode:**\n\n**Current Mode:** `{current_mode.upper()}`\n\n**Auto Rename** - Automatic ah file rename aagum.\n**Manual Rename** - Neenga name type pandra varai wait pannum.",
+        f"**Select Rename Mode:**\n\n**Current Mode:** `{current_mode.upper()}`\n\n**Auto Rename** - The file will be renamed automatically.\n**Manual Rename** - The bot will wait until you enter a new name.",
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
     )
