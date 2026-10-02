@@ -80,7 +80,7 @@ V𝟹.𝟶.𝟶 [STABLE]
 
 • ❣️ <a href=https://github.com/RknDeveloper>RknDeveloper</a>
 • ❣️ <a href=https://github.com/DigitalBotz>DigitalBotz</a>
-• ❣️ <a href=https://github.com/JayMahakal98>Jay Mahakal</a> """
+• ❣️️ <a href=https://github.com/JayMahakal98>Jay Mahakal</a> """
 
     RKN_PROGRESS = """<b>
 
@@ -104,10 +104,10 @@ V𝟹.𝟶.𝟶 [STABLE]
     # Manual Mode
     FILE_INFO_TXT = """**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{}`\n◈ ᴅᴄ ɪᴅ: `{}`....__**"""
 
-MANUAL_RENAME_TXT = """**✏️ Eɴᴛᴇʀ Nᴇᴡ Fɪʟᴇ Nᴀᴍᴇ**
+    MANUAL_RENAME_TXT = """**✏️ Eɴᴛᴇʀ Nᴇᴡ Fɪʟᴇ Nᴀᴍᴇ**
 
-**📂 <u>Fɪʟᴇ Dᴇᴛᴀɪʟs</u>:**
-**├ 🏷️️ Nᴀᴍᴇ:** `{}`
-**╰ 💾 𝚂ɪᴢᴇ:** `{}`
+    **📂 <u>Fɪʟᴇ Dᴇᴛᴀɪʟs</u>:**
+    **├ 🏷 Nᴀᴍᴇ:** `{}`
+    **╰ 💾 𝚂ɪᴢᴇ:** `{}`
 
-👉 Pʟᴇᴀsᴇ Eɴᴛᴇʀ Tʜᴇ Nᴇᴡ Fɪʟᴇɴᴀᴍᴇ."""
+    👉 Pʟᴇᴀsᴇ Eɴᴛᴇʀ Tʜᴇ Nᴇᴡ Fɪʟᴇɴᴀᴍᴇ."""
