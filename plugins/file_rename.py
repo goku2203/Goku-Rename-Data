@@ -198,7 +198,7 @@ async def upload_doc(bot, update):
     user_data = await digital_botz.get_user_data(user_id)
     
     if custom_name:
-        new_name = custom_name
+        new_name = custom_name.replace("_", " ") # Underscore removed for manual mode
         # Oruvela neenga extension (.mkv) poda marantha automatic ah add pannum
         if "." not in new_name:
             info = renamer.extract_all_info(media.file_name)
@@ -229,6 +229,7 @@ async def upload_doc(bot, update):
         name_without_ext = f"{name_without_ext} {suffix}"
         
     new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
+    new_filename = new_filename.replace("_", " ") # Force remove underlines everywhere
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}")
         
     file_path = f"Renames/{new_filename}"
@@ -251,7 +252,7 @@ async def upload_doc(bot, update):
     out_path = f"Renames/meta_{new_filename}"
     
     # Ippo metadata title original filename ah illama, puthu filename (ext illama) set aagum
-    custom_metadata_title = name_without_ext
+    custom_metadata_title = script.METADATA_TITLE
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
     
