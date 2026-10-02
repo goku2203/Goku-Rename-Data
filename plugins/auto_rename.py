@@ -1,4 +1,5 @@
 import re
+import asyncio
 from pathlib import Path
 from typing import Dict
 from pyrogram import Client, filters
@@ -219,3 +220,24 @@ async def format_callback(client, callback_query):
             f"✅ Format set to **{data.split('_')[1].title()}**!\n\n`{formats[data]}`"
         )
     await callback_query.answer()
+
+@Client.on_message(filters.private & filters.command("viewformat"))
+async def view_format_cmd(client, message):
+    user_id = message.from_user.id
+    current_format = await digital_botz.get_format_template(user_id)
+    prefix = await digital_botz.get_prefix(user_id)
+    suffix = await digital_botz.get_suffix(user_id)
+    
+    text = "**📊 Yᴏᴜʀ Cᴜʀʀᴇɴᴛ Aᴜᴛᴏ-Rᴇɴᴀᴍᴇ Sᴇᴛᴛɪɴɢꜱ:**\n\n"
+    text += f"**👉 Fᴏʀᴍᴀᴛ:** `{current_format if current_format else '{filename}'}`\n"
+    text += f"**👉 Pʀᴇғɪx:** `{prefix if prefix else 'None'}`\n"
+    text += f"**👉 Sᴜғғɪx:** `{suffix if suffix else 'None'}`\n"
+    
+    msg = await message.reply_text(text)
+    
+    await asyncio.sleep(15)
+    try:
+        await message.delete()
+        await msg.delete()
+    except:
+        pass
