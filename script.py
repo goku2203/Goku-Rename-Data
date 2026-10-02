@@ -93,3 +93,10 @@ V𝟹.𝟶.𝟶 [STABLE]
 │
 ╰─「 Please wait... 」
 </b>"""
+
+    # Custom Metadata & Tags
+    METADATA_TITLE = "@Goku_Stark"
+    CUSTOM_TAG = "@Goku_Stark"
+
+    # Force Sub Message
+    FORCE_SUB_TEXT = "**Sᴏʀʀy Dᴜᴅᴇ Yᴏᴜ'ʀᴇ Nᴏᴛ Jᴏɪɴᴇᴅ My Cʜᴀɴɴᴇʟ 😐. Sᴏ Pʟᴇᴀꜱᴇ Jᴏɪɴ Oᴜʀ Uᴩᴅᴀᴛᴇ Cʜᴀɴɴᴇʟ Tᴏ Cᴏɴᴛɪɴᴜᴇ**"
