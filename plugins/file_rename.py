@@ -205,6 +205,15 @@ async def upload_doc(bot, update):
             new_name += f".{info['extension']}"
     else:
         info = renamer.extract_all_info(media.file_name)
+        
+        # Caption-la irunthu Season, Quality, extra details thedi yedukkum logic
+        if file.caption:
+            caption_info = renamer.extract_all_info(file.caption.replace("\n", " "))
+            for key, value in caption_info.items():
+                # Title, extension thavira matha fields empty-a iruntha caption data-va fill pannum
+                if key not in ["title", "original_name", "extension"] and not info.get(key) and value:
+                    info[key] = value
+                    
         format_template = user_data.get('format_template', "{filename}")
         if format_template is None:
             format_template = "{filename}"
