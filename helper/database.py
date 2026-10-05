@@ -23,6 +23,7 @@ class Database:
             caption=None,
             prefix=None,
             suffix=None,
+            dump_id=None,
             join_date=datetime.date.today().isoformat(),
             format_template="{filename}",            
             upload_type=None,
@@ -143,5 +144,12 @@ class Database:
     async def get_suffix(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return user.get('suffix', None) if user else None
+
+    async def set_dump(self, id, dump_id):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'dump_id': dump_id}})
+
+    async def get_dump(self, id):
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('dump_id', None) if user else None
     
 digital_botz = Database(Config.DB_URL, Config.DB_NAME)
