@@ -272,6 +272,8 @@ async def upload_doc(bot, update):
         name_without_ext = f"{name_without_ext} {suffix}"
         
     new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
+            # Telegram underscore problem-a bypass panna special Unicode space add pandrom
+            new_filename = new_filename.replace(" ", "\u00A0")
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
