@@ -231,11 +231,19 @@ async def upload_doc(bot, update):
             
         total_len = p_len + len(temp_name) + s_len
         
-        # If length exceeds 60 characters, cut only the title
-        if total_len > 60:
-            excess = total_len - 60
-            if len(info['title']) > excess + 3:
-                info['title'] = info['title'][:-(excess + 3)].strip() + "..."
+        # If length exceeds 200 characters (Telegram Safe Limit), cut smartly with space
+        if total_len > 200:
+            excess = total_len - 200
+            title_limit = len(info['title']) - (excess + 3)
+            
+            if title_limit > 0:
+                short_title = info['title'][:title_limit]
+                # Find the last space to avoid cutting a word in half
+                last_space = short_title.rfind(" ")
+                if last_space > 0:
+                    info['title'] = short_title[:last_space].strip() + "..."
+                else:
+                    info['title'] = short_title.strip() + "..."
                 
         # Rebuild final name with safely shortened title
         new_name = renamer.apply_format_template(info, format_template)
