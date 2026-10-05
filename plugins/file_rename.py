@@ -217,61 +217,66 @@ async def upload_doc(bot, update):
         format_template = user_data.get('format_template', "{filename}")
         if format_template is None:
             format_template = "{filename}"
-            
-        # --- Smart Title Limit Logic ---
+
         prefix = user_data.get('prefix', None)
         suffix = user_data.get('suffix', None)
-        p_len = len(prefix) + 1 if prefix else 0
-        s_len = len(suffix) + 1 if suffix else 0
-        
-        # Generate temp name to check total length
-        temp_name = renamer.apply_format_template(info, format_template)
-        if not temp_name.endswith(f".{info['extension']}"):
-            temp_name += f".{info['extension']}"
-            
-        total_len = p_len + len(temp_name) + s_len
-        
-        # If length exceeds 200 characters (Telegram Safe Limit), cut smartly with space
-        if total_len > 200:
-            excess = total_len - 200
-            title_limit = len(info['title']) - (excess + 3)
-            
-            if title_limit > 0:
-                short_title = info['title'][:title_limit]
-                # Find the last space to avoid cutting a word in half
-                last_space = short_title.rfind(" ")
-                if last_space > 0:
-                    info['title'] = short_title[:last_space].strip() + "..."
-                else:
-                    info['title'] = short_title.strip() + "..."
-                
-        # Rebuild final name with safely shortened title
-        new_name = renamer.apply_format_template(info, format_template)
-        if not new_name.endswith(f".{info['extension']}"):
-            new_name += f".{info['extension']}"
-        # -------------------------------
 
-    # Add Prefix and Suffix
-    if "." in new_name:
-        name_without_ext = new_name.rsplit('.', 1)[0]
-        ext = new_name.rsplit('.', 1)[1]
-    else:
-        name_without_ext = new_name
-        ext = ""
+        # 1. Caption kku Full Name (Limit illama) generate panrom
+        cap_info = info.copy()
+        if cap_info.get('title'):
+            cap_info['title'] = cap_info['title'].replace("_", " ")
         
-    # 1. First file name-la irukka underscores-a space ah maathidrom
-    name_without_ext = name_without_ext.replace("_", " ")
+        full_caption_name = renamer.apply_format_template(cap_info, format_template)
+        if not full_caption_name.endswith(f".{cap_info['extension']}"):
+            full_caption_name += f".{cap_info['extension']}"
+
+        cap_name_without_ext = full_caption_name.rsplit('.', 1)[0] if "." in full_caption_name else full_caption_name
+        cap_ext = full_caption_name.rsplit('.', 1)[1] if "." in full_caption_name else ""
+        cap_name_without_ext = cap_name_without_ext.replace("_", " ")
         
-    prefix = user_data.get('prefix', None)
-    suffix = user_data.get('suffix', None)
-    
-    # 2. Appuram Prefix and Suffix add pandrom (Ippo prefix-la ulla _ azhiyathu)
-    if prefix:
-        name_without_ext = f"{prefix} {name_without_ext}"
-    if suffix:
-        name_without_ext = f"{name_without_ext} {suffix}"
+        if prefix:
+            cap_name_without_ext = f"{prefix} {cap_name_without_ext}"
+        if suffix:
+            cap_name_without_ext = f"{cap_name_without_ext} {suffix}"
+            
+        final_caption_name = f"{cap_name_without_ext}.{cap_ext}" if cap_ext else cap_name_without_ext
+
+        # 2. File Name kku Title, Season, Episode, Quality mattum add panrom
+        title_str = info.get('title', '').replace("_", " ")
         
-    new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
+        # Title ah 60 letters kku cut panrom
+        if len(title_str) > 60:
+            title_str = title_str[:60].strip()
+        
+        season_str = info.get('season', '')
+        episode_str = info.get('episode', '')
+        quality_str = info.get('quality', '')
+
+        # File name create panrom
+        file_name_parts = []
+        if title_str:
+            file_name_parts.append(title_str)
+        
+        # Season and Episode onna serkurom (e.g., S01E10)
+        se_str = f"{season_str}{episode_str}"
+        if se_str:
+            file_name_parts.append(se_str)
+        
+        if quality_str:
+            file_name_parts.append(quality_str)
+            
+        file_name_core = " ".join(file_name_parts)
+        
+        # File name-la Prefix and Suffix add panrom
+        if prefix:
+            file_name_core = f"{prefix} {file_name_core}"
+        if suffix:
+            file_name_core = f"{file_name_core} {suffix}"
+            
+        # Extra spaces iruntha remove panrom
+        file_name_core = " ".join(file_name_core.split())
+
+        new_filename = f"{file_name_core}.{info['extension']}" if info['extension'] else file_name_core
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
@@ -326,29 +331,29 @@ async def upload_doc(bot, update):
     c_thumb = user_data.get('file_id', None)
 
     if c_caption:
-         try:
-             caption = c_caption.format(filename=new_filename, filesize=humanbytes(media.file_size), duration=convert(duration))
-         except Exception as e:             
-             await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
-             return False
+        try:
+            caption = c_caption.format(filename=final_caption_name, filesize=humanbytes(media.file_size), duration=convert(duration))
+        except Exception as e:             
+            await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
+            return False
     else:
-         caption = f"**{new_filename}**"
+        caption = f"**{new_filename}**"
  
     if (media.thumbs or c_thumb):
-         try:
-             if c_thumb:
-                 ph_path = await bot.download_media(c_thumb) 
-             else:
-                 ph_path = await bot.download_media(media.thumbs[0].file_id)
-             
-             if ph_path and os.path.exists(ph_path):
-                 Image.open(ph_path).convert("RGB").save(ph_path)
-                 img = Image.open(ph_path)
-                 img.resize((320, 320))
-                 img.save(ph_path, "JPEG")
-         except Exception as e:
-             print(f"Error processing thumbnail: {e}")
-             ph_path = None
+        try:
+            if c_thumb:
+                ph_path = await bot.download_media(c_thumb) 
+            else:
+                ph_path = await bot.download_media(media.thumbs[0].file_id)
+            
+            if ph_path and os.path.exists(ph_path):
+                Image.open(ph_path).convert("RGB").save(ph_path)
+                img = Image.open(ph_path)
+                img.resize((320, 320))
+                img.save(ph_path, "JPEG")
+        except Exception as e:
+            print(f"Error processing thumbnail: {e}")
+            ph_path = None
 
     upload_type = update.data.split("#")[1]
     
