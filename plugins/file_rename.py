@@ -198,7 +198,24 @@ async def upload_doc(bot, update):
         final_caption_name = new_name
         new_filename = new_name
     else:
-        info = renamer.extract_all_info(media.file_name)
+        # --- NEW FEATURE: Filename la underlines irunthu box illana, Caption a check panra logic ---
+        source_name = media.file_name
+
+        if file.caption:
+            # 1. Caption la 'File Name:' nu irukka nu check pannum
+            if "File Name:" in file.caption:
+                for line in file.caption.split('\n'):
+                    if "File Name:" in line:
+                        source_name = line.split("File Name:")[1].strip()
+                        break
+            # 2. Illana, file_name la box illama, caption starting la box '[' iruntha athai eduthukkum
+            elif not media.file_name.strip().startswith("["):
+                first_line = file.caption.split('\n')[0].strip()
+                if first_line.startswith("["):
+                    source_name = first_line
+
+        # Ippo pudhu source_name a vechu info extract pannum (Toons box automatic a remove aagidum)
+        info = renamer.extract_all_info(source_name)
         
         # Caption-la irunthu Season, Quality, extra details thedi yedukkum logic
         if file.caption:
