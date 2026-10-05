@@ -90,14 +90,11 @@ async def rename_start(client, message):
 async def custom_rename_handler(client, message):
     prompt_msg = message.reply_to_message
     
-    # 1. Reply pandrathu namma bot oda prompt msg thana nu text ah vachu check pandrom
     if not prompt_msg.text or "Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ" not in prompt_msg.text:
         return
     
-    # 2. Original file msg ah edukurom
     file_msg = prompt_msg.reply_to_message
     if not file_msg or not file_msg.media:
-        # Oruvela telegram cache la illana API moolama edukurom
         file_msg = await client.get_messages(message.chat.id, prompt_msg.reply_to_message_id)
         if not file_msg or not file_msg.media:
             return await message.reply_text("❌ Original file not found! Please send the file again.")
@@ -105,12 +102,10 @@ async def custom_rename_handler(client, message):
     custom_name = message.text
     user_id = message.from_user.id
     
-    # 3. User set_type pannirukkangala nu check pandrom
     upload_type = await digital_botz.get_upload_type(user_id)
     if not upload_type:
         return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` Use the command to select **Document** or **Video**, then send your file.")
         
-    # Processing message-a anuppitu, mela irukka messages-a udane delete pandrom
     processing_msg = await client.send_message(message.chat.id, "`Please Wait...`")
     
     try:
@@ -119,9 +114,7 @@ async def custom_rename_handler(client, message):
     except:
         pass
     
-    # File ah link pandrom upload_doc kku
     processing_msg.reply_to_message = file_msg 
-    
     actual_type = "document" if upload_type == "doc" else "video"
     
     class DummyUpdate:
@@ -200,7 +193,7 @@ async def upload_doc(bot, update):
         new_name = custom_name.replace("_", " ")
         if "." not in new_name:
             info = renamer.extract_all_info(media.file_name)
-            new_name += f".{info['extension']}"
+            new_name += f".{info.get('extension', 'mkv')}"
             
         final_caption_name = new_name
         new_filename = new_name
@@ -219,32 +212,34 @@ async def upload_doc(bot, update):
 
         prefix = user_data.get('prefix', None)
         suffix = user_data.get('suffix', None)
+        ext_str = info.get('extension', 'mkv')
 
         # --- 1. CAPTION GENERATION (Full Format Template Applied) ---
         cap_info = info.copy()
-        if cap_info.get('title'):
-            cap_info['title'] = cap_info['title'].replace("_", " ")
+        # Title and other fields kku mattum _ remove panrom
+        for k, v in cap_info.items():
+            if isinstance(v, str) and k != 'extension':
+                cap_info[k] = v.replace("_", " ")
         
         full_caption_name = renamer.apply_format_template(cap_info, format_template)
-        if not full_caption_name.endswith(f".{cap_info['extension']}"):
-            full_caption_name += f".{cap_info['extension']}"
+        if not full_caption_name.endswith(f".{ext_str}"):
+            full_caption_name += f".{ext_str}"
 
         if "." in full_caption_name:
-            cap_name_without_ext = full_caption_name.rsplit('.', 1)[0]
+            cap_base = full_caption_name.rsplit('.', 1)[0]
             cap_ext = f".{full_caption_name.rsplit('.', 1)[1]}"
         else:
-            cap_name_without_ext = full_caption_name
+            cap_base = full_caption_name
             cap_ext = ""
             
-        cap_name_without_ext = cap_name_without_ext.replace("_", " ")
-        
+        # Prefix and Suffix ippo endha change-um illama add aagum (with their original underlines)
         if prefix:
-            cap_name_without_ext = f"{prefix} {cap_name_without_ext}"
+            cap_base = f"{prefix} {cap_base}"
         if suffix:
-            cap_name_without_ext = f"{cap_name_without_ext} {suffix}"
+            cap_base = f"{cap_base} {suffix}"
             
-        final_caption_name = f"{cap_name_without_ext}{cap_ext}"
-        final_caption_name = " ".join(final_caption_name.split()).replace("_", " ")
+        final_caption_name = f"{cap_base}{cap_ext}"
+        final_caption_name = " ".join(final_caption_name.split())
 
         # --- 2. FILENAME GENERATION (Only Cut Title + Season + Episode + Quality) ---
         title_str = info.get('title', '').replace("_", " ")
@@ -268,16 +263,15 @@ async def upload_doc(bot, update):
             
         file_name_core = " ".join(file_name_parts)
         
+        # Prefix and Suffix ippo endha change-um illama add aagum
         if prefix:
             file_name_core = f"{prefix} {file_name_core}"
         if suffix:
             file_name_core = f"{file_name_core} {suffix}"
             
         file_name_core = " ".join(file_name_core.split())
-        file_name_core = file_name_core.replace("_", " ")
 
-        new_filename = f"{file_name_core}.{info.get('extension', 'mkv')}" if info.get('extension') else file_name_core
-        new_filename = new_filename.replace("_", " ")
+        new_filename = f"{file_name_core}.{ext_str}"
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
