@@ -193,104 +193,91 @@ async def upload_doc(bot, update):
         return False
     media = getattr(file, file.media.value)
     
+    # Custom name irukka nu check pandrom
     custom_name = getattr(update, "custom_name", None)
     user_data = await digital_botz.get_user_data(user_id)
     
-    prefix = user_data.get('prefix', None)
-    suffix = user_data.get('suffix', None)
-    
     if custom_name:
-        # ========================================================
-        # MANUAL RENAME LOGIC
-        # ========================================================
-        new_name = custom_name.replace("_", " ")
+        new_name = custom_name.replace("_", " ") # Underscore removed for manual mode
+        # Oruvela neenga extension (.mkv) poda marantha automatic ah add pannum
         if "." not in new_name:
             info = renamer.extract_all_info(media.file_name)
             new_name += f".{info['extension']}"
-            
-        if "." in new_name:
-            name_without_ext, ext = new_name.rsplit(".", 1)
-        else:
-            name_without_ext = new_name
-            ext = ""
-            
-        name_without_ext = name_without_ext.strip()
-        
-        if prefix:
-            name_without_ext = f"{prefix.strip()} {name_without_ext}"
-        if suffix:
-            name_without_ext = f"{name_without_ext} {suffix.strip()}"
-            
-        new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
-
     else:
-        # ========================================================
-        # AUTO RENAME LOGIC (CLAUDE + CHATGPT + 55 LIMIT MIXED)
-        # ========================================================
-        raw_name = (media.file_name or "").replace("_", " ")
-        raw_name = " ".join(raw_name.split())
-        info = renamer.extract_all_info(raw_name)
+        info = renamer.extract_all_info(media.file_name)
         
+        # Caption-la irunthu Season, Quality, extra details thedi yedukkum logic
         if file.caption:
-            clean_caption = file.caption.replace("\n", " ").replace("_", " ")
-            clean_caption = " ".join(clean_caption.split())
-            caption_info = renamer.extract_all_info(clean_caption)
+            caption_info = renamer.extract_all_info(file.caption.replace("\n", " "))
             for key, value in caption_info.items():
+                # Title, extension thavira matha fields empty-a iruntha caption data-va fill pannum
                 if key not in ["title", "original_name", "extension"] and not info.get(key) and value:
                     info[key] = value
                     
         format_template = user_data.get('format_template', "{filename}")
         if format_template is None:
             format_template = "{filename}"
-
-        MAX_BYTES = 200
-
-        def build_name(title_text):
-            info['title'] = title_text
-            name = renamer.apply_format_template(info, format_template)
-            if not name.endswith(f".{info['extension']}"):
-                name += f".{info['extension']}"
             
-            name = " ".join(name.split())
-            
-            if prefix:
-                name = f"{prefix.strip()} {name}"
-            if suffix:
-                base, dot, ext = name.rpartition(".")
-                if dot:
-                    name = f"{base} {suffix.strip()}.{ext}"
-                else:
-                    name = f"{name} {suffix.strip()}"
-            return name
-
-        original_title = info['title']
+        # --- Smart Title Limit Logic ---
+        prefix = user_data.get('prefix', None)
+        suffix = user_data.get('suffix', None)
+        p_len = len(prefix) + 1 if prefix else 0
+        s_len = len(suffix) + 1 if suffix else 0
         
-        # Smart limit for mobile straight line (55 characters)
-        if len(original_title) > 55:
-            title_limit = 55
-            short_title = original_title[:title_limit]
-            last_space = short_title.rfind(" ")
-            if last_space > 0:
-                original_title = short_title[:last_space].strip() + "..."
-            else:
-                original_title = short_title.strip() + "..."
+        # Generate temp name to check total length
+        temp_name = renamer.apply_format_template(info, format_template)
+        if not temp_name.endswith(f".{info['extension']}"):
+            temp_name += f".{info['extension']}"
+            
+        total_len = p_len + len(temp_name) + s_len
+        
+        # If length exceeds 200 characters (Telegram Safe Limit), cut smartly with space
+        if total_len > 200:
+            excess = total_len - 200
+            title_limit = len(info['title']) - (excess + 3)
+            
+            if title_limit > 0:
+                short_title = info['title'][:title_limit]
+                # Find the last space to avoid cutting a word in half
+                last_space = short_title.rfind(" ")
+                if last_space > 0:
+                    info['title'] = short_title[:last_space].strip() + "..."
+                else:
+                    info['title'] = short_title.strip() + "..."
+                
+        # Rebuild final name with safely shortened title
+        new_name = renamer.apply_format_template(info, format_template)
+        if not new_name.endswith(f".{info['extension']}"):
+            new_name += f".{info['extension']}"
+        # -------------------------------
 
-        new_filename = build_name(original_title)
-
-        # Byte safety check
-        if len(new_filename.encode("utf-8")) > MAX_BYTES:
-            words = original_title.split(" ")
-            while words:
-                words.pop()
-                candidate = " ".join(words).strip()
-                new_filename = build_name(candidate + "..." if candidate else "")
-                if len(new_filename.encode("utf-8")) <= MAX_BYTES:
-                    break
-
-    print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
-    file_path = f"Renames/{new_filename}"
-    dl_path = None
+    # Add Prefix and Suffix
+    if "." in new_name:
+        name_without_ext = new_name.rsplit('.', 1)[0]
+        ext = new_name.rsplit('.', 1)[1]
+    else:
+        name_without_ext = new_name
+        ext = ""
+        
+    # 1. First file name-la irukka underscores-a space ah maathidrom
+    name_without_ext = name_without_ext.replace("_", " ")
+        
+    prefix = user_data.get('prefix', None)
+    suffix = user_data.get('suffix', None)
     
+    # 2. Appuram Prefix and Suffix add pandrom (Ippo prefix-la ulla _ azhiyathu)
+    if prefix:
+        name_without_ext = f"{prefix} {name_without_ext}"
+    if suffix:
+        name_without_ext = f"{name_without_ext} {suffix}"
+        
+    new_filename = f"{name_without_ext}.{ext}" if ext else name_without_ext
+    
+    print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
+    
+    file_path = f"Renames/{new_filename}"
+    
+    # Ithukku keela irukka code (Try To Download...) apdiye thodarum...
     await rkn_processing.edit("`Try To Download....`")
     try:            
         dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(DOWNLOAD_TEXT, rkn_processing, time.time()))                    
@@ -298,6 +285,7 @@ async def upload_doc(bot, update):
         await rkn_processing.edit(f"Download Error: {e}")
         return False
         
+    # Download mudinja udane original file-a auto delete pandrom
     try:
         await file.delete()
     except:
@@ -306,6 +294,7 @@ async def upload_doc(bot, update):
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
     
+    # Ippo metadata title original filename ah illama, puthu filename (ext illama) set aagum
     custom_metadata_title = script.METADATA_TITLE
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
@@ -318,13 +307,11 @@ async def upload_doc(bot, update):
         final_clean_path = f"Renames/{new_filename}"
         os.rename(out_path, final_clean_path)
         final_file_path = final_clean_path
-    else:
-        final_file_path = file_path
 
     await rkn_processing.edit("`Try To Uploading....`")        
     duration = 0
     try:
-        parser = createParser(final_file_path)
+        parser = createParser(file_path)
         metadata = extractMetadata(parser)
         if metadata and metadata.has("duration"):
             duration = metadata.get('duration').seconds
@@ -365,6 +352,7 @@ async def upload_doc(bot, update):
 
     upload_type = update.data.split("#")[1]
     
+    final_file_path = file_path    
     if media.file_size > 2000 * 1024 * 1024:
         filw, error = await upload_files(
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
@@ -372,7 +360,7 @@ async def upload_doc(bot, update):
         )
 
         if error:            
-            await remove_path(ph_path, final_file_path, dl_path)
+            await remove_path(ph_path, file_path, dl_path)
             await rkn_processing.edit(f"Upload Error: {error}")
             return False
         
@@ -386,15 +374,16 @@ async def upload_doc(bot, update):
             bot, update.message.chat.id, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
         )
-                    
+                   
         if error:            
-            await remove_path(ph_path, final_file_path, dl_path)
+            await remove_path(ph_path, file_path, dl_path)
             await rkn_processing.edit(f"Upload Error: {error}")        
             return False
 
-    await remove_path(ph_path, final_file_path, dl_path)
+    await remove_path(ph_path, file_path, dl_path)
     await rkn_processing.edit("Uploaded Successfully....")
     
+    # 5 seconds wait panni success message-a mattum auto delete pandrom
     await asyncio.sleep(5)
     try:
         await rkn_processing.delete()
