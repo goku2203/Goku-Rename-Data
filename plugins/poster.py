@@ -63,8 +63,9 @@ async def poster_cmd(client, message):
         await process_msg.edit(f"**Error:** `{e}`")
 
 # --- Step 2 & 3: Fetch Image, Add Watermark & Show Next/Back ---
-@Client.on_callback_query(filters.regex(r"^show_img\|"))
+@Client.on_callback_query(filters.regex(r"^show_img\|"), group=1)
 async def show_image_cb(client, query: CallbackQuery):
+    await query.answer() # Button loading animation a udane stop panna
     _, tmdb_id, media_type, img_index = query.data.split("|")
     img_index = int(img_index)
     user_id = query.from_user.id
@@ -181,13 +182,14 @@ async def show_image_cb(client, query: CallbackQuery):
     except Exception as e:
         await query.message.edit(f"**Error:** `{e}`")
 
-@Client.on_callback_query(filters.regex(r"^delete_auto$"))
+@Client.on_callback_query(filters.regex(r"^delete_auto$"), group=1)
 async def manual_delete_cb(client, query: CallbackQuery):
+    await query.answer("Deleted!")
     try:
         await query.message.delete()
     except:
         pass
 
-@Client.on_callback_query(filters.regex(r"^ignore$"))
+@Client.on_callback_query(filters.regex(r"^ignore$"), group=1)
 async def ignore_cb(client, query: CallbackQuery):
     await query.answer()
