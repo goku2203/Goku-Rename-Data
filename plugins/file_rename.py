@@ -200,6 +200,7 @@ async def upload_doc(bot, update):
     else:
         info = renamer.extract_all_info(media.file_name)
         
+        # Caption-la irunthu Season, Quality, extra details thedi yedukkum logic
         if file.caption:
             caption_info = renamer.extract_all_info(file.caption.replace("\n", " "))
             for key, value in caption_info.items():
@@ -216,7 +217,6 @@ async def upload_doc(bot, update):
 
         # --- 1. CAPTION GENERATION (Full Format Template Applied) ---
         cap_info = info.copy()
-        # Title and other fields kku mattum _ remove panrom
         for k, v in cap_info.items():
             if isinstance(v, str) and k != 'extension':
                 cap_info[k] = v.replace("_", " ")
@@ -232,7 +232,8 @@ async def upload_doc(bot, update):
             cap_base = full_caption_name
             cap_ext = ""
             
-        # Prefix and Suffix ippo endha change-um illama add aagum (with their original underlines)
+        cap_base = cap_base.replace("_", " ")
+            
         if prefix:
             cap_base = f"{prefix} {cap_base}"
         if suffix:
@@ -241,37 +242,47 @@ async def upload_doc(bot, update):
         final_caption_name = f"{cap_base}{cap_ext}"
         final_caption_name = " ".join(final_caption_name.split())
 
-        # --- 2. FILENAME GENERATION (Only Cut Title + Season + Episode + Quality) ---
+        # --- 2. FILENAME GENERATION (Total 60 Characters Limit) ---
+        # Prefix, Suffix la irukka underlines azhiyathu. Title, S, E, Q la ulla underlines space aagum.
         title_str = info.get('title', '').replace("_", " ")
-        if len(title_str) > 60:
-            title_str = title_str[:60].strip()
-        
         season_str = info.get('season', '').replace("_", " ")
         episode_str = info.get('episode', '').replace("_", " ")
         quality_str = info.get('quality', '').replace("_", " ")
+        
+        prefix_str = prefix if prefix else ""
+        suffix_str = suffix if suffix else ""
+        se_str = f"{season_str}{episode_str}"
+
+        # Total 60 characters limit logic
+        parts_except_title = []
+        if prefix_str: parts_except_title.append(prefix_str)
+        if se_str: parts_except_title.append(se_str)
+        if quality_str: parts_except_title.append(quality_str)
+        if suffix_str: parts_except_title.append(suffix_str)
+        
+        # Calculate extra length (prefix + SE + quality + extension + spaces)
+        extra_len = sum(len(p) for p in parts_except_title) + len(parts_except_title)
+        ext_len = len(ext_str) + 1 if ext_str else 0
+        
+        max_title_len = 60 - extra_len - ext_len
+        
+        # Cut the title so the entire filename exactly fits 60 characters
+        if max_title_len > 0 and len(title_str) > max_title_len:
+            title_str = title_str[:max_title_len].strip()
+        elif max_title_len <= 0:
+            title_str = ""
 
         file_name_parts = []
-        if title_str:
-            file_name_parts.append(title_str)
-        
-        se_str = f"{season_str}{episode_str}"
-        if se_str:
-            file_name_parts.append(se_str)
-        
-        if quality_str:
-            file_name_parts.append(quality_str)
+        if prefix_str: file_name_parts.append(prefix_str)
+        if title_str: file_name_parts.append(title_str)
+        if se_str: file_name_parts.append(se_str)
+        if quality_str: file_name_parts.append(quality_str)
+        if suffix_str: file_name_parts.append(suffix_str)
             
         file_name_core = " ".join(file_name_parts)
-        
-        # Prefix and Suffix ippo endha change-um illama add aagum
-        if prefix:
-            file_name_core = f"{prefix} {file_name_core}"
-        if suffix:
-            file_name_core = f"{file_name_core} {suffix}"
-            
-        file_name_core = " ".join(file_name_core.split())
+        file_name_core = " ".join(file_name_core.split()) # Extra spaces remove panrom
 
-        new_filename = f"{file_name_core}.{ext_str}"
+        new_filename = f"{file_name_core}.{ext_str}" if ext_str else file_name_core
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
