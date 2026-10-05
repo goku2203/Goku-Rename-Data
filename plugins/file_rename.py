@@ -383,27 +383,35 @@ async def upload_doc(bot, update):
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
         )
-
-        if error:            
+        if error:
             await remove_path(ph_path, final_file_path, dl_path)
             await rkn_processing.edit(f"Upload Error: {error}")
             return False
-        
+            
         from_chat = filw.chat.id
         mg_id = filw.id
         await asyncio.sleep(2)
-        await bot.copy_message(update.from_user.id, from_chat, mg_id)
-        await bot.delete_messages(from_chat, mg_id)        
+        success_msg = await bot.copy_message(update.from_user.id, from_chat, mg_id)
+        await bot.delete_messages(from_chat, mg_id)
+            
     else:
         filw, error = await upload_files(
             bot, update.message.chat.id, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
         )
-                   
-        if error:            
+        if error:
             await remove_path(ph_path, final_file_path, dl_path)
-            await rkn_processing.edit(f"Upload Error: {error}")        
+            await rkn_processing.edit(f"Upload Error: {error}")
             return False
+        success_msg = filw
+
+    # --- PUDHU DUMP LOGIC ---
+    dump_id = await digital_botz.get_dump(user_id)
+    if dump_id and success_msg:
+        try:
+            await success_msg.copy(int(dump_id))
+        except Exception as e:
+            print(f"Dump Channel kku anuppa mudiyala: {e}")
 
     await remove_path(ph_path, final_file_path, dl_path)
     await rkn_processing.edit("Uploaded Successfully....")
