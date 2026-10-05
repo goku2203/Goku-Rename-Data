@@ -193,24 +193,23 @@ async def upload_doc(bot, update):
         return False
     media = getattr(file, file.media.value)
     
-    # Custom name irukka nu check pandrom
     custom_name = getattr(update, "custom_name", None)
     user_data = await digital_botz.get_user_data(user_id)
     
     if custom_name:
-        new_name = custom_name.replace("_", " ") # Underscore removed for manual mode
-        # Oruvela neenga extension (.mkv) poda marantha automatic ah add pannum
+        new_name = custom_name.replace("_", " ")
         if "." not in new_name:
             info = renamer.extract_all_info(media.file_name)
             new_name += f".{info['extension']}"
+            
+        final_caption_name = new_name
+        new_filename = new_name
     else:
         info = renamer.extract_all_info(media.file_name)
         
-        # Caption-la irunthu Season, Quality, extra details thedi yedukkum logic
         if file.caption:
             caption_info = renamer.extract_all_info(file.caption.replace("\n", " "))
             for key, value in caption_info.items():
-                # Title, extension thavira matha fields empty-a iruntha caption data-va fill pannum
                 if key not in ["title", "original_name", "extension"] and not info.get(key) and value:
                     info[key] = value
                     
@@ -221,7 +220,7 @@ async def upload_doc(bot, update):
         prefix = user_data.get('prefix', None)
         suffix = user_data.get('suffix', None)
 
-        # 1. Caption kku Full Name (Limit illama) generate panrom
+        # --- 1. CAPTION GENERATION (Full Format Template Applied) ---
         cap_info = info.copy()
         if cap_info.get('title'):
             cap_info['title'] = cap_info['title'].replace("_", " ")
@@ -230,8 +229,13 @@ async def upload_doc(bot, update):
         if not full_caption_name.endswith(f".{cap_info['extension']}"):
             full_caption_name += f".{cap_info['extension']}"
 
-        cap_name_without_ext = full_caption_name.rsplit('.', 1)[0] if "." in full_caption_name else full_caption_name
-        cap_ext = full_caption_name.rsplit('.', 1)[1] if "." in full_caption_name else ""
+        if "." in full_caption_name:
+            cap_name_without_ext = full_caption_name.rsplit('.', 1)[0]
+            cap_ext = f".{full_caption_name.rsplit('.', 1)[1]}"
+        else:
+            cap_name_without_ext = full_caption_name
+            cap_ext = ""
+            
         cap_name_without_ext = cap_name_without_ext.replace("_", " ")
         
         if prefix:
@@ -239,12 +243,11 @@ async def upload_doc(bot, update):
         if suffix:
             cap_name_without_ext = f"{cap_name_without_ext} {suffix}"
             
-        final_caption_name = f"{cap_name_without_ext}.{cap_ext}" if cap_ext else cap_name_without_ext
+        final_caption_name = f"{cap_name_without_ext}{cap_ext}"
+        final_caption_name = " ".join(final_caption_name.split())
 
-        # 2. File Name kku Title, Season, Episode, Quality mattum add panrom
+        # --- 2. FILENAME GENERATION (Only Cut Title + Season + Episode + Quality) ---
         title_str = info.get('title', '').replace("_", " ")
-        
-        # Title ah 60 letters kku cut panrom
         if len(title_str) > 60:
             title_str = title_str[:60].strip()
         
@@ -252,12 +255,10 @@ async def upload_doc(bot, update):
         episode_str = info.get('episode', '')
         quality_str = info.get('quality', '')
 
-        # File name create panrom
         file_name_parts = []
         if title_str:
             file_name_parts.append(title_str)
         
-        # Season and Episode onna serkurom (e.g., S01E10)
         se_str = f"{season_str}{episode_str}"
         if se_str:
             file_name_parts.append(se_str)
@@ -267,13 +268,11 @@ async def upload_doc(bot, update):
             
         file_name_core = " ".join(file_name_parts)
         
-        # File name-la Prefix and Suffix add panrom
         if prefix:
             file_name_core = f"{prefix} {file_name_core}"
         if suffix:
             file_name_core = f"{file_name_core} {suffix}"
             
-        # Extra spaces iruntha remove panrom
         file_name_core = " ".join(file_name_core.split())
 
         new_filename = f"{file_name_core}.{info['extension']}" if info['extension'] else file_name_core
@@ -282,7 +281,6 @@ async def upload_doc(bot, update):
     
     file_path = f"Renames/{new_filename}"
     
-    # Ithukku keela irukka code (Try To Download...) apdiye thodarum...
     await rkn_processing.edit("`Try To Download....`")
     try:            
         dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(DOWNLOAD_TEXT, rkn_processing, time.time()))                    
@@ -290,7 +288,6 @@ async def upload_doc(bot, update):
         await rkn_processing.edit(f"Download Error: {e}")
         return False
         
-    # Download mudinja udane original file-a auto delete pandrom
     try:
         await file.delete()
     except:
@@ -299,7 +296,6 @@ async def upload_doc(bot, update):
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
     
-    # Ippo metadata title original filename ah illama, puthu filename (ext illama) set aagum
     custom_metadata_title = script.METADATA_TITLE
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
@@ -307,6 +303,7 @@ async def upload_doc(bot, update):
     proc = await asyncio.create_subprocess_shell(cmd)
     await proc.communicate()
     
+    final_file_path = file_path
     if os.path.exists(out_path):
         os.remove(file_path)
         final_clean_path = f"Renames/{new_filename}"
@@ -316,7 +313,7 @@ async def upload_doc(bot, update):
     await rkn_processing.edit("`Try To Uploading....`")        
     duration = 0
     try:
-        parser = createParser(file_path)
+        parser = createParser(final_file_path)
         metadata = extractMetadata(parser)
         if metadata and metadata.has("duration"):
             duration = metadata.get('duration').seconds
@@ -337,7 +334,7 @@ async def upload_doc(bot, update):
             await rkn_processing.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇyᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")             
             return False
     else:
-        caption = f"**{new_filename}**"
+        caption = f"**{final_caption_name}**"
  
     if (media.thumbs or c_thumb):
         try:
@@ -357,7 +354,6 @@ async def upload_doc(bot, update):
 
     upload_type = update.data.split("#")[1]
     
-    final_file_path = file_path    
     if media.file_size > 2000 * 1024 * 1024:
         filw, error = await upload_files(
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
@@ -365,7 +361,7 @@ async def upload_doc(bot, update):
         )
 
         if error:            
-            await remove_path(ph_path, file_path, dl_path)
+            await remove_path(ph_path, final_file_path, dl_path)
             await rkn_processing.edit(f"Upload Error: {error}")
             return False
         
@@ -381,14 +377,13 @@ async def upload_doc(bot, update):
         )
                    
         if error:            
-            await remove_path(ph_path, file_path, dl_path)
+            await remove_path(ph_path, final_file_path, dl_path)
             await rkn_processing.edit(f"Upload Error: {error}")        
             return False
 
-    await remove_path(ph_path, file_path, dl_path)
+    await remove_path(ph_path, final_file_path, dl_path)
     await rkn_processing.edit("Uploaded Successfully....")
     
-    # 5 seconds wait panni success message-a mattum auto delete pandrom
     await asyncio.sleep(5)
     try:
         await rkn_processing.delete()
