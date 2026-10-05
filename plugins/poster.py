@@ -6,97 +6,172 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQ
 from PIL import Image, ImageDraw, ImageFont
 from helper.database import digital_botz
 
+# Inga unga TMDB API Key a podunga
+TMDB_API_KEY = "f0ed821364e340369110e83b814899ed"
+
 # --- Set Custom Watermark Name ---
 @Client.on_message(filters.private & filters.command(['set_watermark']))
 async def set_watermark_cmd(client, message):
     if len(message.command) == 1:
-        return await message.reply_text("**__Please provide a Custom Name__\n\nEx :- `/set_watermark @Techgokul`**")
+        return await message.reply_text("**__Custom Name kudu bro__\n\nEx :- `/set_watermark @Techgokul`**")
     
     watermark_name = message.text.split(" ", 1)[1]
     await digital_botz.set_watermark(message.from_user.id, watermark_name)
-    await message.reply_text(f"**Watermark Name saved successfully:** `{watermark_name}`\n\nNow try the `/p Anime Name` command.")
+    await message.reply_text(f"**Watermark Name saved successfully:** `{watermark_name}`")
 
-# --- Generate Poster Command ---
+# --- Step 1: Search Anime and Show List ---
 @Client.on_message(filters.private & filters.command(['poster', 'p']))
 async def poster_cmd(client, message):
     if len(message.command) == 1:
-        return await message.reply_text("**__Please provide an Anime Name__\n\nEx :- `/p Naruto`**")
+        return await message.reply_text("**__Anime Name kudu bro__\n\nEx :- `/p Naruto`**")
     
-    anime_title = message.text.split(" ", 1)[1]
+    query = message.text.split(" ", 1)[1]
+    process_msg = await message.reply_text("`Searching...`")
     
-    buttons = [
-        [InlineKeyboardButton("🌅 Generate Poster", callback_data=f"gen_poster|{anime_title}")],
-        [InlineKeyboardButton("❌ Cancel", callback_data="close")]
-    ]
-    
-    await message.reply_text(
-        f"**Anime:** `{anime_title}`\n\nClick the button below to generate the poster.",
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
-
-# --- Button Click Action & Image Processing ---
-@Client.on_callback_query(filters.regex(r"^gen_poster\|"))
-async def generate_poster_cb(client, query: CallbackQuery):
-    anime_title = query.data.split("|")[1]
-    user_id = query.from_user.id
-    
-    process_msg = await query.message.edit_text("`Drawing anime landscape... Please wait...`")
-    
-    # Fetch image using API (Landscape 1280x720)
-    api_url = f"https://image.pollinations.ai/prompt/Beautiful%20masterpiece%20anime%20landscape%20background%20for%20{anime_title}%20with%20title%20text?width=1280&height=720&nologo=true"
+    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&query={query}"
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as resp:
-                if resp.status != 200:
-                    return await process_msg.edit("`API Error! Cannot generate the image.`")
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+        results = data.get("results", [])
+        if not results:
+            return await process_msg.edit("**Anime kidaikkala bro! Spelling check pannunga.**")
+            
+        buttons = []
+        # Top 5 results a buttons la kaatta porom
+        for res in results[:5]:
+            media_type = res.get("media_type")
+            if media_type not in ["tv", "movie"]:
+                continue
+            title = res.get("name") if media_type == "tv" else res.get("title")
+            year = res.get("first_air_date", "")[:4] if media_type == "tv" else res.get("release_date", "")[:4]
+            tmdb_id = res.get("id")
+            
+            btn_text = f"{title} ({year})"
+            # Callback data: tmdb_id | media_type | image_index
+            buttons.append([InlineKeyboardButton(btn_text, callback_data=f"show_img|{tmdb_id}|{media_type}|0")])
+            
+        buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="close")])
+        
+        await process_msg.edit(
+            f"**Search Results for:** `{query}`\n\nKela irukkura list la onna select pannunga:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await process_msg.edit(f"**Error:** `{e}`")
+
+# --- Step 2 & 3: Fetch Image, Add Watermark & Show Next/Back ---
+@Client.on_callback_query(filters.regex(r"^show_img\|"))
+async def show_image_cb(client, query: CallbackQuery):
+    _, tmdb_id, media_type, img_index = query.data.split("|")
+    img_index = int(img_index)
+    user_id = query.from_user.id
+    
+    await query.message.edit_text("`Fetching original landscape image...`")
+    
+    # Get landscape backdrops from TMDB
+    url = f"https://api.themoviedb.org/3/{media_type}/{tmdb_id}/images?api_key={TMDB_API_KEY}"
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                data = await resp.json()
+                
+        backdrops = data.get("backdrops", [])
+        if not backdrops:
+            return await query.message.edit("**Intha anime kku landscape image kidaikkala bro!**")
+            
+        # Limit index correctly for Next/Back
+        if img_index >= len(backdrops):
+            img_index = 0
+        elif img_index < 0:
+            img_index = len(backdrops) - 1
+            
+        selected_img = backdrops[img_index]["file_path"]
+        img_url = f"https://image.tmdb.org/t/p/original{selected_img}"
+        
+        # Download Image
+        async with aiohttp.ClientSession() as session:
+            async with session.get(img_url) as resp:
                 img_data = await resp.read()
                 
-        # Add Glass Effect Watermark using Pillow
+        # --- DRAW WATERMARK (Exact style from 2nd photo) ---
         img = Image.open(io.BytesIO(img_data)).convert("RGBA")
-        txt_layer = Image.new("RGBA", img.size, (255, 255, 255, 0))
-        draw = ImageDraw.Draw(txt_layer)
+        overlay = Image.new("RGBA", img.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(overlay)
         
-        # Get user's saved watermark name
         watermark_text = await digital_botz.get_watermark(user_id)
         if not watermark_text:
-            watermark_text = "@Techgokul" # Default name
+            watermark_text = "@Techgokul"
             
-        # Use default font with size 40
-        font = ImageFont.load_default(size=40)
-        
-        # Calculate position for Top Right corner
+        try:
+            # Try loading a readable size font
+            font = ImageFont.load_default(size=40)
+        except:
+            font = ImageFont.load_default()
+            
+        # Exact Watermark Box calculations
         bbox = draw.textbbox((0, 0), watermark_text, font=font)
         text_width = bbox[2] - bbox[0]
-        x_pos = img.width - text_width - 30  # 30px gap from right
-        y_pos = 30 # 30px gap from top
+        text_height = bbox[3] - bbox[1]
         
-        # Draw semi-transparent text (Glass effect)
-        draw.text((x_pos, y_pos), watermark_text, fill=(255, 255, 255, 150), font=font)
+        box_width = text_width + 80  # Space for text + logo + padding
+        box_height = max(text_height + 20, 50)
         
-        # Create final image
-        final_img = Image.alpha_composite(img, txt_layer).convert("RGB")
+        # Top Right corner position
+        x0 = img.width - box_width - 30
+        y0 = 30
+        x1 = x0 + box_width
+        y1 = y0 + box_height
         
-        # Save and send the image
+        # 1. Draw Black semi-transparent rounded box
+        draw.rounded_rectangle([x0, y0, x1, y1], radius=25, fill=(0, 0, 0, 180))
+        
+        # 2. Draw Telegram Blue circle inside the box
+        circle_d = 30
+        cx0 = x0 + 15
+        cy0 = y0 + (box_height - circle_d) // 2
+        cx1 = cx0 + circle_d
+        cy1 = cy0 + circle_d
+        draw.ellipse([cx0, cy0, cx1, cy1], fill=(36, 161, 222, 255))
+        
+        # 3. Draw White Text
+        text_x = cx1 + 10
+        text_y = y0 + (box_height - text_height) // 2 - 5
+        draw.text((text_x, text_y), watermark_text, fill=(255, 255, 255, 255), font=font)
+        
+        # Merge and save
+        final_img = Image.alpha_composite(img, overlay).convert("RGB")
         out_path = f"poster_{user_id}.jpg"
         final_img.save(out_path, format="JPEG", quality=90)
         
-        del_button = [[InlineKeyboardButton("🗑 Delete Now", callback_data="delete_auto")]]
+        # --- NEXT, BACK & DELETE BUTTONS ---
+        nav_buttons = []
+        if len(backdrops) > 1:
+            nav_buttons.append([
+                InlineKeyboardButton("⬅️ Back", callback_data=f"show_img|{tmdb_id}|{media_type}|{img_index - 1}"),
+                InlineKeyboardButton(f"{img_index + 1}/{len(backdrops)}", callback_data="ignore"),
+                InlineKeyboardButton("Next ➡️", callback_data=f"show_img|{tmdb_id}|{media_type}|{img_index + 1}")
+            ])
+            
+        nav_buttons.append([InlineKeyboardButton("🗑 Delete Now", callback_data="delete_auto")])
+        
+        await query.message.delete()
         
         sent_photo = await client.send_photo(
             chat_id=user_id,
             photo=out_path,
-            caption=f"**{anime_title}** Landscape Poster 🌅\n\n*(This message will auto-delete in 2 minutes)*",
-            reply_markup=InlineKeyboardMarkup(del_button)
+            caption=f"Landscape Image {img_index + 1} 🌅\n\n*(This message will auto-delete in 2 minutes)*",
+            reply_markup=InlineKeyboardMarkup(nav_buttons)
         )
-        
-        await process_msg.delete()
         
         import os
         if os.path.exists(out_path):
             os.remove(out_path)
             
-        # Auto-delete after 2 minutes (120 seconds)
+        # Auto-delete after 120 seconds
         await asyncio.sleep(120)
         try:
             await sent_photo.delete()
@@ -104,12 +179,15 @@ async def generate_poster_cb(client, query: CallbackQuery):
             pass
             
     except Exception as e:
-        await process_msg.edit(f"**Error:** `{e}`")
+        await query.message.edit(f"**Error:** `{e}`")
 
-# --- Manual Delete Button Action ---
 @Client.on_callback_query(filters.regex(r"^delete_auto$"))
 async def manual_delete_cb(client, query: CallbackQuery):
     try:
         await query.message.delete()
     except:
         pass
+
+@Client.on_callback_query(filters.regex(r"^ignore$"))
+async def ignore_cb(client, query: CallbackQuery):
+    await query.answer()
