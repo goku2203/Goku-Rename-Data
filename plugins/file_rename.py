@@ -244,16 +244,16 @@ async def upload_doc(bot, update):
             cap_name_without_ext = f"{cap_name_without_ext} {suffix}"
             
         final_caption_name = f"{cap_name_without_ext}{cap_ext}"
-        final_caption_name = " ".join(final_caption_name.split())
+        final_caption_name = " ".join(final_caption_name.split()).replace("_", " ")
 
         # --- 2. FILENAME GENERATION (Only Cut Title + Season + Episode + Quality) ---
         title_str = info.get('title', '').replace("_", " ")
         if len(title_str) > 60:
             title_str = title_str[:60].strip()
         
-        season_str = info.get('season', '')
-        episode_str = info.get('episode', '')
-        quality_str = info.get('quality', '')
+        season_str = info.get('season', '').replace("_", " ")
+        episode_str = info.get('episode', '').replace("_", " ")
+        quality_str = info.get('quality', '').replace("_", " ")
 
         file_name_parts = []
         if title_str:
@@ -274,8 +274,10 @@ async def upload_doc(bot, update):
             file_name_core = f"{file_name_core} {suffix}"
             
         file_name_core = " ".join(file_name_core.split())
+        file_name_core = file_name_core.replace("_", " ")
 
-        new_filename = f"{file_name_core}.{info['extension']}" if info['extension'] else file_name_core
+        new_filename = f"{file_name_core}.{info.get('extension', 'mkv')}" if info.get('extension') else file_name_core
+        new_filename = new_filename.replace("_", " ")
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
