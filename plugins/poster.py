@@ -178,9 +178,9 @@ def draw_watermark(img, layer, text, scale):
     region = img.crop((bx0, by0, bx1, by1)).filter(ImageFilter.GaussianBlur(blur))
     region = region.crop((x0 - bx0, y0 - by0, x0 - bx0 + w, y0 - by0 + h))
 
-    # 2. Dark translucent acrylic overlay for contrast against white backgrounds
-    dark_overlay = Image.new("RGBA", region.size, (18, 24, 32, 165))
-    region = Image.alpha_composite(region, dark_overlay)
+    # 2. Pure Frosted Glass Overlay (Transparent Effect)
+    glass_overlay = Image.new("RGBA", region.size, (255, 255, 255, 40))
+    region = Image.alpha_composite(region, glass_overlay)
     img.paste(region, (x0, y0), rounded_mask(w, h, radius))
 
     # 3. Outer delicate glass shine border
