@@ -196,10 +196,10 @@ def draw_watermark(img, layer, text, scale):
     # 4. Telegram icon
     paste_rgba(layer, telegram_icon(icon_d), x0 + pad_l, y0 + (h - icon_d) // 2)
 
-    # 5. Bold text with soft drop shadow
+    # 5. Bold text with glass effect (translucent white + soft shadow)
     tx = x0 + pad_l + icon_d + gap - bbox[0]
     ty = y0 + (h - th) // 2 - bbox[1]
-    text_shadow(layer, (tx, ty), text, font, fill=(255, 255, 255, 255), shadow_color=(0, 0, 0, 160))
+    text_shadow(layer, (tx, ty), text, font, fill=(255, 255, 255, 220), shadow_color=(0, 0, 0, 100))
 
 def build_poster(img_bytes, text, scale, out_path, style=0, info=None):
     img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
@@ -379,6 +379,13 @@ async def wm_menu_text(user_id, status_alert=None):
 async def auto_delete(msg):
     await asyncio.sleep(AUTO_DELETE_SECONDS)
     try:
+        # 1. User anupina original command (/p name) ah first delete pannum
+        if msg.reply_to_message:
+            await msg.reply_to_message.delete()
+    except Exception:
+        pass
+    try:
+        # 2. Bot anupina poster ah delete pannum
         await msg.delete()
     except Exception:
         pass
@@ -391,6 +398,8 @@ async def deliver(client, query, media_source, caption, markup):
     """
     is_url = isinstance(media_source, str) and (media_source.startswith("http://") or media_source.startswith("https://"))
     local_file_to_clean = media_source if (not is_url and os.path.exists(media_source)) else None
+
+    reply_id = query.message.reply_to_message.id if query.message.reply_to_message else None
 
     try:
         if query.message.photo:
@@ -423,7 +432,8 @@ async def deliver(client, query, media_source, caption, markup):
                     chat_id=query.message.chat.id,
                     photo=media_source,
                     caption=caption,
-                    reply_markup=markup
+                    reply_markup=markup,
+                    reply_to_message_id=reply_id
                 )
             except Exception:
                 if is_url:
@@ -436,7 +446,8 @@ async def deliver(client, query, media_source, caption, markup):
                         chat_id=query.message.chat.id,
                         photo=tmp_path,
                         caption=caption,
-                        reply_markup=markup
+                        reply_markup=markup,
+                        reply_to_message_id=reply_id
                     )
             if sent:
                 asyncio.create_task(auto_delete(sent))
@@ -519,9 +530,10 @@ async def poster_cmd(client, message):
 async def close_search_cb(client, query: CallbackQuery):
     await query.answer()
     try:
-        await query.message.delete()
+        # User message first delete aaganum
         if query.message.reply_to_message:
             await query.message.reply_to_message.delete()
+        await query.message.delete()
     except Exception:
         pass
 
@@ -575,10 +587,12 @@ async def back_search_cb(client, query: CallbackQuery):
         except Exception:
             pass
 
+        reply_id = query.message.reply_to_message.id if query.message.reply_to_message else None
         await client.send_message(
             chat_id=query.message.chat.id,
             text=f"**Search Results for:** `{search_query}`\n\nSelect a title to view landscape backdrops:",
-            reply_markup=InlineKeyboardMarkup(buttons)
+            reply_markup=InlineKeyboardMarkup(buttons),
+            reply_to_message_id=reply_id
         )
     except Exception as e:
         try:
@@ -958,9 +972,10 @@ async def receive_watermark(client, message):
 async def manual_delete_cb(client, query: CallbackQuery):
     await query.answer("Deleted!")
     try:
-        await query.message.delete()
+        # User message first delete aaganum
         if query.message.reply_to_message:
             await query.message.reply_to_message.delete()
+        await query.message.delete()
     except Exception:
         pass
 
