@@ -399,7 +399,9 @@ async def deliver(client, query, media_source, caption, markup):
     is_url = isinstance(media_source, str) and (media_source.startswith("http://") or media_source.startswith("https://"))
     local_file_to_clean = media_source if (not is_url and os.path.exists(media_source)) else None
 
-    reply_id = query.message.reply_to_message.id if query.message.reply_to_message else None
+    # Force fetch full message to safely get reply_to_message link
+    full_msg = await client.get_messages(query.message.chat.id, query.message.id)
+    reply_id = full_msg.reply_to_message.id if (full_msg and full_msg.reply_to_message) else None
 
     try:
         if query.message.photo:
@@ -530,9 +532,9 @@ async def poster_cmd(client, message):
 async def close_search_cb(client, query: CallbackQuery):
     await query.answer()
     try:
-        # User message first delete aaganum
-        if query.message.reply_to_message:
-            await query.message.reply_to_message.delete()
+        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
+        if full_msg and full_msg.reply_to_message:
+            await full_msg.reply_to_message.delete()
         await query.message.delete()
     except Exception:
         pass
@@ -582,12 +584,14 @@ async def back_search_cb(client, query: CallbackQuery):
 
         buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="close_search")])
 
+        # Delete panrathuku munnadi link ah thedi edukkanum
+        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
+        reply_id = full_msg.reply_to_message.id if (full_msg and full_msg.reply_to_message) else None
+
         try:
             await query.message.delete()
         except Exception:
             pass
-
-        reply_id = query.message.reply_to_message.id if query.message.reply_to_message else None
         await client.send_message(
             chat_id=query.message.chat.id,
             text=f"**Search Results for:** `{search_query}`\n\nSelect a title to view landscape backdrops:",
@@ -972,9 +976,9 @@ async def receive_watermark(client, message):
 async def manual_delete_cb(client, query: CallbackQuery):
     await query.answer("Deleted!")
     try:
-        # User message first delete aaganum
-        if query.message.reply_to_message:
-            await query.message.reply_to_message.delete()
+        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
+        if full_msg and full_msg.reply_to_message:
+            await full_msg.reply_to_message.delete()
         await query.message.delete()
     except Exception:
         pass
