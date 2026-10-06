@@ -189,11 +189,18 @@ async def upload_doc(bot, update):
     custom_name = getattr(update, "custom_name", None)
     user_data = await digital_botz.get_user_data(user_id)
     
+    raw_ext = ""
+    if media and getattr(media, "file_name", None) and "." in media.file_name:
+        raw_ext = media.file_name.rsplit(".", 1)[-1].strip()
+    if not raw_ext:
+        raw_ext = "mkv"
+
     if custom_name:
         new_name = custom_name.replace("_", " ")
         if "." not in new_name:
-            info = renamer.extract_all_info(media.file_name)
-            new_name += f".{info.get('extension', 'mkv')}"
+            info = renamer.extract_all_info(media.file_name) if media.file_name else {}
+            ext = (info.get('extension') or raw_ext or "mkv").lstrip(".").strip()
+            new_name += f".{ext}"
             
         final_caption_name = new_name
         new_filename = new_name
@@ -230,7 +237,10 @@ async def upload_doc(bot, update):
 
         prefix = user_data.get('prefix', None)
         suffix = user_data.get('suffix', None)
-        ext_str = info.get('extension', 'mkv')
+        ext_str = (info.get('extension') or raw_ext or 'mkv').lstrip('.').strip()
+        if not ext_str:
+            ext_str = 'mkv'
+        info['extension'] = ext_str
 
         # --- 1. CAPTION GENERATION (Full Format Template Applied) ---
         cap_info = info.copy()
@@ -299,7 +309,13 @@ async def upload_doc(bot, update):
         file_name_core = " ".join(file_name_parts)
         file_name_core = " ".join(file_name_core.split()) # Extra spaces remove panrom
 
-        new_filename = f"{file_name_core}.{ext_str}" if ext_str else file_name_core
+        if not file_name_core.lower().endswith(f".{ext_str.lower()}"):
+            new_filename = f"{file_name_core}.{ext_str}"
+        else:
+            new_filename = file_name_core
+
+    if "." not in new_filename:
+        new_filename = f"{new_filename}.{ext_str}"
     
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
