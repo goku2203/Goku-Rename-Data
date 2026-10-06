@@ -1,3 +1,4 @@
+import io
 import math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -205,7 +206,7 @@ def telegram_icon(d):
     return icon.resize((d, d), Image.LANCZOS)
 
 
-# ======================= 6 BRAND NEW THUMBNAIL DESIGNS =======================
+# ======================= 12 THUMBNAIL DESIGNS =======================
 
 def d_cyber_neon(img, layer, info, b):
     """1. 🌟 Cyber Glow: Tokyo Cyberpunk / Anime Neon with Cyan-Violet Aura"""
@@ -452,6 +453,286 @@ def d_royale_gold(img, layer, info, b):
         parts.extend([g.upper() for g in info["genres"][:3]])
     draw_lines(layer, ["   //   ".join(parts)], mfont, m, y, fill=(255, 240, 220, 215))
 
+def d_cyber_logo(img, layer, info, b):
+    """7. 🔥 Cyber Logo: Tokyo Cyberpunk with Official TMDB Title Logo (Fallback to styled text)"""
+    W, H = img.size
+    m = int(70 * b)
+    add_smooth_gradient_bottom(img, H * 0.58, 230)
+    
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    badge_h = int(36 * b)
+    bar_h, bar_w = max(3, int(5 * b)), int(160 * b)
+    meta_h = int(36 * b)
+    
+    logo_img = None
+    if info.get("logo_bytes"):
+        try:
+            raw_logo = Image.open(io.BytesIO(info["logo_bytes"])).convert("RGBA")
+            max_lw = int(W * 0.46)
+            max_lh = int(140 * b)
+            scale_ratio = min(max_lw / raw_logo.width, max_lh / raw_logo.height, 1.0)
+            lw = max(10, int(raw_logo.width * scale_ratio))
+            lh = max(10, int(raw_logo.height * scale_ratio))
+            logo_img = raw_logo.resize((lw, lh), Image.LANCZOS)
+        except Exception:
+            logo_img = None
+
+    if logo_img:
+        logo_h = logo_img.height
+        total_h = badge_h + 16 * b + logo_h + 16 * b + bar_h + 16 * b + meta_h
+        y = H - m - total_h
+        
+        # Category tag
+        cat_text = f"⚡ {info['type'].upper()}" if info.get("type") else "⚡ ANIME"
+        w1, _ = draw_pill_badge(layer, m, y, cat_text, sfont, (0, 240, 255, 30), border_color=(0, 240, 255, 200), text_color=(0, 240, 255, 255), pad_x=16 * b, pad_y=6 * b)
+        if info.get("year"):
+            draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (255, 255, 255, 25), border_color=(255, 255, 255, 80), text_color=(255, 255, 255, 230), pad_x=14 * b, pad_y=6 * b)
+        
+        y += badge_h + 16 * b
+        
+        # Soft cyan neon aura glow behind logo
+        sh_blur = max(2, int(6 * b))
+        sh_mask = Image.new("RGBA", (logo_img.width + sh_blur * 4, logo_img.height + sh_blur * 4), (0, 0, 0, 0))
+        sh_mask.paste((0, 240, 255, 120), (sh_blur * 2, sh_blur * 2), logo_img.split()[3])
+        sh_mask = sh_mask.filter(ImageFilter.GaussianBlur(sh_blur))
+        paste_rgba(layer, sh_mask, m - sh_blur * 2, int(y) - sh_blur * 2)
+        paste_rgba(layer, logo_img, m, int(y))
+        y += logo_h + 16 * b
+    else:
+        # Fallback to Cyber Glow styled text title if no logo
+        tfont, lines = fit_lines(info["title"], 108 * b, 50 * b, W * 0.72, 2)
+        th_total = block_h(tfont, len(lines))
+        total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
+        y = H - m - total_h
+        
+        cat_text = f"⚡ {info['type'].upper()}" if info.get("type") else "⚡ ANIME"
+        w1, _ = draw_pill_badge(layer, m, y, cat_text, sfont, (0, 240, 255, 30), border_color=(0, 240, 255, 200), text_color=(0, 240, 255, 255), pad_x=16 * b, pad_y=6 * b)
+        if info.get("year"):
+            draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (255, 255, 255, 25), border_color=(255, 255, 255, 80), text_color=(255, 255, 255, 230), pad_x=14 * b, pad_y=6 * b)
+        y += badge_h + 16 * b
+        y += draw_lines(layer, lines, tfont, m, y) + 16 * b
+
+    # Gradient accent bar (Cyan to Violet)
+    for i in range(bar_w):
+        t = i / bar_w
+        r = int(0 * (1 - t) + 168 * t)
+        g = int(240 * (1 - t) + 85 * t)
+        bl_c = int(255 * (1 - t) + 247 * t)
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(r, g, bl_c, 255))
+    y += bar_h + 16 * b
+
+    # Rating badge + Genres
+    cur_x = m
+    if info.get("rating"):
+        rw, _ = draw_pill_badge(layer, cur_x, y, f"★ {info['rating']}", sfont, (255, 204, 0, 35), border_color=(255, 204, 0, 220), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
+        cur_x += rw + 14 * b
+
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (0, 240, 255, 20), border_color=(0, 240, 255, 100), text_color=(220, 245, 255, 220), pad_x=14 * b, pad_y=6 * b)
+        cur_x += gw + 10 * b
+
+def d_crimson_phantom(img, layer, info, b):
+    """8. 🩸 Crimson Phantom: Dark Manga / Bloodline Cyberpunk with Angled Slash"""
+    W, H = img.size
+    m = int(72 * b)
+    add_smooth_gradient_bottom(img, H * 0.60, 235)
+    
+    tfont, lines = fit_lines(info["title"], 112 * b, 52 * b, W * 0.70, 2)
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    
+    badge_h = int(36 * b)
+    bar_h, bar_w = max(3, int(6 * b)), int(170 * b)
+    th_total = block_h(tfont, len(lines))
+    meta_h = int(36 * b)
+    
+    total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
+    y = H - m - total_h
+    
+    # Bloodline tag
+    tag = f"🩸 {info['type'].upper()}" if info.get("type") else "🩸 ANIME"
+    w1, _ = draw_pill_badge(layer, m, y, tag, sfont, (220, 20, 60, 45), border_color=(255, 45, 85, 230), text_color=(255, 210, 220, 255), pad_x=16 * b, pad_y=6 * b)
+    if info.get("year"):
+        draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (20, 20, 25, 180), border_color=(255, 45, 85, 100), text_color=(255, 230, 235, 230), pad_x=14 * b, pad_y=6 * b)
+        
+    y += badge_h + 16 * b
+    y += draw_lines(layer, lines, tfont, m, y) + 16 * b
+    
+    # Crimson neon gradient bar
+    for i in range(bar_w):
+        t = i / bar_w
+        r = int(255 * (1 - t) + 180 * t)
+        g = int(20 * (1 - t) + 0 * t)
+        bl_c = int(60 * (1 - t) + 120 * t)
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(r, g, bl_c, 255))
+    y += bar_h + 16 * b
+    
+    cur_x = m
+    if info.get("rating"):
+        rw, _ = draw_pill_badge(layer, cur_x, y, f"★ {info['rating']}", sfont, (255, 190, 0, 40), border_color=(255, 200, 0, 230), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
+        cur_x += rw + 14 * b
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (255, 40, 80, 25), border_color=(255, 50, 90, 110), text_color=(255, 225, 230, 225), pad_x=14 * b, pad_y=6 * b)
+        cur_x += gw + 10 * b
+
+def d_synthwave_neon(img, layer, info, b):
+    """9. 🌸 Synthwave Neon: 80s Retro Synth Aura (Hot Pink to Electric Cyan)"""
+    W, H = img.size
+    m = int(70 * b)
+    add_smooth_gradient_bottom(img, H * 0.58, 230)
+    
+    tfont, lines = fit_lines(info["title"], 106 * b, 48 * b, W * 0.72, 2)
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    
+    badge_h = int(36 * b)
+    bar_h, bar_w = max(3, int(6 * b)), int(180 * b)
+    th_total = block_h(tfont, len(lines))
+    meta_h = int(36 * b)
+    
+    total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
+    y = H - m - total_h
+    
+    # Retro Synth Badge
+    tag = f"🌸 {info['type'].upper()}" if info.get("type") else "🌸 RETROWAVE"
+    w1, _ = draw_pill_badge(layer, m, y, tag, sfont, (255, 0, 128, 45), border_color=(255, 0, 160, 230), text_color=(255, 200, 240, 255), pad_x=16 * b, pad_y=6 * b)
+    if info.get("year"):
+        draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (30, 15, 45, 180), border_color=(0, 240, 255, 120), text_color=(200, 245, 255, 230), pad_x=14 * b, pad_y=6 * b)
+        
+    y += badge_h + 16 * b
+    y += draw_lines(layer, lines, tfont, m, y) + 16 * b
+    
+    # Hot Pink -> Cyan Gradient Bar
+    for i in range(bar_w):
+        t = i / bar_w
+        r = int(255 * (1 - t) + 0 * t)
+        g = int(0 * (1 - t) + 240 * t)
+        bl_c = int(128 * (1 - t) + 255 * t)
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(r, g, bl_c, 255))
+    y += bar_h + 16 * b
+    
+    cur_x = m
+    if info.get("rating"):
+        rw, _ = draw_pill_badge(layer, cur_x, y, f"★ {info['rating']}", sfont, (255, 204, 0, 40), border_color=(255, 215, 0, 230), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
+        cur_x += rw + 14 * b
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (0, 240, 255, 25), border_color=(0, 240, 255, 110), text_color=(220, 245, 255, 220), pad_x=14 * b, pad_y=6 * b)
+        cur_x += gw + 10 * b
+
+def d_glacial_frost(img, layer, info, b):
+    """10. ❄️ Glacial Frost: Ice Crystalline Glass Dock with Metallic Silver Accents"""
+    W, H = img.size
+    pad, m = int(45 * b), int(60 * b)
+    tfont, lines = fit_lines(info["title"], 86 * b, 46 * b, W * 0.54, 2)
+    sfont, gfont = load_font(28 * b), load_font(24 * b)
+    
+    cw = max([text_w(l, tfont) for l in lines] + [int(320 * b)])
+    pw = int(cw + pad * 2)
+    ph = int(pad + 36 * b + 16 * b + block_h(tfont, len(lines)) + 16 * b + 36 * b + pad)
+    
+    x0, y0 = m, H - m - ph
+    glass_panel(img, layer, (x0, y0, x0 + pw, y0 + ph), 34 * b, 28 * b, white=45, border_color=(180, 225, 255, 180))
+    
+    # Inside Ice Card
+    y = y0 + pad
+    cur_x = x0 + pad
+    tag = f"❄️ {info['type'].upper()}" if info.get("type") else "❄️ CINEMA"
+    tw, _ = draw_pill_badge(layer, cur_x, y, tag, sfont, (180, 225, 255, 35), border_color=(180, 225, 255, 140), text_color=(220, 245, 255, 240), pad_x=14 * b, pad_y=5 * b)
+    cur_x += tw + 10 * b
+    if info.get("year"):
+        yw, _ = draw_pill_badge(layer, cur_x, y, info["year"], sfont, (10, 25, 40, 160), border_color=(180, 225, 255, 80), text_color=(200, 235, 255, 210), pad_x=12 * b, pad_y=5 * b)
+        cur_x += yw + 10 * b
+    if info.get("rating"):
+        draw_pill_badge(layer, x0 + pw - pad - int(120 * b), y, f"★ {info['rating']}", sfont, (255, 204, 0, 40), border_color=(255, 204, 0, 210), text_color=(255, 215, 0, 255), pad_x=14 * b, pad_y=5 * b)
+        
+    y += 36 * b + 16 * b
+    y += draw_lines(layer, lines, tfont, x0 + pad, y) + 16 * b
+    
+    cur_x = x0 + pad
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (180, 225, 255, 20), border_color=(180, 225, 255, 80), text_color=(215, 240, 255, 220), pad_x=14 * b, pad_y=5 * b)
+        cur_x += gw + 10 * b
+
+def d_comic_pop(img, layer, info, b):
+    """11. ⚡ Comic Pop: Anime Manga Cover with Bold Yellow Halftone Contrast"""
+    W, H = img.size
+    m = int(75 * b)
+    add_smooth_gradient_bottom(img, H * 0.58, 235)
+    
+    tfont, lines = fit_lines(info["title"], 110 * b, 52 * b, W * 0.70, 2)
+    sfont, gfont = load_font(28 * b), load_font(24 * b)
+    
+    badge_h = int(38 * b)
+    bar_h, bar_w = max(3, int(6 * b)), int(160 * b)
+    th_total = block_h(tfont, len(lines))
+    meta_h = int(36 * b)
+    
+    total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
+    y = H - m - total_h
+    
+    # Bold Action Hit Badge (Yellow + Black)
+    tag = f"💥 {info['type'].upper()}" if info.get("type") else "💥 TOP HIT"
+    w1, _ = draw_pill_badge(layer, m, y, tag, sfont, (255, 220, 0, 240), border_color=(255, 255, 255, 255), text_color=(10, 10, 10, 255), pad_x=18 * b, pad_y=6 * b)
+    if info.get("rating"):
+        rw, _ = draw_pill_badge(layer, m + w1 + 12 * b, y, f"★ {info['rating']}", sfont, (20, 20, 20, 200), border_color=(255, 220, 0, 220), text_color=(255, 220, 0, 255), pad_x=14 * b, pad_y=6 * b)
+        
+    y += badge_h + 16 * b
+    y += draw_lines(layer, lines, tfont, m, y) + 16 * b
+    
+    # Solid bright yellow bar
+    ImageDraw.Draw(layer).rounded_rectangle((m, y, m + bar_w, y + bar_h), radius=bar_h // 2, fill=(255, 220, 0, 255))
+    y += bar_h + 16 * b
+    
+    cur_x = m
+    if info.get("year"):
+        yw, _ = draw_pill_badge(layer, cur_x, y, info["year"], gfont, (255, 255, 255, 30), border_color=(255, 255, 255, 90), text_color=(255, 255, 255, 230), pad_x=14 * b, pad_y=6 * b)
+        cur_x += yw + 10 * b
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (255, 220, 0, 25), border_color=(255, 220, 0, 120), text_color=(255, 240, 200, 225), pad_x=14 * b, pad_y=6 * b)
+        cur_x += gw + 10 * b
+
+def d_inferno_blaze(img, layer, info, b):
+    """12. 🌋 Inferno Blaze: Molten Lava / Fiery Cinematic Blockbuster"""
+    W, H = img.size
+    m = int(72 * b)
+    add_smooth_gradient_bottom(img, H * 0.60, 235)
+    
+    tfont, lines = fit_lines(info["title"], 112 * b, 50 * b, W * 0.70, 2)
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    
+    badge_h = int(36 * b)
+    bar_h, bar_w = max(3, int(6 * b)), int(180 * b)
+    th_total = block_h(tfont, len(lines))
+    meta_h = int(36 * b)
+    
+    total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
+    y = H - m - total_h
+    
+    # Molten Fire Badge
+    tag = f"🔥 {info['type'].upper()}" if info.get("type") else "🔥 BLOCKBUSTER"
+    w1, _ = draw_pill_badge(layer, m, y, tag, sfont, (255, 80, 0, 45), border_color=(255, 100, 0, 240), text_color=(255, 220, 180, 255), pad_x=16 * b, pad_y=6 * b)
+    if info.get("year"):
+        draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (30, 20, 15, 180), border_color=(255, 140, 0, 100), text_color=(255, 220, 190, 230), pad_x=14 * b, pad_y=6 * b)
+        
+    y += badge_h + 16 * b
+    y += draw_lines(layer, lines, tfont, m, y) + 16 * b
+    
+    # Molten Lava Gradient Bar (Flame Red-Orange -> Gold)
+    for i in range(bar_w):
+        t = i / bar_w
+        r = 255
+        g = int(60 * (1 - t) + 200 * t)
+        bl_c = int(0 * (1 - t) + 10 * t)
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(r, g, bl_c, 255))
+    y += bar_h + 16 * b
+    
+    cur_x = m
+    if info.get("rating"):
+        rw, _ = draw_pill_badge(layer, cur_x, y, f"★ {info['rating']}", sfont, (255, 170, 0, 40), border_color=(255, 180, 0, 230), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
+        cur_x += rw + 14 * b
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (255, 80, 0, 25), border_color=(255, 90, 0, 110), text_color=(255, 220, 190, 220), pad_x=14 * b, pad_y=6 * b)
+        cur_x += gw + 10 * b
+
+
 # ======================= DESIGNS REGISTRY =======================
 
 DESIGNS = {
@@ -461,6 +742,12 @@ DESIGNS = {
     4: ("🎌 Tokyo Action", d_tokyo_action),
     5: ("🌌 Aurora Horizon", d_aurora_horizon),
     6: ("🏆 Royale Gold", d_royale_gold),
+    7: ("🔥 Cyber Logo", d_cyber_logo),
+    8: ("🩸 Crimson Phantom", d_crimson_phantom),
+    9: ("🌸 Synthwave Neon", d_synthwave_neon),
+    10: ("❄️ Glacial Frost", d_glacial_frost),
+    11: ("⚡ Comic Pop", d_comic_pop),
+    12: ("🌋 Inferno Blaze", d_inferno_blaze),
 }
 
 def design_name(st):
