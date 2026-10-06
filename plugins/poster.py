@@ -30,6 +30,12 @@ SCALE_MAX = 3.0
 SCALE_STEP = 0.2
 AUTO_DELETE_SECONDS = 3600      # Auto delete time for poster message (1 Hours)
 
+# Dynamic text calculate panra logic
+if AUTO_DELETE_SECONDS >= 3600:
+    AUTO_DELETE_TEXT = f"{AUTO_DELETE_SECONDS // 3600} hours"
+else:
+    AUTO_DELETE_TEXT = f"{AUTO_DELETE_SECONDS // 60} minutes"
+
 WAITING = {}          # State to wait for user's watermark name (inline & menu)
 IMG_CACHE = {}        # Image bytes cache for faster loading
 BACKDROP_CACHE = {}   # Cache for TMDB backdrops list
@@ -212,7 +218,7 @@ def raw_caption(idx, total, info):
         f"\n👉 **Choose an option below:**\n"
         f"• **⚡ Generate Image:** Normal poster with glass watermark\n"
         f"• **🎨 Custom Style:** 6 aesthetic thumbnail templates\n\n"
-        f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} hours)*"
+        f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
     )
     return caption
 
@@ -238,7 +244,7 @@ def normal_poster_caption(idx, total, text, scale, info):
         f"✨ **Poster Generated** • `{idx + 1}/{total}`\n"
         f"🎬 **Title:** `{title}`\n"
         f"🏷 **Watermark:** `{text}` | 📏 **Size:** `{scale}x`\n\n"
-        f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} minutes)*"
+        f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
     )
 
 # 3. Custom Style Panel View (6 Designs, Clean, and Cancel)
@@ -272,7 +278,7 @@ def style_caption(text, scale, st, info=None):
         f"🖼 **Design:** `{design_name(st)}`\n"
         f"🏷 **Watermark:** `{text}` | 📏 **Size:** `{scale}x`\n\n"
         f"__Select a design above. Watermark & size are saved permanently.__\n\n"
-        f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} minutes)*"
+        f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
     )
 
 # 4. Standalone /set_watermark Menu
