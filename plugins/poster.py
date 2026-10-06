@@ -10,10 +10,16 @@ from PIL import Image
 from helper.database import digital_botz
 
 # Import designs and helpers from thumbnail_designs.py
-from thumbnail_designs import (
-    DESIGNS, design_name, load_font, _PROBE,
-    glass_panel, paste_rgba, telegram_icon, text_shadow
-)
+try:
+    from plugins.thumbnail_designs import (
+        DESIGNS, design_name, load_font, _PROBE,
+        glass_panel, paste_rgba, telegram_icon, text_shadow
+    )
+except ImportError:
+    from thumbnail_designs import (
+        DESIGNS, design_name, load_font, _PROBE,
+        glass_panel, paste_rgba, telegram_icon, text_shadow
+    )
 
 # Enter your TMDB API Key here
 TMDB_API_KEY = "f0ed821364e340369110e83b814899ed"
@@ -22,7 +28,7 @@ DEFAULT_WM = "@Techgokul"      # Default watermark if user hasn't set one
 SCALE_MIN = 0.4
 SCALE_MAX = 3.0
 SCALE_STEP = 0.2
-AUTO_DELETE_SECONDS = 3600      # Auto delete time for poster message (1 hours)
+AUTO_DELETE_SECONDS = 120      # Auto delete time for poster message (2 minutes)
 
 WAITING = {}          # State to wait for user's watermark name (inline & menu)
 IMG_CACHE = {}        # Image bytes cache for faster loading
