@@ -162,10 +162,10 @@ class Database:
         return user.get('watermark', None) if user else None
 
     async def set_wm_scale(self, id, scale):
-    await self.col.update_one({'_id': int(id)}, {'$set': {'wm_scale': float(scale)}})
+        await self.col.update_one({'_id': int(id)}, {'$set': {'wm_scale': float(scale)}})
 
     async def get_wm_scale(self, id):
-    user = await self.col.find_one({'_id': int(id)})
-    return float(user.get('wm_scale', 1.0)) if user else 1.0
+        user = await self.col.find_one({'_id': int(id)})
+        return float(user.get('wm_scale', 1.0)) if user else 1.0
     
 digital_botz = Database(Config.DB_URL, Config.DB_NAME)
