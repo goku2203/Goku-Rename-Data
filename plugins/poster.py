@@ -6,19 +6,19 @@ import time
 from pyrogram import Client, filters
 from pyrogram.errors import MessageNotModified
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 from helper.database import digital_botz
 
 # Import designs and helpers from thumbnail_designs.py
 try:
     from plugins.thumbnail_designs import (
         DESIGNS, design_name, load_font, _PROBE,
-        glass_panel, paste_rgba, telegram_icon, text_shadow
+        glass_panel, paste_rgba, telegram_icon, text_shadow, rounded_mask
     )
 except ImportError:
     from thumbnail_designs import (
         DESIGNS, design_name, load_font, _PROBE,
-        glass_panel, paste_rgba, telegram_icon, text_shadow
+        glass_panel, paste_rgba, telegram_icon, text_shadow, rounded_mask
     )
 
 # Enter your TMDB API Key here
@@ -34,6 +34,8 @@ WAITING = {}          # State to wait for user's watermark name (inline & menu)
 IMG_CACHE = {}        # Image bytes cache for faster loading
 BACKDROP_CACHE = {}   # Cache for TMDB backdrops list
 INFO_CACHE = {}       # Cache for title, year, rating, genres
+LOGO_CACHE = {}       # Cache for TMDB title logos
+SEARCH_CACHE = {}     # Cache for user search query
 
 
 # ======================= BASIC HELPERS =======================
@@ -66,6 +68,30 @@ async def get_backdrops(media_type, tmdb_id):
             BACKDROP_CACHE.pop(next(iter(BACKDROP_CACHE)))
         BACKDROP_CACHE[key] = paths
     return BACKDROP_CACHE[key]
+
+async def get_logo(media_type, tmdb_id):
+    """Fetches transparent PNG title logo from TMDB images"""
+    key = f"{media_type}_{tmdb_id}"
+    if key in LOGO_CACHE:
+        return LOGO_CACHE[key]
+    try:
+        data = await get_json(
+            f"https://api.themoviedb.org/3/{media_type}/{tmdb_id}/images",
+            params={"api_key": TMDB_API_KEY},
+        )
+        logos = data.get("logos", [])
+        if logos:
+            en_logos = [l["file_path"] for l in logos if l.get("iso_639_1") == "en"]
+            path = en_logos[0] if en_logos else (logos[0]["file_path"] if logos else None)
+            if path:
+                bytes_data = await get_bytes(f"https://image.tmdb.org/t/p/w500{path}")
+                if len(LOGO_CACHE) >= 30:
+                    LOGO_CACHE.pop(next(iter(LOGO_CACHE)))
+                LOGO_CACHE[key] = bytes_data
+                return bytes_data
+    except Exception:
+        pass
+    return None
 
 async def get_info(media_type, tmdb_id):
     """Required info for designs: Title, year, rating, genres, type"""
@@ -114,7 +140,11 @@ async def get_wm_text(user_id):
 # ======================= WATERMARK RENDERING =======================
 
 def draw_watermark(img, layer, text, scale):
-    """Top right frosted glass pill + Telegram logo + white text"""
+    """
+    Top right frosted glass capsule pill + Telegram icon + bold white text.
+    Dark translucent acrylic pill backing guarantees 100% crisp visibility
+    even on pure white/bright backgrounds as requested (matching sample badge).
+    """
     b = img.width / 1920            # Auto adjust based on image width
     unit = b * scale                # User defined scale
     margin = int(40 * b)
@@ -132,13 +162,38 @@ def draw_watermark(img, layer, text, scale):
 
     x0 = max(0, img.width - w - margin)
     y0 = margin
+    radius = h // 2
 
-    glass_panel(img, layer, (x0, y0, x0 + w, y0 + h), h // 2, 18 * unit)
+    # 1. Background blur under pill
+    blur = 16 * unit
+    pad_blur = int(blur * 2)
+    bx0, by0 = max(0, x0 - pad_blur), max(0, y0 - pad_blur)
+    bx1, by1 = min(img.width, x0 + w + pad_blur), min(img.height, y0 + h + pad_blur)
+    region = img.crop((bx0, by0, bx1, by1)).filter(ImageFilter.GaussianBlur(blur))
+    region = region.crop((x0 - bx0, y0 - by0, x0 - bx0 + w, y0 - by0 + h))
+
+    # 2. Dark translucent acrylic overlay for contrast against white backgrounds
+    dark_overlay = Image.new("RGBA", region.size, (18, 24, 32, 165))
+    region = Image.alpha_composite(region, dark_overlay)
+    img.paste(region, (x0, y0), rounded_mask(w, h, radius))
+
+    # 3. Outer delicate glass shine border
+    S = 3
+    bl = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0))
+    bw = max(1, int(1.8 * unit))
+    ImageDraw.Draw(bl).rounded_rectangle(
+        (0, 0, w * S - 1, h * S - 1), radius=radius * S,
+        outline=(255, 255, 255, 75), width=bw * S
+    )
+    paste_rgba(layer, bl.resize((w, h), Image.LANCZOS), x0, y0)
+
+    # 4. Telegram icon
     paste_rgba(layer, telegram_icon(icon_d), x0 + pad_l, y0 + (h - icon_d) // 2)
 
+    # 5. Bold text with soft drop shadow
     tx = x0 + pad_l + icon_d + gap - bbox[0]
     ty = y0 + (h - th) // 2 - bbox[1]
-    text_shadow(layer, (tx, ty), text, font)
+    text_shadow(layer, (tx, ty), text, font, fill=(255, 255, 255, 255), shadow_color=(0, 0, 0, 160))
 
 def build_poster(img_bytes, text, scale, out_path, style=0, info=None):
     img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
@@ -162,6 +217,13 @@ async def render(user_id, tmdb_id, media_type, idx, st=0):
     text = await get_wm_text(user_id)
     scale = await get_scale(user_id)
     info = await get_info(media_type, tmdb_id)
+    
+    # If title logo design is chosen (Design 7), fetch TMDB logo bytes
+    if (st == 7) and info and not info.get("logo_bytes"):
+        logo_bytes = await get_logo(media_type, tmdb_id)
+        if logo_bytes:
+            info["logo_bytes"] = logo_bytes
+
     out_path = f"poster_{user_id}_{int(time.time() * 1000)}.jpg"
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, build_poster, img_bytes, text, scale, out_path, st, info)
@@ -175,15 +237,18 @@ def raw_markup(tmdb_id, mt, idx, total):
     rows = []
     if total > 1:
         rows.append([
-            InlineKeyboardButton("⬅️ Back", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx - 1}"),
+            InlineKeyboardButton("◀️ Prev", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx - 1}"),
             InlineKeyboardButton(f"{idx + 1}/{total}", callback_data="ignore"),
-            InlineKeyboardButton("Next ➡️", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx + 1}"),
+            InlineKeyboardButton("Next ▶️", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx + 1}"),
         ])
     rows.append([
         InlineKeyboardButton("⚡ Generate Image", callback_data=f"gen_normal|{tmdb_id}|{mt}|{idx}"),
         InlineKeyboardButton("🎨 Custom Style", callback_data=f"cstyle|{tmdb_id}|{mt}|{idx}|1")
     ])
-    rows.append([InlineKeyboardButton("🗑 Delete", callback_data="delete_auto")])
+    rows.append([
+        InlineKeyboardButton("🔙 Back", callback_data=f"back_search|{tmdb_id}|{mt}"),
+        InlineKeyboardButton("🗑 Delete", callback_data="delete_auto")
+    ])
     return InlineKeyboardMarkup(rows)
 
 def raw_caption(idx, total, info):
@@ -211,7 +276,7 @@ def raw_caption(idx, total, info):
     caption += (
         f"\n👉 **Choose an option below:**\n"
         f"• **⚡ Generate Image:** Normal poster with glass watermark\n"
-        f"• **🎨 Custom Style:** 6 aesthetic thumbnail templates\n\n"
+        f"• **🎨 Custom Style:** 12 aesthetic thumbnail templates\n\n"
         f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} hours)*"
     )
     return caption
@@ -221,15 +286,18 @@ def normal_poster_markup(tmdb_id, mt, idx, total):
     rows = []
     if total > 1:
         rows.append([
-            InlineKeyboardButton("⬅️ Back", callback_data=f"gen_normal|{tmdb_id}|{mt}|{idx - 1}"),
+            InlineKeyboardButton("◀️ Prev", callback_data=f"gen_normal|{tmdb_id}|{mt}|{idx - 1}"),
             InlineKeyboardButton(f"{idx + 1}/{total}", callback_data="ignore"),
-            InlineKeyboardButton("Next ➡️", callback_data=f"gen_normal|{tmdb_id}|{mt}|{idx + 1}"),
+            InlineKeyboardButton("Next ▶️", callback_data=f"gen_normal|{tmdb_id}|{mt}|{idx + 1}"),
         ])
     rows.append([
         InlineKeyboardButton("🎨 Custom Style", callback_data=f"cstyle|{tmdb_id}|{mt}|{idx}|1"),
         InlineKeyboardButton("🖼 Browse Raw", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx}")
     ])
-    rows.append([InlineKeyboardButton("🗑 Delete Now", callback_data="delete_auto")])
+    rows.append([
+        InlineKeyboardButton("🔙 Back", callback_data=f"back_search|{tmdb_id}|{mt}"),
+        InlineKeyboardButton("🗑 Delete Now", callback_data="delete_auto")
+    ])
     return InlineKeyboardMarkup(rows)
 
 def normal_poster_caption(idx, total, text, scale, info):
@@ -241,24 +309,22 @@ def normal_poster_caption(idx, total, text, scale, info):
         f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} minutes)*"
     )
 
-# 3. Custom Style Panel View (6 Designs, Clean, and Cancel)
+# 3. Custom Style Panel View (12 Designs, Clean, and Back)
 def style_markup(tmdb_id, mt, idx, st):
     def dbtn(n):
         name = DESIGNS[n][0]
         return InlineKeyboardButton(f"✅ {name}" if st == n else name,
                                     callback_data=f"dsgn|{tmdb_id}|{mt}|{idx}|{n}")
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✏️ Set My Watermark", callback_data=f"wmset|{tmdb_id}|{mt}|{idx}|{st}")],
-        [
-            InlineKeyboardButton("➖ Size", callback_data=f"wmsize|{tmdb_id}|{mt}|{idx}|{st}|m"),
-            InlineKeyboardButton("➕ Size", callback_data=f"wmsize|{tmdb_id}|{mt}|{idx}|{st}|p"),
-        ],
         [dbtn(1), dbtn(2)],
         [dbtn(3), dbtn(4)],
         [dbtn(5), dbtn(6)],
+        [dbtn(7), dbtn(8)],
+        [dbtn(9), dbtn(10)],
+        [dbtn(11), dbtn(12)],
         [
             InlineKeyboardButton("✅ 🧹 Clean" if st == 0 else "🧹 Clean", callback_data=f"dsgn|{tmdb_id}|{mt}|{idx}|0"),
-            InlineKeyboardButton("❌ Cancel", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx}"),
+            InlineKeyboardButton("🔙 Back", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx}"),
         ],
         [InlineKeyboardButton("🗑 Delete Now", callback_data="delete_auto")],
     ])
@@ -271,7 +337,7 @@ def style_caption(text, scale, st, info=None):
         f"{tag}"
         f"🖼 **Design:** `{design_name(st)}`\n"
         f"🏷 **Watermark:** `{text}` | 📏 **Size:** `{scale}x`\n\n"
-        f"__Select a design above. Watermark & size are saved permanently.__\n\n"
+        f"__Select a design above. Use /set_watermark to adjust your watermark text & size.__\n\n"
         f"*(Auto-deletes in {AUTO_DELETE_SECONDS // 60} minutes)*"
     )
 
@@ -366,9 +432,8 @@ async def deliver(client, query, media_source, caption, markup):
                         caption=caption,
                         reply_markup=markup
                     )
-                else:
-                    raise
-            asyncio.create_task(auto_delete(sent))
+            if sent:
+                asyncio.create_task(auto_delete(sent))
     finally:
         if local_file_to_clean and os.path.exists(local_file_to_clean):
             try:
@@ -384,7 +449,7 @@ def parse_st(parts, pos):
     return st if st in DESIGNS or st == 0 else 0
 
 
-# ======================= COMMANDS =======================
+# ======================= COMMAND HANDLERS =======================
 
 # --- /set_watermark Command ---
 @Client.on_message(filters.private & filters.command(['set_watermark']))
@@ -407,6 +472,8 @@ async def poster_cmd(client, message):
         return await message.reply_text("**__Please provide Anime or Movie Name__\n\nEx :- `/p Naruto` or `/p Avengers`**")
 
     query = message.text.split(" ", 1)[1].strip()
+    user_id = message.from_user.id
+    SEARCH_CACHE[user_id] = query
     process_msg = await message.reply_text("`🔍 Searching TMDB...`")
 
     try:
@@ -451,6 +518,67 @@ async def close_search_cb(client, query: CallbackQuery):
             await query.message.reply_to_message.delete()
     except Exception:
         pass
+
+
+# --- Back to Search Results from Landscape / Poster View ---
+@Client.on_callback_query(filters.regex(r"^back_search"), group=1)
+async def back_search_cb(client, query: CallbackQuery):
+    user_id = query.from_user.id
+    search_query = SEARCH_CACHE.get(user_id)
+
+    if not search_query:
+        parts = query.data.split("|")
+        if len(parts) >= 3:
+            tmdb_id, media_type = parts[1], parts[2]
+            info = await get_info(media_type, tmdb_id)
+            search_query = info.get("title")
+
+    if not search_query:
+        return await query.answer("Search session expired. Use /p <name> again!", show_alert=True)
+
+    await query.answer("🔙 Back to search results...")
+
+    try:
+        data = await get_json(
+            "https://api.themoviedb.org/3/search/multi",
+            params={"api_key": TMDB_API_KEY, "query": search_query},
+        )
+        results = data.get("results", [])
+
+        buttons = []
+        for res in results:
+            media_type = res.get("media_type")
+            if media_type not in ["tv", "movie"]:
+                continue
+            title = res.get("name") if media_type == "tv" else res.get("title")
+            date = (res.get("first_air_date") if media_type == "tv" else res.get("release_date")) or ""
+            btn_text = f"{title} ({date[:4]})" if date else f"{title}"
+            buttons.append([InlineKeyboardButton(
+                btn_text, callback_data=f"show_raw|{res.get('id')}|{media_type}|0"
+            )])
+            if len(buttons) == 5:
+                break
+
+        if not buttons:
+            return await query.answer("No titles found!", show_alert=True)
+
+        buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="close_search")])
+
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+
+        await client.send_message(
+            chat_id=query.message.chat.id,
+            text=f"**Search Results for:** `{search_query}`\n\nSelect a title to view landscape backdrops:",
+            reply_markup=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        try:
+            await query.message.reply_text(f"**Error:** `{e}`")
+        except Exception:
+            pass
 
 
 # ======================= 1. RAW LANDSCAPE VIEW =======================
@@ -508,8 +636,6 @@ async def show_raw_cb(client, query: CallbackQuery):
 # Backward compatibility alias
 @Client.on_callback_query(filters.regex(r"^show_img\|"), group=1)
 async def show_img_alias_cb(client, query: CallbackQuery):
-    parts = query.data.split("|")
-    tmdb_id, media_type, idx = parts[1], parts[2], int(parts[3])
     await show_raw_cb(client, query)
 
 
@@ -585,7 +711,7 @@ async def custom_style_cb(client, query: CallbackQuery):
         except Exception:
             pass
 
-# --- 6 Design Selection Buttons ---
+# --- 12 Design Selection Buttons ---
 @Client.on_callback_query(filters.regex(r"^dsgn\|"), group=1)
 async def design_cb(client, query: CallbackQuery):
     parts = query.data.split("|")
@@ -610,7 +736,7 @@ async def design_cb(client, query: CallbackQuery):
         except Exception:
             pass
 
-# --- Size + / - (Permanent save on update) ---
+# --- Size + / - (Supported if called) ---
 @Client.on_callback_query(filters.regex(r"^wmsize\|"), group=1)
 async def wm_size_cb(client, query: CallbackQuery):
     parts = query.data.split("|")
