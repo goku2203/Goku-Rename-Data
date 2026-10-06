@@ -17,6 +17,7 @@ SCALE_MIN = 0.4
 SCALE_MAX = 3.0
 SCALE_STEP = 0.2
 AUTO_DELETE_SECONDS = 120      # poster auto delete time
+GLASS_WHITE = 60               # frosted glass white level (0-255). 40 = clear, 90 = romba white
 
 WAITING = {}          # user_id -> watermark name ku wait panra state
 IMG_CACHE = {}        # image bytes cache (Size +/- fast aaga)
@@ -135,8 +136,15 @@ def build_poster(img_bytes, text, scale, out_path):
     box = (x0, y0, x0 + w, y0 + h)
 
     # 1. Glass: background crop -> blur -> dark tint -> pill shape la paste
-    region = img.crop(box).filter(ImageFilter.GaussianBlur(max(2, int(12 * unit))))
-    region = Image.alpha_composite(region, Image.new("RGBA", region.size, (0, 0, 0, 95)))
+    # Frosted glass: konjam periya area crop panni blur panrom (edge la black varaama irukka)
+    pad = int(24 * unit)
+    bx0, by0 = max(0, x0 - pad), max(0, y0 - pad)
+    bx1, by1 = min(img.width, x0 + w + pad), min(img.height, y0 + h + pad)
+    region = img.crop((bx0, by0, bx1, by1)).filter(ImageFilter.GaussianBlur(max(4, int(18 * unit))))
+    region = region.crop((x0 - bx0, y0 - by0, x0 - bx0 + w, y0 - by0 + h))
+    # Black illa - light white frosted tint (GLASS_WHITE kootina innum white aagum, kuraichaa clear aagum)
+    region = Image.alpha_composite(region, Image.new("RGBA", region.size, (0, 0, 0, 22)))
+    region = Image.alpha_composite(region, Image.new("RGBA", region.size, (255, 255, 255, GLASS_WHITE)))
 
     m = Image.new("L", (w * 4, h * 4), 0)
     ImageDraw.Draw(m).rounded_rectangle((0, 0, w * 4 - 1, h * 4 - 1), radius=h * 2, fill=255)
@@ -149,7 +157,7 @@ def build_poster(img_bytes, text, scale, out_path):
     bl = Image.new("RGBA", (w * 4, h * 4), (0, 0, 0, 0))
     ImageDraw.Draw(bl).rounded_rectangle(
         (0, 0, w * 4 - 1, h * 4 - 1), radius=h * 2,
-        outline=(255, 255, 255, 70), width=max(4, int(6 * unit))
+        outline=(255, 255, 255, 140), width=max(4, int(6 * unit))
     )
     layer.alpha_composite(bl.resize((w, h), Image.LANCZOS), dest=(x0, y0))
 
@@ -159,6 +167,12 @@ def build_poster(img_bytes, text, scale, out_path):
     # 4. White text
     tx = x0 + pad_l + icon_d + gap - bbox[0]
     ty = y0 + (h - th) // 2 - bbox[1]
+    # Soft shadow - bright background la kooda text clear aa theriyum
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).text((tx - x0, ty - y0 + max(1, int(2 * unit))), text, font=font, fill=(0, 0, 0, 120))
+    sh = sh.filter(ImageFilter.GaussianBlur(max(1, int(3 * unit))))
+    layer.alpha_composite(sh, dest=(x0, y0))
+
     ImageDraw.Draw(layer).text((tx, ty), text, font=font, fill=(255, 255, 255, 255))
 
     final = Image.alpha_composite(img, layer).convert("RGB")
