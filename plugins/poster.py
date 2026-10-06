@@ -199,7 +199,7 @@ def draw_watermark(img, layer, text, scale):
     # 5. Bold text with glass effect (translucent white + soft shadow)
     tx = x0 + pad_l + icon_d + gap - bbox[0]
     ty = y0 + (h - th) // 2 - bbox[1]
-    text_shadow(layer, (tx, ty), text, font, fill=(255, 255, 255, 220), shadow_color=(0, 0, 0, 100))
+    text_shadow(layer, (tx, ty), text, font, fill=(255, 255, 255, 255), shadow_color=(0, 0, 0, 200))
 
 def build_poster(img_bytes, text, scale, out_path, style=0, info=None):
     img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
