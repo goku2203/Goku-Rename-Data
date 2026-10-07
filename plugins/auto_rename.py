@@ -19,15 +19,16 @@ _EXTS = (
 _EXT_RE = re.compile(rf"\.({_EXTS})$", re.IGNORECASE)
 
 _TLDS = "com|net|org|in|cc|site|bz|me|tv|xyz|co|info|club|pro|to|ws|ink|cool|vip|wiki|art"
-_SEP = r"[\s_\-.|:]"            
-_END = rf"(?=[\s_\-.|:\]\)]|$)"  
+_SAFE_TLDS = "com|net|org|cc|site|bz|xyz|info|club|pro|ink|cool|vip|wiki"
+_SEP = r"[\s_\-.|:]"
+_END = rf"(?=[\s_\-.|:\]\)]|$)"
 
-RE_BOX = re.compile(r"^\s*(?:\[[^\]]*\]|\((?!(?:19\vert{}20)\d{2}\))[^)]*\)|\{[^}]*\})\s*")
+RE_BOX = re.compile(r"^\s*(?:\[[^\]]*\]|\((?!(?:19|20)\d{2}\))[^)]*\)|\{[^}]*\})\s*")
 RE_DOMAIN = re.compile(
     rf"^\s*(?:https?://)?(?:www\.)?[A-Za-z0-9][A-Za-z0-9\-]*(?:\.[A-Za-z0-9\-]+)*\.(?:{_TLDS}){_END}{_SEP}*",
     re.IGNORECASE,
 )
-RE_DOMAIN_SPACED = re.compile(rf"^\s*[A-Za-z0-9\-]+[\s_]+(?:{_TLDS})(?=[\s_\-.|:\]\)]|$)\s*[\s_\-.|:]*\s*", re.IGNORECASE)
+RE_DOMAIN_SPACED = re.compile(rf"^\s*[A-Za-z0-9\-]+[\s_]+(?:{_SAFE_TLDS})(?=[\s_\-.|:\]\)]|$)\s*[\s_\-.|:]*\s*", re.IGNORECASE)
 RE_USER = re.compile(r"(?i)\s*@[A-Za-z0-9_]+\s*")
 
 class EnhancedAutoRenamer:
