@@ -206,8 +206,30 @@ def telegram_icon(d):
     dr.line([(40 * k, 57 * k), (64 * k, 38 * k)], fill=ACCENT, width=max(1, int(2 * k)))
     return icon.resize((d, d), Image.LANCZOS)
 
+# ---------------- extra helpers for designs 13-18 ----------------
 
-# ======================= 12 ORIGINAL THUMBNAIL DESIGNS =======================
+def pill_row_center(layer, W, y, items, font, pad_x, pad_y, gap):
+    """items = [(text, bg, border, text_color)]  -> centered row of pills"""
+    if not items:
+        return
+    widths = [int(text_w(t, font) + pad_x * 2) for t, _, _, _ in items]
+    x = (W - (sum(widths) + gap * (len(items) - 1))) / 2
+    for (t, bg, bd, tc), w in zip(items, widths):
+        draw_pill_badge(layer, x, y, t, font, bg, bd, tc, pad_x, pad_y)
+        x += w + gap
+
+def draw_petal(layer, cx, cy, r, angle, color):
+    tile = Image.new("RGBA", (int(r * 4), int(r * 4)), (0, 0, 0, 0))
+    ImageDraw.Draw(tile).ellipse((r, r * 1.4, r * 3, r * 2.6), fill=color)
+    tile = tile.rotate(angle, expand=True, resample=Image.BICUBIC)
+    paste_rgba(layer, tile, cx - tile.width / 2, cy - tile.height / 2)
+
+def corner_bracket(d, x, y, size, width, dx, dy, color):
+    d.line([(x, y), (x + dx * size, y)], fill=color, width=width)
+    d.line([(x, y), (x, y + dy * size)], fill=color, width=width)
+
+
+# ======================= 18 THUMBNAIL DESIGNS =======================
 
 def d_cyber_neon(img, layer, info, b):
     """1. 🌟 Cyber Glow: Tokyo Cyberpunk / Anime Neon with Cyan-Violet Aura"""
@@ -733,32 +755,6 @@ def d_inferno_blaze(img, layer, info, b):
         gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (255, 80, 0, 25), border_color=(255, 90, 0, 110), text_color=(255, 220, 190, 220), pad_x=14 * b, pad_y=6 * b)
         cur_x += gw + 10 * b
 
-
-# ---------------- extra helpers for designs 13-18 ----------------
-
-def pill_row_center(layer, W, y, items, font, pad_x, pad_y, gap):
-    """items = [(text, bg, border, text_color)]  -> centered row of pills"""
-    if not items:
-        return
-    widths = [int(text_w(t, font) + pad_x * 2) for t, _, _, _ in items]
-    x = (W - (sum(widths) + gap * (len(items) - 1))) / 2
-    for (t, bg, bd, tc), w in zip(items, widths):
-        draw_pill_badge(layer, x, y, t, font, bg, bd, tc, pad_x, pad_y)
-        x += w + gap
-
-def draw_petal(layer, cx, cy, r, angle, color):
-    tile = Image.new("RGBA", (int(r * 4), int(r * 4)), (0, 0, 0, 0))
-    ImageDraw.Draw(tile).ellipse((r, r * 1.4, r * 3, r * 2.6), fill=color)
-    tile = tile.rotate(angle, expand=True, resample=Image.BICUBIC)
-    paste_rgba(layer, tile, cx - tile.width / 2, cy - tile.height / 2)
-
-def corner_bracket(d, x, y, size, width, dx, dy, color):
-    d.line([(x, y), (x + dx * size, y)], fill=color, width=width)
-    d.line([(x, y), (x, y + dy * size)], fill=color, width=width)
-
-
-# ======================= 6 NEW DESIGNS =======================
-
 def d_sakura_dream(img, layer, info, b):
     """13. 🌸 Sakura Dream: Romantic anime, falling cherry petals, centered pink title"""
     W, H = img.size
@@ -775,7 +771,7 @@ def d_sakura_dream(img, layer, info, b):
     sfont, gfont = load_font(26 * b), load_font(24 * b)
     th = block_h(tfont, len(lines))
     pill_h = int(text_h(sfont) + 12 * b)
-    total = pill_h + 16 * b + th + 30 * b + pill_h
+    total = pill_h + 16 * b + th + 18 * b + pill_h
     y = H - m - total
 
     tags = []
@@ -788,7 +784,7 @@ def d_sakura_dream(img, layer, info, b):
     pill_row_center(layer, W, y, tags, sfont, 16 * b, 6 * b, 12 * b)
     y += pill_h + 16 * b
 
-    y += draw_lines(layer, lines, tfont, 0, y, align="center", box_w=W) + 30 * b
+    y += draw_lines(layer, lines, tfont, 0, y, align="center", box_w=W) + 18 * b
     gen = [(g, (255, 150, 190, 28), (255, 170, 205, 120), (255, 235, 242, 230)) for g in info.get("genres", [])[:3]]
     pill_row_center(layer, W, y, gen, gfont, 14 * b, 6 * b, 10 * b)
 
