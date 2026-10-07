@@ -1,5 +1,6 @@
 import io
 import math
+import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 # Default Colors & Settings
@@ -206,7 +207,7 @@ def telegram_icon(d):
     return icon.resize((d, d), Image.LANCZOS)
 
 
-# ======================= 12 THUMBNAIL DESIGNS =======================
+# ======================= 12 ORIGINAL THUMBNAIL DESIGNS =======================
 
 def d_cyber_neon(img, layer, info, b):
     """1. 🌟 Cyber Glow: Tokyo Cyberpunk / Anime Neon with Cyan-Violet Aura"""
@@ -733,7 +734,268 @@ def d_inferno_blaze(img, layer, info, b):
         cur_x += gw + 10 * b
 
 
-# ======================= DESIGNS REGISTRY =======================
+# ---------------- extra helpers for designs 13-18 ----------------
+
+def pill_row_center(layer, W, y, items, font, pad_x, pad_y, gap):
+    """items = [(text, bg, border, text_color)]  -> centered row of pills"""
+    if not items:
+        return
+    widths = [int(text_w(t, font) + pad_x * 2) for t, _, _, _ in items]
+    x = (W - (sum(widths) + gap * (len(items) - 1))) / 2
+    for (t, bg, bd, tc), w in zip(items, widths):
+        draw_pill_badge(layer, x, y, t, font, bg, bd, tc, pad_x, pad_y)
+        x += w + gap
+
+def draw_petal(layer, cx, cy, r, angle, color):
+    tile = Image.new("RGBA", (int(r * 4), int(r * 4)), (0, 0, 0, 0))
+    ImageDraw.Draw(tile).ellipse((r, r * 1.4, r * 3, r * 2.6), fill=color)
+    tile = tile.rotate(angle, expand=True, resample=Image.BICUBIC)
+    paste_rgba(layer, tile, cx - tile.width / 2, cy - tile.height / 2)
+
+def corner_bracket(d, x, y, size, width, dx, dy, color):
+    d.line([(x, y), (x + dx * size, y)], fill=color, width=width)
+    d.line([(x, y), (x, y + dy * size)], fill=color, width=width)
+
+
+# ======================= 6 NEW DESIGNS =======================
+
+def d_sakura_dream(img, layer, info, b):
+    """13. 🌸 Sakura Dream: Romantic anime, falling cherry petals, centered pink title"""
+    W, H = img.size
+    m = int(60 * b)
+    add_smooth_gradient_bottom(img, H * 0.58, 225)
+
+    rnd = random.Random(sum(map(ord, info["title"])))
+    for _ in range(28):
+        draw_petal(layer, rnd.randint(0, W), rnd.randint(0, int(H * 0.92)),
+                   rnd.randint(int(6 * b), int(15 * b)), rnd.randint(0, 359),
+                   (255, rnd.randint(165, 205), rnd.randint(200, 225), rnd.randint(110, 190)))
+
+    tfont, lines = fit_lines(info["title"], 104 * b, 50 * b, W * 0.74, 2)
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    th = block_h(tfont, len(lines))
+    pill_h = int(text_h(sfont) + 12 * b)
+    total = pill_h + 16 * b + th + 30 * b + pill_h
+    y = H - m - total
+
+    tags = []
+    if info.get("type"):
+        tags.append((info["type"].upper(), (255, 150, 190, 60), (255, 170, 205, 230), (255, 225, 238, 255)))
+    if info.get("year"):
+        tags.append((info["year"], (255, 255, 255, 30), (255, 255, 255, 110), (255, 255, 255, 235)))
+    if info.get("rating"):
+        tags.append((f"★ {info['rating']}", (255, 204, 0, 40), (255, 204, 0, 220), (255, 215, 0, 255)))
+    pill_row_center(layer, W, y, tags, sfont, 16 * b, 6 * b, 12 * b)
+    y += pill_h + 16 * b
+
+    y += draw_lines(layer, lines, tfont, 0, y, align="center", box_w=W) + 30 * b
+    gen = [(g, (255, 150, 190, 28), (255, 170, 205, 120), (255, 235, 242, 230)) for g in info.get("genres", [])[:3]]
+    pill_row_center(layer, W, y, gen, gfont, 14 * b, 6 * b, 10 * b)
+
+
+def d_shonen_burst(img, layer, info, b):
+    """14. 💥 Shonen Burst: Slanted yellow-black power banner + speed lines (Naruto/DBZ vibe)"""
+    W, H = img.size
+    m = int(70 * b)
+    add_smooth_gradient_bottom(img, H * 0.50, 200)
+
+    d = ImageDraw.Draw(layer)
+    rnd = random.Random(sum(map(ord, info["title"])))
+    for _ in range(22):  # speed lines
+        x = rnd.randint(int(W * 0.35), W)
+        d.line([(x, 0), (x - rnd.randint(int(120 * b), int(380 * b)), H)],
+               fill=(255, 255, 255, rnd.randint(14, 36)), width=max(1, int(rnd.randint(1, 3) * b)))
+
+    tfont, lines = fit_lines(info["title"], 112 * b, 52 * b, W * 0.62, 2)
+    mfont = load_font(28 * b)
+    th = block_h(tfont, len(lines))
+    skew = int(70 * b)
+    by1 = H - int(55 * b)
+    by0 = by1 - int(th + 30 * b + text_h(mfont) + 40 * b)
+    bw = int(W * 0.72)
+    # dark slanted banner + yellow edge
+    d.polygon([(0, by0), (bw, by0), (bw - skew, by1), (0, by1)], fill=(10, 10, 12, 215))
+    d.polygon([(bw, by0), (bw + int(14 * b), by0), (bw + int(14 * b) - skew, by1), (bw - skew, by1)], fill=(255, 214, 0, 255))
+
+    y = by0 + int(20 * b)
+    y += draw_lines(layer, lines, tfont, m, y) + 10 * b
+    parts = []
+    if info.get("type"):
+        parts.append(info["type"].upper())
+    if info.get("year"):
+        parts.append(info["year"])
+    if info.get("rating"):
+        parts.append(f"★ {info['rating']}")
+    parts.extend(info.get("genres", [])[:2])
+    draw_lines(layer, ["  //  ".join(parts)], mfont, m, y, fill=(255, 214, 0, 255))
+
+
+def d_midnight_moon(img, layer, info, b):
+    """15. 🌙 Midnight Moon: Dark fantasy, glowing moon halo, silver-violet centered title"""
+    W, H = img.size
+    m = int(65 * b)
+    add_smooth_gradient_bottom(img, H * 0.62, 235)
+
+    # moon glow
+    R = int(H * 0.11)
+    cx, cy = W // 2, int(H * 0.2)
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse((cx - R * 2, cy - R * 2, cx + R * 2, cy + R * 2), fill=(150, 120, 255, 70))
+    glow = glow.filter(ImageFilter.GaussianBlur(int(40 * b)))
+    layer.alpha_composite(glow)
+    d = ImageDraw.Draw(layer)
+    d.ellipse((cx - R, cy - R, cx + R, cy + R), fill=(235, 232, 255, 235))
+    d.ellipse((cx - R + int(R * 0.35), cy - R - int(R * 0.1), cx + R + int(R * 0.35), cy + R - int(R * 0.1)),
+              fill=(40, 25, 90, 225))  # crescent cut
+
+    tfont, lines = fit_lines(info["title"], 100 * b, 48 * b, W * 0.74, 2)
+    sfont, gfont = load_font(26 * b), load_font(24 * b)
+    th = block_h(tfont, len(lines))
+    total = text_h(sfont) + 14 * b + th + 16 * b + text_h(gfont)
+    y = H - m - total
+
+    # flanked label:  ───  ANIME • 2024  ───
+    label = " • ".join([p for p in [(info.get("type") or "ANIME").upper(), info.get("year")] if p])
+    lw = text_w(label, sfont)
+    ly = y + text_h(sfont) / 2
+    lx0 = (W - lw) / 2
+    d.line([(lx0 - 190 * b, ly), (lx0 - 20 * b, ly)], fill=(190, 170, 255, 200), width=max(2, int(2 * b)))
+    d.line([(lx0 + lw + 20 * b, ly), (lx0 + lw + 190 * b, ly)], fill=(190, 170, 255, 200), width=max(2, int(2 * b)))
+    draw_lines(layer, [label], sfont, 0, y, fill=(205, 190, 255, 255), align="center", box_w=W)
+    y += text_h(sfont) + 14 * b
+
+    y += draw_lines(layer, lines, tfont, 0, y, align="center", box_w=W) + 16 * b
+    meta = []
+    if info.get("rating"):
+        meta.append(f"★ {info['rating']}")
+    meta.extend(info.get("genres", [])[:3])
+    draw_lines(layer, ["   ·   ".join(meta)], gfont, 0, y, fill=(225, 215, 255, 225), align="center", box_w=W)
+
+
+def d_mecha_hud(img, layer, info, b):
+    """16. 🤖 Mecha HUD: Sci-fi targeting HUD, corner brackets, orange-cyan data panel"""
+    W, H = img.size
+    m = int(55 * b)
+    add_smooth_gradient_bottom(img, H * 0.45, 190)
+    d = ImageDraw.Draw(layer)
+    cyan, orange = (0, 235, 255, 230), (255, 140, 0, 255)
+
+    bw = max(2, int(4 * b))
+    sz = int(70 * b)
+    inset = int(28 * b)
+    corner_bracket(d, inset, inset, sz, bw, 1, 1, cyan)
+    corner_bracket(d, W - inset, inset, sz, bw, -1, 1, cyan)
+    corner_bracket(d, inset, H - inset, sz, bw, 1, -1, cyan)
+    corner_bracket(d, W - inset, H - inset, sz, bw, -1, -1, cyan)
+
+    # small target reticle top-right
+    rr = int(34 * b)
+    rx, ry = W - int(120 * b), int(120 * b)
+    d.ellipse((rx - rr, ry - rr, rx + rr, ry + rr), outline=orange, width=max(2, int(3 * b)))
+    d.line([(rx - rr * 1.6, ry), (rx + rr * 1.6, ry)], fill=orange, width=max(1, int(2 * b)))
+    d.line([(rx, ry - rr * 1.6), (rx, ry + rr * 1.6)], fill=orange, width=max(1, int(2 * b)))
+
+    tfont, lines = fit_lines(info["title"], 88 * b, 44 * b, W * 0.52, 2)
+    sfont, mfont = load_font(22 * b), load_font(26 * b)
+    pad = int(30 * b)
+    cw = max([text_w(l, tfont) for l in lines] + [int(380 * b)])
+    pw = int(cw + pad * 2 + 14 * b)
+    ph = int(pad + text_h(sfont) + 12 * b + block_h(tfont, len(lines)) + 14 * b + text_h(mfont) + pad)
+    x0, y0 = m, H - m - ph
+    d.rectangle((x0, y0, x0 + pw, y0 + ph), fill=(5, 12, 22, 190))
+    d.rectangle((x0, y0, x0 + int(10 * b), y0 + ph), fill=orange)
+    d.rectangle((x0, y0, x0 + pw, y0 + max(2, int(3 * b))), fill=cyan)
+
+    tx = x0 + int(10 * b) + pad
+    y = y0 + pad
+    draw_lines(layer, ["// TARGET LOCKED"], sfont, tx, y, fill=cyan)
+    y += text_h(sfont) + 12 * b
+    y += draw_lines(layer, lines, tfont, tx, y) + 14 * b
+    parts = []
+    if info.get("type"):
+        parts.append(info["type"].upper())
+    if info.get("year"):
+        parts.append(info["year"])
+    if info.get("rating"):
+        parts.append(f"RATING {info['rating']}")
+    draw_lines(layer, ["  |  ".join(parts)], mfont, tx, y, fill=(255, 190, 110, 240))
+
+
+def d_manga_panel(img, layer, info, b):
+    """17. 📖 Manga Panel: White comic frame + solid white title box with hard black shadow"""
+    W, H = img.size
+    d = ImageDraw.Draw(layer)
+    fi = int(22 * b)
+    d.rectangle((fi, fi, W - fi, H - fi), outline=(255, 255, 255, 255), width=max(4, int(10 * b)))
+
+    tfont, lines = fit_lines(info["title"], 100 * b, 48 * b, W * 0.58, 2)
+    sfont, mfont = load_font(26 * b), load_font(26 * b)
+    padx, pady = int(34 * b), int(24 * b)
+    cw = max([text_w(l, tfont) for l in lines] + [int(300 * b)])
+    bw = int(cw + padx * 2)
+    bh = int(pady * 2 + block_h(tfont, len(lines)) + 12 * b + text_h(mfont))
+    x0 = int(70 * b)
+    y0 = H - int(80 * b) - bh
+    off = int(12 * b)
+
+    d.rectangle((x0 + off, y0 + off, x0 + bw + off, y0 + bh + off), fill=(0, 0, 0, 255))   # hard shadow
+    d.rectangle((x0, y0, x0 + bw, y0 + bh), fill=(255, 255, 255, 255))
+    d.rectangle((x0, y0, x0 + bw, y0 + bh), outline=(0, 0, 0, 255), width=max(3, int(5 * b)))
+
+    # red tag
+    tag = (info.get("type") or "NEW SERIES").upper()
+    tgw = int(text_w(tag, sfont) + 30 * b)
+    tgh = int(text_h(sfont) + 14 * b)
+    d.rectangle((x0, y0 - tgh, x0 + tgw, y0), fill=(220, 20, 30, 255))
+    d.text((x0 + 15 * b, y0 - tgh + 7 * b), tag, font=sfont, fill=(255, 255, 255, 255))
+
+    y = y0 + pady
+    step = text_h(tfont) * 1.12
+    for i, ln in enumerate(lines):
+        d.text((x0 + padx, y + i * step), ln, font=tfont, fill=(12, 12, 14, 255))
+    y += block_h(tfont, len(lines)) + 12 * b
+    parts = [p for p in [info.get("year"), f"★ {info['rating']}" if info.get("rating") else None] + info.get("genres", [])[:2] if p]
+    d.text((x0 + padx, y), "  /  ".join(parts), font=mfont, fill=(70, 70, 78, 255))
+
+
+def d_spirit_breeze(img, layer, info, b):
+    """18. 🍃 Spirit Breeze: Soft Ghibli-style mint glass card, bottom-right, dreamy glow"""
+    W, H = img.size
+    pad, m = int(42 * b), int(60 * b)
+
+    # soft mint haze from bottom
+    haze = Image.new("RGBA", (W, int(H * 0.5)), (120, 235, 200, 0))
+    haze.putalpha(Image.linear_gradient("L").resize((W, int(H * 0.5))).point(lambda p: int((p / 255.0) ** 1.6 * 90)))
+    img.alpha_composite(haze, dest=(0, H - haze.height))
+    add_smooth_gradient_bottom(img, H * 0.40, 120)
+
+    tfont, lines = fit_lines(info["title"], 80 * b, 42 * b, W * 0.46, 2)
+    sfont, gfont = load_font(26 * b), load_font(23 * b)
+    cw = max([text_w(l, tfont) for l in lines] + [int(330 * b)])
+    pw = int(cw + pad * 2)
+    ph = int(pad + 34 * b + 14 * b + block_h(tfont, len(lines)) + 16 * b + 34 * b + pad)
+    x0, y0 = W - m - pw, H - m - ph
+    glass_panel(img, layer, (x0, y0, x0 + pw, y0 + ph), 40 * b, 24 * b, white=75, border_color=(200, 255, 235, 200))
+
+    y = y0 + pad
+    cur = x0 + pad
+    tag = (info.get("type") or "ANIME").upper()
+    tw, _ = draw_pill_badge(layer, cur, y, tag, sfont, (110, 230, 190, 70), (170, 255, 225, 230), (235, 255, 248, 255), 14 * b, 4 * b)
+    cur += tw + 10 * b
+    if info.get("year"):
+        draw_pill_badge(layer, cur, y, info["year"], sfont, (255, 255, 255, 30), (255, 255, 255, 110), (255, 255, 255, 235), 12 * b, 4 * b)
+    if info.get("rating"):
+        draw_pill_badge(layer, x0 + pw - pad - int(115 * b), y, f"★ {info['rating']}", sfont, (255, 204, 0, 40), (255, 204, 0, 210), (255, 215, 0, 255), 14 * b, 4 * b)
+    y += 34 * b + 14 * b
+    y += draw_lines(layer, lines, tfont, x0 + pad, y) + 16 * b
+    cur = x0 + pad
+    for g in info.get("genres", [])[:3]:
+        gw, _ = draw_pill_badge(layer, cur, y, g, gfont, (110, 230, 190, 30), (170, 255, 225, 120), (232, 255, 246, 225), 13 * b, 4 * b)
+        cur += gw + 10 * b
+
+
+# ======================= UPDATED DESIGNS REGISTRY =======================
 
 DESIGNS = {
     1: ("🌟 Cyber Glow", d_cyber_neon),
@@ -748,6 +1010,12 @@ DESIGNS = {
     10: ("❄️ Glacial Frost", d_glacial_frost),
     11: ("⚡ Comic Pop", d_comic_pop),
     12: ("🌋 Inferno Blaze", d_inferno_blaze),
+    13: ("🌸 Sakura Dream", d_sakura_dream),
+    14: ("💥 Shonen Burst", d_shonen_burst),
+    15: ("🌙 Midnight Moon", d_midnight_moon),
+    16: ("🤖 Mecha HUD", d_mecha_hud),
+    17: ("📖 Manga Panel", d_manga_panel),
+    18: ("🍃 Spirit Breeze", d_spirit_breeze),
 }
 
 def design_name(st):
