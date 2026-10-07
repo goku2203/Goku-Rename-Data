@@ -315,7 +315,7 @@ def normal_poster_caption(idx, total, text, scale, info):
         f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
     )
 
-# 3. Custom Style Panel View (12 Designs, Clean, and Back)
+# 3. Custom Style Panel View (18 Designs, Clean, and Back)
 def style_markup(tmdb_id, mt, idx, st):
     def dbtn(n):
         name = DESIGNS[n][0]
@@ -328,6 +328,9 @@ def style_markup(tmdb_id, mt, idx, st):
         [dbtn(7), dbtn(8)],
         [dbtn(9), dbtn(10)],
         [dbtn(11), dbtn(12)],
+        [dbtn(13), dbtn(14)],
+        [dbtn(15), dbtn(16)],
+        [dbtn(17), dbtn(18)],
         [
             InlineKeyboardButton("✅ 🧹 Clean" if st == 0 else "🧹 Clean", callback_data=f"dsgn|{tmdb_id}|{mt}|{idx}|0"),
             InlineKeyboardButton("🔙 Back", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx}"),
