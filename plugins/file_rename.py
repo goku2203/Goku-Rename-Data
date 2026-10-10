@@ -23,6 +23,7 @@ import os, time, asyncio
 
 UPLOAD_TEXT = """Uploading Started...."""
 DOWNLOAD_TEXT = """Download Started..."""
+DUMP_STICKER_ID = "CAACAgUAAxkBAAFV0UBqycw4qxCyJ5mQX5vaagAByfx3bXAAAtcWAAKfJ8FVz-LGkVxoORY9BA"
 
 app = Client("4gb_FileRenameBot", api_id=Config.API_ID, api_hash=Config.API_HASH, session_string=Config.STRING_SESSION)
 
