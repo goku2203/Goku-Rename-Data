@@ -131,9 +131,10 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
     try:
         if not os.path.exists(file_path):
             return None, f"File not found: {file_path}"
-            
+                    
         real_filename = os.path.basename(file_path)
-            
+        custom_upload_text = f"**📤 Uploading:**\n`{real_filename}`"
+                    
         if upload_type == "document":
             filw = await bot.send_document(
                 sender_id,
@@ -142,7 +143,7 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
                 thumb=ph_path,
                 caption=caption,
                 progress=progress_for_pyrogram,
-                progress_args=(UPLOAD_TEXT, rkn_processing, time.time()))
+                progress_args=(custom_upload_text, rkn_processing, time.time()))
         
         elif upload_type == "video":
             filw = await bot.send_video(
@@ -322,9 +323,11 @@ async def upload_doc(bot, update):
     file_path = f"Renames/{new_filename}"
     
     await rkn_processing.edit("`Try To Download....`")
-    try:            
-        dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(DOWNLOAD_TEXT, rkn_processing, time.time()))                    
-    except Exception as e:        
+    try:
+        custom_download_text = f"**📥 Downloading:**\n`{new_filename}`"
+        dl_path = await bot.download_media(message=file, file_name=file_path, progress=progress_for_pyrogram, progress_args=(custom_download_text, rkn_processing, time.time()))
+                        
+    except Exception as e:      
         await rkn_processing.edit(f"Download Error: {e}")
         return False
         
