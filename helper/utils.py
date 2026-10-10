@@ -3,7 +3,7 @@ from config import Config
 from script import script
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-async def progress_for_pyrogram(current, total, ud_type, message, start):
+async def progress_for_pyrogram(current, total, ud_type, message, start, file_name=None):
     now = time.time()
     diff = now - start
     if round(diff % 5.00) == 0 or current == total:        
@@ -27,10 +27,14 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
             humanbytes(speed),            
             estimated_total_time if estimated_total_time != '' else "0 s"
         )
+        text_to_send = f"{ud_type}\n\n{tmp}"
+        if file_name:
+            text_to_send += f"\n\n**Output:** `{file_name}`"
+
         try:
             await message.edit(
-                text=f"{ud_type}\n\n{tmp}",               
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="close")]])                                               
+                text=text_to_send,
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="close")]])
             )
         except:
             pass
