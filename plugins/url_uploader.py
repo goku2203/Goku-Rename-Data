@@ -215,7 +215,13 @@ async def url_uploader_handler(client, message):
             except Exception:
                 pass
                 
-        # --- Puthiya Auto-Delete code with Try-Except (Crash Fix) ---
+        # --- Upload success aanadhum user anuppuna URL message-a udane delete ---
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        # --- Success message kaattitu 5 second-la delete ---
         try:
             await rkn_processing.edit("**Uploaded Successfully!...**")
             await asyncio.sleep(5)
