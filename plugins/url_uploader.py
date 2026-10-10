@@ -2,7 +2,7 @@ import os, time, aiohttp
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import digital_botz
-from helper.utils import humanbytes, remove_path
+from helper.utils import humanbytes, remove_path, file_queue_lock
 from plugins.file_rename import upload_files, DUMP_STICKER_ID
 from plugins.auto_rename import renamer
 
@@ -17,7 +17,10 @@ async def url_uploader_handler(client, message):
     if not upload_type:
         return await message.reply_text("⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video.")
         
-    rkn_processing = await message.reply_text("`🔗 URL Detected... Starting Download...`")
+    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`")
+    
+    async with file_queue_lock:
+        await rkn_processing.edit("`🔗 URL Detected... Starting Download...`")
     
     # 1. Extract file name from URL
     parsed_url = urlparse(url)
