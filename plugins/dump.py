@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from helper.database import digital_botz
 
+DUMP_STICKER_ID = CAACAgUAAxkBAAFV0UBqycw4qxCyJ5mQX5vaagAByfx3bXAAAtcWAAKfJ8FVz-LGkVxoORY9BA
 
 @Client.on_message(filters.private & filters.command("dump"))
 async def add_dump(client, message):
@@ -32,13 +33,15 @@ async def add_dump(client, message):
 async def delete_dump(client, message):
     rkn = await message.reply_text("⏳ **Processing...**")
 
-    dump_id = await digital_botz.get_dump(message.from_user.id)
-
-    if not dump_id:
-        return await rkn.edit(
-            "⚠️ **No Dump Channel Found!**\n\n"
-            "Please set a Dump Channel first."
-        )
+    # --- PUDHU DUMP LOGIC ---
+    dump_id = await digital_botz.get_dump(user_id)
+    if dump_id and success_msg:
+        try:
+            await success_msg.copy(int(dump_id))
+            # File anuppuna udane sticker anuppura code
+            await bot.send_sticker(chat_id=int(dump_id), sticker=STICKER_ID)
+        except Exception as e:
+            print(f"Failed to Send to Dump Channel: {e}")
 
     await digital_botz.set_dump(message.from_user.id, dump_id=None)
 
