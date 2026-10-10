@@ -1,7 +1,11 @@
-import math, time, re, datetime, pytz, os
-from config import Config 
+import math, time, re, datetime, pytz, os, asyncio
+from config import Config
+
+# Queue Lock for One-by-One processing
+file_queue_lock = asyncio.Lock()
 from script import script
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 
 async def progress_for_pyrogram(current, total, ud_type, message, start, file_name=None):
     now = time.time()
