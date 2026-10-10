@@ -1,9 +1,42 @@
-import os, time, aiohttp, asyncio
+import os, re, time, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import digital_botz
 from helper.utils import humanbytes, remove_path, file_queue_lock
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
+
+# Filename total length limit (file renamer-la irukkura same 60 limit)
+MAX_NAME_LEN = 60
+
+
+def normalize_season_episode(name: str) -> str:
+    """[S03-E01] / S03-E01 / S03 E01  ->  S03E01  (auto_rename parser-ku purira maathiri)"""
+    name = re.sub(r'[\[\(]\s*(S\d{1,2})\s*[-_. ]?\s*(E(?:P)?\d{1,4})\s*[\]\)]', r' \1\2 ', name, flags=re.IGNORECASE)
+    name = re.sub(r'(?<![A-Za-z0-9])(S\d{1,2})[-_. ](E(?:P)?\d{1,4})(?![A-Za-z0-9])', r'\1\2', name, flags=re.IGNORECASE)
+    return name
+
+
+def build_clean_filename(info, prefix, suffix, ext_str, limit=MAX_NAME_LEN):
+    """File renamer maathiri filename: prefix + title + SxxExx + quality + suffix (spaces-oda, underscore illama)."""
+    title = (info.get('title') or '').replace("_", " ")
+    se = f"{info.get('season') or ''}{info.get('episode') or ''}"
+    quality = (info.get('quality') or '').replace("_", " ")
+
+    parts_except_title = [p for p in (prefix, se, quality, suffix) if p]
+    extra_len = sum(len(p) for p in parts_except_title) + len(parts_except_title)
+    ext_len = len(ext_str) + 1 if ext_str else 0
+
+    max_title_len = limit - extra_len - ext_len
+    if max_title_len > 0 and len(title) > max_title_len:
+        title = title[:max_title_len].strip()
+    elif max_title_len <= 0:
+        title = ""
+
+    name = " ".join(p for p in (prefix, title, se, quality, suffix) if p)
+    name = re.sub(r'[\\/:*?"<>|]', "", name)   # file-system-ku problem varra characters mattum remove
+    name = " ".join(name.split())
+    return f"{name}.{ext_str}" if ext_str else name
+
 
 @Client.on_message(filters.private & filters.regex(r"^https?://"))
 async def url_uploader_handler(client, message):
@@ -75,14 +108,20 @@ async def url_uploader_handler(client, message):
     await rkn_processing.edit("`📝 Applying Auto-Rename Format...`")
     
     # 3. Apply Auto-Rename logic
-    info = renamer.extract_all_info(original_filename)
+    parse_name = normalize_season_episode(original_filename)
+    info = renamer.extract_all_info(parse_name)
     format_template = user_data.get('format_template', "{filename}")
+    if format_template is None:
+        format_template = "{filename}"
     prefix = user_data.get('prefix', None)
     suffix = user_data.get('suffix', None)
     
     ext_str = (info.get('extension') or original_filename.rsplit('.', 1)[-1]).lstrip('.').strip()
+    if not ext_str:
+        ext_str = "mkv"
     info['extension'] = ext_str
     
+    # --- CAPTION: autorename format padi (maarala) ---
     full_caption_name = renamer.apply_format_template(info, format_template)
     if not full_caption_name.endswith(f".{ext_str}"):
         full_caption_name += f".{ext_str}"
@@ -94,7 +133,11 @@ async def url_uploader_handler(client, message):
         cap_base = f"{cap_base} {suffix}"
     
     final_caption_name = f"{cap_base}.{ext_str}".strip()
-    new_local_path = f"Renames/{final_caption_name}"
+
+    # --- FILENAME: file renamer maathiri (title + SxxExx + quality, 60 limit, underscore illa) ---
+    new_filename = build_clean_filename(info, prefix, suffix, ext_str)
+    new_local_path = f"Renames/{new_filename}"
+    print(f"[URL-RENAME-DEBUG] raw={original_filename!r} -> new={new_filename!r}", flush=True)
     
     os.rename(local_path, new_local_path)
     
