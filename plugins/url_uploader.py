@@ -135,7 +135,7 @@ async def url_uploader_handler(client, message):
                 
         # --- Puthiya Auto-Delete code with Try-Except (Crash Fix) ---
         try:
-            await rkn_processing.edit("  Uploaded Successfully!\n\n_Auto deleting in 5 seconds..._")
+            await rkn_processing.edit("**Uploaded Successfully!...**")
             await asyncio.sleep(5)
             await rkn_processing.delete()
         except Exception:
