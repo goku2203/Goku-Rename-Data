@@ -321,11 +321,7 @@ async def upload_doc(bot, update):
         if "." not in new_filename:
             new_filename = f"{new_filename}.{ext_str}"
             
-        # Unwanted underlines-ah remove panni, unga handle-ah mattum safe ah vechukkum
-        new_filename = new_filename.replace("_", " ").replace("@Goku Stark", "@Goku_Stark")
-        new_filename = " ".join(new_filename.split())
-            
-        print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
+    print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
     file_path = f"Renames/{new_filename}"
     
