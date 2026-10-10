@@ -11,7 +11,7 @@ from hachoir.parser import createParser
 from PIL import Image
 
 # bots imports
-from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path
+from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, file_queue_lock
 from helper.database import digital_botz
 from config import Config
 from script import script
@@ -177,9 +177,12 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
 renamer = EnhancedAutoRenamer()
 
 async def upload_doc(bot, update):
-    rkn_processing = await update.message.edit("`Processing...`")
+    rkn_processing = await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
+    
+    async with file_queue_lock:
+        await rkn_processing.edit("`🔄 Processing Started...`")
         
-    user_id = int(update.message.chat.id) 
+        user_id = int(update.message.chat.id)
 
     file = update.message.reply_to_message
     if not file:
