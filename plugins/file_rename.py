@@ -426,9 +426,12 @@ async def upload_doc(bot, update):
     dump_id = await digital_botz.get_dump(user_id)
     if dump_id and success_msg:
         try:
+            # 1. First file-ai dump channel-kku forward pannum
             await success_msg.copy(int(dump_id))
+            # 2. File-kku kezha sticker-ai dump channel-kku mattum anuppum
+            await bot.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
         except Exception as e:
-            print(f"Dump Channel kku anuppa mudiyala: {e}")
+            print(f"❌ Failed to Send to Dump Channel.: {e}")
 
     await remove_path(ph_path, final_file_path, dl_path)
     await rkn_processing.edit("Uploaded Successfully....")
