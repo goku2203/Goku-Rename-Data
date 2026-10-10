@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from helper.database import digital_botz
 
-STICKER_ID = CAACAgUAAxkBAAFV0UBqycw4qxCyJ5mQX5vaagAByfx3bXAAAtcWAAKfJ8FVz-LGkVxoORY9BA
+STICKER_ID = "CAACAgUAAxkBAAFV0UBqycw4qxCyJ5mQX5vaagAByfx3bXAAAtcWAAKfJ8FVz-LGkVxoORY9BA"
 
 @Client.on_message(filters.private & filters.command("dump"))
 async def add_dump(client, message):
