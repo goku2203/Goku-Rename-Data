@@ -16,6 +16,8 @@ async def url_uploader_handler(client, message):
     if not upload_type:
         return await message.reply_text("⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video.")
         
+    actual_upload_type = "document" if upload_type == "doc" else "video"
+        
     rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`")
     
     async with file_queue_lock:
@@ -32,7 +34,8 @@ async def url_uploader_handler(client, message):
     
     # 2. Download the file
     try:
-        async with aiohttp.ClientSession() as session:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        async with aiohttp.ClientSession(headers=headers) as session:
             async with session.get(url) as response:
                 if response.status != 200:
                     return await rkn_processing.edit("❌ Failed to download from the provided URL. Ensure it is a direct link.")
@@ -95,10 +98,10 @@ async def url_uploader_handler(client, message):
         ph_path = await client.download_media(c_thumb)
         
     await rkn_processing.edit("`📤 Starting Upload...`")
-    
+
     # 5. Upload the file
     filw, error = await upload_files(
-        client, message.chat.id, upload_type, new_local_path, 
+        client, message.chat.id, actual_upload_type, new_local_path, 
         ph_path, caption, 0, rkn_processing
     )
     
