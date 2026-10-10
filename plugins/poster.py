@@ -638,14 +638,9 @@ async def show_raw_cb(client, query: CallbackQuery):
     except Exception:
         pass
 
-    if query.message.photo:
+    if not query.message.photo:
         try:
-            await query.message.edit_caption("🔄 Loading landscape image... Please wait ⏳")
-        except Exception:
-            pass
-    else:
-        try:
-            await query.message.edit_text("`🔄 Fetching landscape image...`")
+            await query.message.edit_text("`  Fetching landscape image...`")
         except Exception:
             pass
 
@@ -676,11 +671,6 @@ async def generate_normal_cb(client, query: CallbackQuery):
 
     try:
         await query.answer("⚡ Generating poster with glass watermark...")
-    except Exception:
-        pass
-
-    try:
-        await query.message.edit_caption("⚡ Generating your poster with glass watermark... Please wait ⏳")
     except Exception:
         pass
 
@@ -718,20 +708,18 @@ async def show_panel(client, query, user_id, tmdb_id, media_type, idx, st):
 async def custom_style_cb(client, query: CallbackQuery):
     parts = query.data.split("|")
     tmdb_id, media_type, idx, st = parts[1], parts[2], int(parts[3]), parse_st(parts, 4)
-    st = st if st in DESIGNS else 1   # Default to Design 1 if not set
-
+    st = st if st in DESIGNS else 1
+    
     try:
-        await query.answer(f"🎨 Opening {design_name(st)}...")
-    except Exception:
-        pass
-
-    try:
-        await query.message.edit_caption(f"🎨 Applying {design_name(st)}... Please wait ⏳")
-    except Exception:
-        pass
-
-    try:
-        await show_panel(client, query, query.from_user.id, tmdb_id, media_type, idx, st)
+        await query.answer("  Opening Custom Style Menu...")
+        info = await get_info(media_type, tmdb_id)
+        text = await get_wm_text(query.from_user.id)
+        scale = await get_scale(query.from_user.id)
+        
+        caption = style_caption(text, scale, st, info)
+        markup = style_markup(tmdb_id, media_type, idx, st)
+        
+        await query.message.edit_caption(caption=caption, reply_markup=markup)
     except Exception as e:
         try:
             await query.message.edit_caption(f"**Error:** `{e}`")
@@ -747,11 +735,6 @@ async def design_cb(client, query: CallbackQuery):
     status_name = "Clean (Watermark Only)" if st == 0 else design_name(st)
     try:
         await query.answer(f"🎨 {status_name} ✅")
-    except Exception:
-        pass
-
-    try:
-        await query.message.edit_caption(f"🎨 Rendering {status_name}... Please wait ⏳")
     except Exception:
         pass
 
@@ -779,11 +762,6 @@ async def wm_size_cb(client, query: CallbackQuery):
 
     await query.answer(f"📏 Size: {new_scale}x ✅")
     await digital_botz.set_wm_scale(user_id, new_scale)   # Permanent DB Save
-
-    try:
-        await query.message.edit_caption(f"📏 Adjusting watermark size to {new_scale}x... Please wait ⏳")
-    except Exception:
-        pass
 
     try:
         await show_panel(client, query, user_id, tmdb_id, media_type, idx, st)
