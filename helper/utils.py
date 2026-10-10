@@ -29,7 +29,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start, file_na
         )
         text_to_send = f"{ud_type}\n\n{tmp}"
         if file_name:
-            text_to_send += f"\n\n**Output:** `{file_name}`"
+            text_to_send += f"\n{script.OUTPUT_TXT.format(file_name)}"
 
         try:
             await message.edit(
