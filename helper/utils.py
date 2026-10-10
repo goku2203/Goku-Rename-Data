@@ -20,20 +20,17 @@ async def progress_for_pyrogram(current, total, ud_type, message, start, file_na
             ''.join(["▣" for i in range(math.floor(percentage / 5))]),
             ''.join(["▢" for i in range(20 - math.floor(percentage / 5))])
         )            
-        tmp = progress + script.RKN_PROGRESS.format( 
+        tmp = progress + script.RKN_PROGRESS.format(
             round(percentage, 2),
             humanbytes(current),
             humanbytes(total),
-            humanbytes(speed),            
-            estimated_total_time if estimated_total_time != '' else "0 s"
+            humanbytes(speed),
+            estimated_total_time if estimated_total_time != '' else "0 s",
+            file_name if file_name else ""
         )
-        text_to_send = f"{ud_type}\n\n{tmp}"
-        if file_name:
-            text_to_send += f"\n{script.OUTPUT_TXT.format(file_name)}"
-
         try:
             await message.edit(
-                text=text_to_send,
+                text=f"{ud_type}\n\n{tmp}",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="close")]])
             )
         except:
