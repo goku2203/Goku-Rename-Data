@@ -23,22 +23,35 @@ async def url_uploader_handler(client, message):
     async with file_queue_lock:
         await rkn_processing.edit("`🔗 URL Detected... Starting Download...`")
     
-    # 1. Extract file name from URL
-    parsed_url = urlparse(url)
-    original_filename = unquote(os.path.basename(parsed_url.path))
-    if not original_filename or "." not in original_filename:
-        original_filename = "Downloaded_video.mkv"
-        
-    os.makedirs("Renames", exist_ok=True)
-    local_path = f"Renames/{original_filename}"
+    original_filename = "Downloaded_video.mkv"
+    local_path = ""
     
-    # 2. Download the file
+    # 1 & 2. Extract Name from Header & Download the file
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.get(url) as response:
                 if response.status != 200:
                     return await rkn_processing.edit("❌ Failed to download from the provided URL. Ensure it is a direct link.")
+                
+                # File name extract panra puthiya logic
+                cd = response.headers.get('Content-Disposition')
+                extracted_name = None
+                if cd:
+                    if 'filename="' in cd:
+                        extracted_name = cd.split('filename="')[1].split('"')[0]
+                    elif 'filename=' in cd:
+                        extracted_name = cd.split('filename=')[1].split(';')[0].strip()
+                
+                if not extracted_name:
+                    parsed_url = urlparse(str(response.url))
+                    extracted_name = unquote(os.path.basename(parsed_url.path))
+                
+                if extracted_name and "." in extracted_name:
+                    original_filename = extracted_name
+                    
+                os.makedirs("Renames", exist_ok=True)
+                local_path = f"Renames/{original_filename}"
                 
                 total_size = int(response.headers.get('content-length', 0))
                 
@@ -106,7 +119,10 @@ async def url_uploader_handler(client, message):
     )
     
     if error:
-        await rkn_processing.edit(f"❌ Upload Error: {error}")
+        try:
+            await rkn_processing.edit(f"❌ Upload Error: {error}")
+        except:
+            pass
     else:
         # Handle Dump Channel Forwarding
         dump_id = await digital_botz.get_dump(user_id)
@@ -117,15 +133,7 @@ async def url_uploader_handler(client, message):
             except Exception:
                 pass
                 
-        # --- Ithu thaan naama ADD panna puthiya Auto-Delete code ---
-        await rkn_processing.edit("✅ Uploaded Successfully!\n\n_Auto deleting in 5 seconds..._")
-        await asyncio.sleep(5)
-        await rkn_processing.delete()
+        # --- Puthiya Auto-Delete code with Try-Except (Crash Fix) ---
         try:
-            await message.delete()
-        except:
-            pass
-        # -------------------------------------------------------------
-        
-    # 6. Cleanup local files to free up server storage
-    await remove_path(ph_path, new_local_path, local_path)
+            await rkn_processing.edit("✅ Uploaded Successfully!\n\n_Auto deleting in 5 seconds..._")
+            await
