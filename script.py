@@ -77,15 +77,9 @@ V𝟹.𝟶.𝟶 [STABLE]
 • ❣️ <a href=https://github.com/DigitalBotz>DigitalBotz</a>
 • ❣️️ <a href=https://github.com/JayMahakal98>Jay Mahakal</a> """
 
-    RKN_PROGRESS = """<b>
-
-⦿ 📦 Sɪᴢᴇ    : {1} / {2}
-⦿ 📊 Pʀᴏɢʀᴇss: {0}%
-⦿ ⚡ Sᴘᴇᴇᴅ   : {3}/s
-⦿ ⏱ ETA      : {4}
-
-────「 Please wait... 」────
-</b>"""
+    RKN_PROGRESS = """<b>\n\n 📦 𝚂𝙸𝚉𝙴: {1} / {2}\n 📊 𝙿𝚁𝙾𝙶𝚁𝙴𝚂𝚂: {0}%\n ⚡ 𝚂𝙿𝙴𝙴𝙳: {3}/s\n ⏱️ 𝙴𝚃𝙰: {4}\n\n ────[ Please wait... ]────</b>"""
+    
+    OUTPUT_TXT = "**🎬 Output:** [**{}**]"
 
     # Custom Metadata & Tags
     METADATA_TITLE = "@Goku_Stark"
