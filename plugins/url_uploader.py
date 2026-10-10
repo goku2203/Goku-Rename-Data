@@ -3,8 +3,7 @@ from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import digital_botz
 from helper.utils import humanbytes, remove_path, file_queue_lock
-from plugins.file_rename import upload_files, DUMP_STICKER_ID
-from plugins.auto_rename import renamer
+from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 
 @Client.on_message(filters.private & filters.regex(r"^https?://"))
 async def url_uploader_handler(client, message):
