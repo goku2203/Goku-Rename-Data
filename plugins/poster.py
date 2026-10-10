@@ -384,12 +384,37 @@ async def wm_menu_text(user_id, status_alert=None):
     msg += "\n*Select an action below:*"
     return msg
 
-async def auto_delete(msg):
+async def get_cmd_id(client, chat_id, msg_id):
+    """ID of the user's original /p command that this bot message is replying to."""
+    try:
+        full = await client.get_messages(chat_id, msg_id)
+    except Exception:
+        return None
+    if not full:
+        return None
+    rid = getattr(full, "reply_to_message_id", None)
+    if not rid and getattr(full, "reply_to_message", None):
+        rid = full.reply_to_message.id
+    return rid or None
+
+async def delete_cmd(client, chat_id, msg_id):
+    """Deletes the user's /p command message linked to the given bot message."""
+    rid = await get_cmd_id(client, chat_id, msg_id)
+    if rid:
+        try:
+            await client.delete_messages(chat_id, rid)
+        except Exception:
+            pass
+
+async def auto_delete(client, msg, cmd_id=None):
     await asyncio.sleep(AUTO_DELETE_SECONDS)
+    chat_id = msg.chat.id
+    if not cmd_id:
+        cmd_id = getattr(msg, "reply_to_message_id", None)
     try:
         # 1. User anupina original command (/p name) ah first delete pannum
-        if msg.reply_to_message:
-            await msg.reply_to_message.delete()
+        if cmd_id:
+            await client.delete_messages(chat_id, cmd_id)
     except Exception:
         pass
     try:
@@ -408,8 +433,7 @@ async def deliver(client, query, media_source, caption, markup):
     local_file_to_clean = media_source if (not is_url and os.path.exists(media_source)) else None
 
     # Force fetch full message to safely get reply_to_message link
-    full_msg = await client.get_messages(query.message.chat.id, query.message.id)
-    reply_id = full_msg.reply_to_message.id if (full_msg and full_msg.reply_to_message) else None
+    reply_id = await get_cmd_id(client, query.message.chat.id, query.message.id)
 
     try:
         if query.message.photo:
@@ -460,7 +484,7 @@ async def deliver(client, query, media_source, caption, markup):
                         reply_to_message_id=reply_id
                     )
             if sent:
-                asyncio.create_task(auto_delete(sent))
+                asyncio.create_task(auto_delete(client, sent, reply_id))
     finally:
         if local_file_to_clean and os.path.exists(local_file_to_clean):
             try:
@@ -501,7 +525,7 @@ async def poster_cmd(client, message):
     query = message.text.split(" ", 1)[1].strip()
     user_id = message.from_user.id
     SEARCH_CACHE[user_id] = query
-    process_msg = await message.reply_text("`🔍 Searching TMDB...`")
+    process_msg = await message.reply_text("`🔍 Searching TMDB...`", quote=True)
 
     try:
         data = await get_json(
@@ -539,10 +563,9 @@ async def poster_cmd(client, message):
 @Client.on_callback_query(filters.regex(r"^close_search$"), group=1)
 async def close_search_cb(client, query: CallbackQuery):
     await query.answer()
+    # 1. User anupina /p command message delete, 2. bot message delete
+    await delete_cmd(client, query.message.chat.id, query.message.id)
     try:
-        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
-        if full_msg and full_msg.reply_to_message:
-            await full_msg.reply_to_message.delete()
         await query.message.delete()
     except Exception:
         pass
@@ -593,8 +616,7 @@ async def back_search_cb(client, query: CallbackQuery):
         buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="close_search")])
 
         # Delete panrathuku munnadi link ah thedi edukkanum
-        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
-        reply_id = full_msg.reply_to_message.id if (full_msg and full_msg.reply_to_message) else None
+        reply_id = await get_cmd_id(client, query.message.chat.id, query.message.id)
 
         try:
             await query.message.delete()
@@ -1112,7 +1134,10 @@ def logo_pos_caption(info, code):
 def logo_panel_markup(tmdb_id, mt, idx, code):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📷 Manual Photo", callback_data=f"clphoto|{tmdb_id}|{mt}|{idx}|{code}")],
-        [InlineKeyboardButton("🔙 Back", callback_data=f"clback|{tmdb_id}|{mt}|{idx}|{code}")],
+        [
+            InlineKeyboardButton("🔙 Back", callback_data=f"clback|{tmdb_id}|{mt}|{idx}|{code}"),
+            InlineKeyboardButton("❌ Close", callback_data="delete_auto"),
+        ],
     ])
 
 
@@ -1341,10 +1366,9 @@ async def receive_logo_photo(client, message):
 @Client.on_callback_query(filters.regex(r"^delete_auto$"), group=1)
 async def manual_delete_cb(client, query: CallbackQuery):
     await query.answer("Deleted!")
+    # 1. User anupina /p command message delete, 2. bot message delete
+    await delete_cmd(client, query.message.chat.id, query.message.id)
     try:
-        full_msg = await client.get_messages(query.message.chat.id, query.message.id)
-        if full_msg and full_msg.reply_to_message:
-            await full_msg.reply_to_message.delete()
         await query.message.delete()
     except Exception:
         pass
