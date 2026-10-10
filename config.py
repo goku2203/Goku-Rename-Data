@@ -3,21 +3,21 @@ id_pattern = re.compile(r'^.\d+$')
 
 class Config(object):
     # digital_botz client config
-    API_ID = os.environ.get("API_ID", "25169055")
-    API_HASH = os.environ.get("API_HASH", "d70362ef232cc5ec4cb0b8d1ba6cc60e")
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "7706580536:AAEMwFWmHeYTbuO7MNDvNHQBXJENPktOBBc") 
+    API_ID = os.environ.get("API_ID", "")
+    API_HASH = os.environ.get("API_HASH", "")
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "") 
     BOT = None
 
     # premium account string session required 😢 
     STRING_SESSION = os.environ.get("STRING_SESSION", "")
     
     # database config
-    DB_NAME = os.environ.get("DB_NAME","Digital_Auto_Rename_Bot")     
-    DB_URL = os.environ.get("DB_URL","mongodb+srv://masamin643_db_user:aqunP8EES9YndDQt@cluster0.rgnbdf5.mongodb.net/?appName=Cluster0")
+    DB_NAME = os.environ.get("DB_NAME","Auto_Rename_Bot")     
+    DB_URL = os.environ.get("DB_URL","")
  
     # other configs
     RKN_PIC = os.environ.get("RKN_PIC", "https://files.catbox.moe/94kw2e.jpg")
-    ADMIN = [int(admin) if id_pattern.search(admin) else admin for admin in os.environ.get('ADMIN', '6629872386').split()]
+    ADMIN = [int(admin) if id_pattern.search(admin) else admin for admin in os.environ.get('ADMIN', '').split()]
     LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "-1003742596813"))
 
     # free upload limit 
