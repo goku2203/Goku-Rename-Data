@@ -1,4 +1,4 @@
-import os, time, aiohttp
+import os, time, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import digital_botz
@@ -116,7 +116,16 @@ async def url_uploader_handler(client, message):
                 await client.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
             except Exception:
                 pass
-        await rkn_processing.edit("✅ Uploaded Successfully!")
+                
+        # --- Ithu thaan naama ADD panna puthiya Auto-Delete code ---
+        await rkn_processing.edit("✅ Uploaded Successfully!\n\n_Auto deleting in 5 seconds..._")
+        await asyncio.sleep(5)
+        await rkn_processing.delete()
+        try:
+            await message.delete()
+        except:
+            pass
+        # -------------------------------------------------------------
         
     # 6. Cleanup local files to free up server storage
     await remove_path(ph_path, new_local_path, local_path)
