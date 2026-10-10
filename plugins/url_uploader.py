@@ -4,6 +4,7 @@ from pyrogram import Client, filters
 from helper.database import digital_botz
 from helper.utils import humanbytes, remove_path, file_queue_lock
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
+from script import script
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
@@ -36,6 +37,37 @@ def build_clean_filename(info, prefix, suffix, ext_str, limit=MAX_NAME_LEN):
     name = re.sub(r'[\\/:*?"<>|]', "", name)   # file-system-ku problem varra characters mattum remove
     name = " ".join(name.split())
     return f"{name}.{ext_str}" if ext_str else name
+
+
+async def add_metadata(file_path: str) -> str:
+    """File renamer maathiri ffmpeg-la script.METADATA_TITLE metadata add pannum. Fail aanaalum original file use aagum."""
+    title = script.METADATA_TITLE
+    folder, name = os.path.split(file_path)
+    meta_path = os.path.join(folder, f"meta_{name}")
+    cmd = [
+        "ffmpeg", "-y", "-i", file_path, "-c", "copy", "-map", "0",
+        "-metadata", f"title={title}",
+        "-metadata:s:v", f"title={title}",
+        "-metadata:s:a", f"title={title}",
+        "-metadata:s:s", f"title={title}",
+        meta_path,
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.communicate()
+        if proc.returncode == 0 and os.path.exists(meta_path) and os.path.getsize(meta_path) > 0:
+            os.remove(file_path)
+            os.rename(meta_path, file_path)
+        elif os.path.exists(meta_path):
+            os.remove(meta_path)
+    except Exception as e:
+        print(f"[URL-METADATA] failed: {e}", flush=True)
+        if os.path.exists(meta_path):
+            try: os.remove(meta_path)
+            except Exception: pass
+    return file_path
 
 
 @Client.on_message(filters.private & filters.regex(r"^https?://"))
@@ -140,6 +172,13 @@ async def url_uploader_handler(client, message):
     print(f"[URL-RENAME-DEBUG] raw={original_filename!r} -> new={new_filename!r}", flush=True)
     
     os.rename(local_path, new_local_path)
+
+    # --- METADATA: file renamer maathiri (script.py la METADATA_TITLE) ---
+    try:
+        await rkn_processing.edit("`🏷️ Adding Metadata...`")
+    except Exception:
+        pass
+    await add_metadata(new_local_path)
     
     # 4. Prepare Thumbnail and Caption
     c_caption = user_data.get('caption', None)
