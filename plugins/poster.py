@@ -3,10 +3,11 @@ import aiohttp
 import io
 import os
 import time
+import textwrap
 from pyrogram import Client, filters
 from pyrogram.errors import MessageNotModified
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 from helper.database import digital_botz
 
 # Import designs and helpers from thumbnail_designs.py
@@ -75,9 +76,9 @@ async def get_backdrops(media_type, tmdb_id):
         BACKDROP_CACHE[key] = paths
     return BACKDROP_CACHE[key]
 
-async def get_logo(media_type, tmdb_id):
+async def get_logo(media_type, tmdb_id, size="w500"):
     """Fetches transparent PNG title logo from TMDB images"""
-    key = f"{media_type}_{tmdb_id}"
+    key = f"{media_type}_{tmdb_id}_{size}"
     if key in LOGO_CACHE:
         return LOGO_CACHE[key]
     try:
@@ -90,7 +91,7 @@ async def get_logo(media_type, tmdb_id):
             en_logos = [l["file_path"] for l in logos if l.get("iso_639_1") == "en"]
             path = en_logos[0] if en_logos else (logos[0]["file_path"] if logos else None)
             if path:
-                bytes_data = await get_bytes(f"https://image.tmdb.org/t/p/w500{path}")
+                bytes_data = await get_bytes(f"https://image.tmdb.org/t/p/{size}{path}")
                 if len(LOGO_CACHE) >= 30:
                     LOGO_CACHE.pop(next(iter(LOGO_CACHE)))
                 LOGO_CACHE[key] = bytes_data
@@ -252,6 +253,9 @@ def raw_markup(tmdb_id, mt, idx, total):
         InlineKeyboardButton("🎨 Custom Style", callback_data=f"cstyle|{tmdb_id}|{mt}|{idx}|1")
     ])
     rows.append([
+        InlineKeyboardButton("🏷 Custom Logo", callback_data=f"clpos|{tmdb_id}|{mt}|{idx}|b")
+    ])
+    rows.append([
         InlineKeyboardButton("🔙 Back", callback_data=f"back_search|{tmdb_id}|{mt}"),
         InlineKeyboardButton("🗑 Delete", callback_data="delete_auto")
     ])
@@ -282,7 +286,8 @@ def raw_caption(idx, total, info):
     caption += (
         f"\n👉 **Choose an option below:**\n"
         f"• **⚡ Generate Image:** Normal poster with glass watermark\n"
-        f"• **🎨 Custom Style:** 12 aesthetic thumbnail templates\n\n"
+        f"• **🎨 Custom Style:** 12 aesthetic thumbnail templates\n"
+        f"• **🏷 Custom Logo:** Title logo (top / bottom / bottom-left) + your own photo\n\n"
         f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
     )
     return caption
@@ -947,6 +952,386 @@ async def receive_watermark(client, message):
                             os.remove(path)
             except Exception:
                 await client.send_message(st["chat_id"], f"**Watermark saved:** `{name}` ✅")
+
+    message.stop_propagation()
+
+
+# ======================= 5. CUSTOM LOGO (position -> OK -> Manual Photo) =======================
+
+LOGO_POS = {
+    "t":  ("⬆️ Top", "top"),
+    "b":  ("⬇️ Bottom", "bottom"),
+    "bl": ("↙️ Bottom Left", "bottom_left"),
+}
+WAIT_PHOTO = {}              # State: user is expected to send a manual photo
+PHOTO_WAIT_SECONDS = 120
+
+
+def _pos_code(parts, pos=4):
+    try:
+        c = parts[pos]
+    except Exception:
+        c = "b"
+    return c if c in LOGO_POS else "b"
+
+
+def _edge_gradient(size, top, frac=0.38, max_alpha=170):
+    """Soft dark fade on top/bottom edge so the logo is visible on any photo."""
+    w, h = size
+    gh = max(2, int(h * frac))
+    col = Image.new("L", (1, gh))
+    for y in range(gh):
+        t = y / (gh - 1)
+        t = (1 - t) if top else t
+        col.putpixel((0, y), int(max_alpha * (t ** 1.6)))
+    mask = col.resize((w, gh))
+    shade = Image.new("RGBA", (w, gh), (0, 0, 0, 255))
+    shade.putalpha(mask)
+    grad = Image.new("RGBA", size, (0, 0, 0, 0))
+    grad.paste(shade, (0, 0 if top else h - gh))
+    return grad
+
+
+def _text_logo(title):
+    """Fallback when TMDB has no title logo: draw the title as a bold white text logo."""
+    title = (title or "").strip() or " "
+    lines = textwrap.wrap(title, width=20)[:3] or [title]
+    font = load_font(200)
+    boxes = [_PROBE.textbbox((0, 0), ln, font=font) for ln in lines]
+    widths = [b[2] - b[0] for b in boxes]
+    heights = [b[3] - b[1] for b in boxes]
+    gap = 24
+    pad = 30
+    cw = max(widths) + pad * 2
+    ch = sum(heights) + gap * (len(lines) - 1) + pad * 2
+    canvas = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+    d = ImageDraw.Draw(canvas)
+    y = pad
+    for ln, bx, w, h in zip(lines, boxes, widths, heights):
+        x = (cw - w) // 2 - bx[0]
+        d.text((x + 6, y - bx[1] + 6), ln, font=font, fill=(0, 0, 0, 190))
+        d.text((x, y - bx[1]), ln, font=font, fill=(255, 255, 255, 255))
+        y += h + gap
+    return canvas
+
+
+def build_logo_poster(img_bytes, logo_bytes, title, text, scale, pos, out_path):
+    """Title logo at chosen position (top / bottom / bottom_left) + glass watermark."""
+    img = ImageOps.exif_transpose(Image.open(io.BytesIO(img_bytes))).convert("RGBA")
+    b = img.width / 1920
+    margin = int(48 * b)
+
+    logo = None
+    if logo_bytes:
+        try:
+            logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+        except Exception:
+            logo = None
+    if logo is None:
+        logo = _text_logo(title)
+
+    box = logo.getchannel("A").getbbox()
+    if box:
+        logo = logo.crop(box)
+
+    max_w = int(img.width * 0.34)
+    max_h = int(img.height * 0.22)
+    r = min(max_w / logo.width, max_h / logo.height)
+    logo = logo.resize((max(1, int(logo.width * r)), max(1, int(logo.height * r))), Image.LANCZOS)
+    lw, lh = logo.size
+
+    if pos == "top":
+        x, y = (img.width - lw) // 2, margin
+    elif pos == "bottom_left":
+        x, y = margin, img.height - lh - margin
+    else:  # bottom (center)
+        x, y = (img.width - lw) // 2, img.height - lh - margin
+
+    img = Image.alpha_composite(img, _edge_gradient(img.size, top=(pos == "top")))
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    layer.alpha_composite(logo, dest=(max(0, x), max(0, y)))
+    draw_watermark(img, layer, text, scale)
+
+    final = Image.alpha_composite(img, layer).convert("RGB")
+    final.save(out_path, format="JPEG", quality=90)
+
+
+async def _compose_logo(user_id, tmdb_id, media_type, img_bytes, pos):
+    text = await get_wm_text(user_id)
+    scale = await get_scale(user_id)
+    info = await get_info(media_type, tmdb_id)
+    logo_bytes = await get_logo(media_type, tmdb_id, "original")
+    out_path = f"logo_{user_id}_{int(time.time() * 1000)}.jpg"
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(
+        None, build_logo_poster, img_bytes, logo_bytes, info.get("title", ""), text, scale, pos, out_path
+    )
+    return out_path, text, scale, info, bool(logo_bytes)
+
+
+async def render_logo(user_id, tmdb_id, media_type, idx, pos):
+    backdrops = await get_backdrops(media_type, tmdb_id)
+    if not backdrops:
+        return None
+    idx = idx % len(backdrops)
+    img_bytes = await get_bytes(f"https://image.tmdb.org/t/p/original{backdrops[idx]}")
+    path, text, scale, info, has_logo = await _compose_logo(user_id, tmdb_id, media_type, img_bytes, pos)
+    return path, idx, len(backdrops), text, scale, info, has_logo
+
+
+# ---------- Buttons & captions ----------
+
+def logo_pos_markup(tmdb_id, mt, idx, code):
+    def pbtn(c):
+        label = LOGO_POS[c][0]
+        return InlineKeyboardButton(
+            f"✅ {label}" if c == code else label,
+            callback_data=f"clpos|{tmdb_id}|{mt}|{idx}|{c}"
+        )
+    return InlineKeyboardMarkup([
+        [pbtn("t"), pbtn("b")],
+        [pbtn("bl")],
+        [InlineKeyboardButton("✔️ OK", callback_data=f"clok|{tmdb_id}|{mt}|{idx}|{code}")],
+        [InlineKeyboardButton("🔙 Back", callback_data=f"show_raw|{tmdb_id}|{mt}|{idx}")],
+    ])
+
+
+def logo_pos_caption(info, code):
+    title = info.get("title") or ""
+    tag = f"🎬 **Title:** `{title}`\n" if title else ""
+    return (
+        f"**🏷 CUSTOM LOGO**\n"
+        f"{tag}\n"
+        f"📍 **Where should the title logo be placed?**\n"
+        f"Selected: **{LOGO_POS[code][0]}**\n\n"
+        f"__Choose a position above, then tap ✔️ OK.__\n\n"
+        f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
+    )
+
+
+def logo_panel_markup(tmdb_id, mt, idx, code):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📷 Manual Photo", callback_data=f"clphoto|{tmdb_id}|{mt}|{idx}|{code}")],
+        [InlineKeyboardButton("🔙 Back", callback_data=f"clback|{tmdb_id}|{mt}|{idx}|{code}")],
+    ])
+
+
+def logo_panel_caption(code, text, scale, info, has_logo, manual=False):
+    title = info.get("title") or ""
+    tag = f"🎬 **Title:** `{title}`\n" if title else ""
+    src = "📷 Your photo" if manual else "🌅 TMDB backdrop"
+    note = "" if has_logo else "\n⚠️ __TMDB logo not found, so the title text is used as logo.__\n"
+    return (
+        f"**🏷 CUSTOM LOGO STUDIO**\n"
+        f"{tag}"
+        f"🖼 **Image:** {src}\n"
+        f"📍 **Logo Position:** {LOGO_POS[code][0]}\n"
+        f"🏷 **Watermark:** `{text}` | 📏 **Size:** `{scale}x`\n"
+        f"{note}\n"
+        f"__Tap 📷 Manual Photo, then send your own image. The logo and watermark will be added to it.__\n\n"
+        f"*(Auto-deletes in {AUTO_DELETE_TEXT})*"
+    )
+
+
+# ---------- Callbacks ----------
+
+# Position selection screen (also used when a position button is tapped)
+@Client.on_callback_query(filters.regex(r"^clpos\|"), group=1)
+async def logo_pos_cb(client, query: CallbackQuery):
+    parts = query.data.split("|")
+    tmdb_id, media_type, idx, code = parts[1], parts[2], int(parts[3]), _pos_code(parts)
+
+    try:
+        await query.answer(f"📍 {LOGO_POS[code][0]}")
+    except Exception:
+        pass
+
+    try:
+        info = await get_info(media_type, tmdb_id)
+        await query.message.edit_caption(
+            caption=logo_pos_caption(info, code),
+            reply_markup=logo_pos_markup(tmdb_id, media_type, idx, code)
+        )
+    except MessageNotModified:
+        pass
+    except Exception as e:
+        try:
+            await query.message.edit_caption(f"**Error:** `{e}`")
+        except Exception:
+            pass
+
+
+# Back from the Custom Logo panel -> position screen (with the plain backdrop again)
+@Client.on_callback_query(filters.regex(r"^clback\|"), group=1)
+async def logo_back_cb(client, query: CallbackQuery):
+    parts = query.data.split("|")
+    tmdb_id, media_type, idx, code = parts[1], parts[2], int(parts[3]), _pos_code(parts)
+
+    try:
+        await query.answer("🔙 Back")
+    except Exception:
+        pass
+
+    try:
+        backdrops = await get_backdrops(media_type, tmdb_id)
+        if not backdrops:
+            return await query.message.edit_caption("**❌ No landscape backdrop images found!**")
+        idx = idx % len(backdrops)
+        info = await get_info(media_type, tmdb_id)
+        raw_url = f"https://image.tmdb.org/t/p/w1280{backdrops[idx]}"
+        await deliver(
+            client, query, raw_url,
+            logo_pos_caption(info, code),
+            logo_pos_markup(tmdb_id, media_type, idx, code)
+        )
+    except Exception as e:
+        try:
+            await query.message.edit_caption(f"**Error:** `{e}`")
+        except Exception:
+            pass
+
+
+# OK -> Custom Logo panel (logo placed on the backdrop + watermark)
+@Client.on_callback_query(filters.regex(r"^clok\|"), group=1)
+async def logo_ok_cb(client, query: CallbackQuery):
+    parts = query.data.split("|")
+    tmdb_id, media_type, idx, code = parts[1], parts[2], int(parts[3]), _pos_code(parts)
+    user_id = query.from_user.id
+
+    try:
+        await query.answer("⏳ Placing logo...")
+    except Exception:
+        pass
+
+    try:
+        res = await render_logo(user_id, tmdb_id, media_type, idx, LOGO_POS[code][1])
+        if not res:
+            return await query.message.edit_caption("**❌ Failed to render poster!**")
+        path, idx, total, text, scale, info, has_logo = res
+        await deliver(
+            client, query, path,
+            logo_panel_caption(code, text, scale, info, has_logo),
+            logo_panel_markup(tmdb_id, media_type, idx, code)
+        )
+    except Exception as e:
+        try:
+            await query.message.edit_caption(f"**Error:** `{e}`")
+        except Exception:
+            pass
+
+
+# Manual Photo -> ask the user to send an image
+@Client.on_callback_query(filters.regex(r"^clphoto\|"), group=1)
+async def logo_photo_cb(client, query: CallbackQuery):
+    parts = query.data.split("|")
+    tmdb_id, media_type, idx, code = parts[1], parts[2], int(parts[3]), _pos_code(parts)
+    user_id = query.from_user.id
+    await query.answer()
+
+    old = WAIT_PHOTO.pop(user_id, None)
+    if old and old.get("prompt_id"):
+        try:
+            await client.delete_messages(old["chat_id"], old["prompt_id"])
+        except Exception:
+            pass
+
+    prompt = await client.send_message(
+        query.message.chat.id,
+        f"**📷 Send your Photo**\n\n"
+        f"Logo position: **{LOGO_POS[code][0]}**\n"
+        f"Your image will come back with the logo + watermark.\n\n"
+        f"__(Send the photo within {PHOTO_WAIT_SECONDS} seconds)__",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="clcancel")]])
+    )
+    WAIT_PHOTO[user_id] = {
+        "chat_id": query.message.chat.id,
+        "photo_id": query.message.id,
+        "prompt_id": prompt.id,
+        "tmdb_id": tmdb_id,
+        "media_type": media_type,
+        "idx": idx,
+        "code": code,
+    }
+
+    async def timeout():
+        await asyncio.sleep(PHOTO_WAIT_SECONDS)
+        state = WAIT_PHOTO.get(user_id)
+        if state and state.get("prompt_id") == prompt.id:
+            WAIT_PHOTO.pop(user_id, None)
+            try:
+                await prompt.delete()
+            except Exception:
+                pass
+    asyncio.create_task(timeout())
+
+
+@Client.on_callback_query(filters.regex(r"^clcancel$"), group=1)
+async def logo_cancel_cb(client, query: CallbackQuery):
+    WAIT_PHOTO.pop(query.from_user.id, None)
+    await query.answer("Cancelled")
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
+
+
+# Listener: user sends the manual photo (as photo or as image file)
+async def _photo_wait_filter(_, __, message):
+    if not (message.from_user and message.from_user.id in WAIT_PHOTO):
+        return False
+    if message.photo:
+        return True
+    doc = message.document
+    return bool(doc and (doc.mime_type or "").startswith("image/"))
+
+photo_waiting = filters.create(_photo_wait_filter)
+
+@Client.on_message(filters.private & photo_waiting, group=-1)
+async def receive_logo_photo(client, message):
+    user_id = message.from_user.id
+    st = WAIT_PHOTO.pop(user_id, None)
+    if not st:
+        return
+
+    status = await message.reply_text("`⏳ Applying logo & watermark...`", quote=True)
+    path = None
+    try:
+        buf = await client.download_media(message, in_memory=True)
+        img_bytes = buf.getvalue()
+        path, text, scale, info, has_logo = await _compose_logo(
+            user_id, st["tmdb_id"], st["media_type"], img_bytes, LOGO_POS[st["code"]][1]
+        )
+        caption = logo_panel_caption(st["code"], text, scale, info, has_logo, manual=True)
+        markup = logo_panel_markup(st["tmdb_id"], st["media_type"], st["idx"], st["code"])
+        try:
+            await client.edit_message_media(
+                chat_id=st["chat_id"],
+                message_id=st["photo_id"],
+                media=InputMediaPhoto(path, caption=caption),
+                reply_markup=markup
+            )
+        except MessageNotModified:
+            pass
+        except Exception:
+            # Panel message is gone (auto-deleted) -> send a fresh one
+            await client.send_photo(st["chat_id"], path, caption=caption, reply_markup=markup)
+    except Exception as e:
+        try:
+            await client.send_message(st["chat_id"], f"**❌ Error:** `{e}`")
+        except Exception:
+            pass
+    finally:
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+        for chat_id, msg_id in ((message.chat.id, message.id), (st["chat_id"], st.get("prompt_id")), (status.chat.id, status.id)):
+            if msg_id:
+                try:
+                    await client.delete_messages(chat_id, msg_id)
+                except Exception:
+                    pass
 
     message.stop_propagation()
 
