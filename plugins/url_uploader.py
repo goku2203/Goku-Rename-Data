@@ -2,7 +2,7 @@ import os, re, time, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import digital_botz
-from helper.utils import humanbytes, remove_path, file_queue_lock
+from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
 
@@ -133,19 +133,27 @@ async def url_uploader_handler(client, message):
                 total_size = int(response.headers.get('content-length', 0))
                 
                 with open(local_path, 'wb') as f:
-                    downloaded = 0
-                    start_time = time.time()
-                    async for chunk in response.content.iter_chunked(1024 * 1024):
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        
-                        # Update progress every 3 seconds
-                        if time.time() - start_time > 3:
-                            try:
-                                await rkn_processing.edit(f"**📥 Downloading from URL:**\n\n📦 Size: {humanbytes(downloaded)} / {humanbytes(total_size)}")
-                                start_time = time.time()
-                            except: 
-                                pass
+                            downloaded = 0
+                            start_time = time.time()
+                            last_update = time.time()
+                            async for chunk in response.content.iter_chunked(1024 * 1024):
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                
+                                # Update progress every 3 seconds
+                                if time.time() - last_update > 3:
+                                    try:
+                                        await progress_for_pyrogram(
+                                            downloaded,
+                                            total_size,
+                                            "**  Download Started...**",
+                                            rkn_processing,
+                                            start_time,
+                                            original_filename
+                                        )
+                                        last_update = time.time()
+                                    except:
+                                         pass
     except Exception as e:
         await rkn_processing.edit(f"❌ Error during download: {e}")
         await asyncio.sleep(5)
