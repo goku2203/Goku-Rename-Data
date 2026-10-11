@@ -38,14 +38,20 @@ def build_clean_filename(info, prefix, suffix, ext_str, limit=MAX_NAME_LEN):
     name = " ".join(name.split())
     return f"{name}.{ext_str}" if ext_str else name
 
-
-async def add_metadata(file_path: str) -> str:
-    """File renamer maathiri ffmpeg-la script.METADATA_TITLE metadata add pannum. Fail aanaalum original file use aagum."""
+async def add_metadata(file_path: str, audio_lang: str = None) -> str:
+    """File renamer maathiri ffmpeg-la script.METADATA_TITLE metadata & audio track add pannum."""
     title = script.METADATA_TITLE
     folder, name = os.path.split(file_path)
     meta_path = os.path.join(folder, f"meta_{name}")
+    
     cmd = [
-        "ffmpeg", "-y", "-i", file_path, "-c", "copy", "-map", "0",
+        "ffmpeg", "-y", "-i", file_path, "-c", "copy", "-map", "0"
+    ]
+    
+    if audio_lang:
+        cmd.extend(["-disposition:a", "0", f"-disposition:a:m:language:{audio_lang}", "default"])
+        
+    cmd.extend([
         "-metadata", f"title={title}",
         "-metadata", f"encoder={title}",
         "-metadata", f"uploader={title}",
@@ -55,8 +61,8 @@ async def add_metadata(file_path: str) -> str:
         "-metadata:s:v", f"title={title}",
         "-metadata:s:a", f"title={title}",
         "-metadata:s:s", f"title={title}",
-        meta_path,
-    ]
+        meta_path
+    ])
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
@@ -205,7 +211,8 @@ async def url_uploader_handler(client, message):
         await rkn_processing.edit("`🏷️ Adding Metadata...`")
     except Exception:
         pass
-    await add_metadata(new_local_path)
+    audio_lang = user_data.get('audio_lang', None)
+    await add_metadata(new_local_path, audio_lang)
     
     # 4. Prepare Thumbnail and Caption
     c_caption = user_data.get('caption', None)
