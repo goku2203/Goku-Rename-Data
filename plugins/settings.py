@@ -30,10 +30,11 @@ async def settings_command(client, message):
     await message.reply_text(
         f"**  Settings Menu**\n\n**Audio Status:** `{audio_status}`{admin_text}\n\nClick the button below to change your settings.",
         reply_markup=InlineKeyboardMarkup(buttons),
-        reply_to_message_id=message.id # Ithu iruntha thaan user message-ah delete panna mudiyum
+        reply_to_message_id=message.id 
     )
 
-@Client.on_callback_query(filters.regex(r"^back_to_settings$"))
+# Mukkuyamana Maatram: group=2 add pannirukkom
+@Client.on_callback_query(filters.regex(r"^back_to_settings$"), group=2)
 async def back_to_settings_cb(client, query: CallbackQuery):
     user_id = query.from_user.id
     
@@ -62,7 +63,7 @@ async def back_to_settings_cb(client, query: CallbackQuery):
 
 
 # =============== AUDIO SETTINGS ===============
-@Client.on_callback_query(filters.regex(r"^audio_settings_menu$"))
+@Client.on_callback_query(filters.regex(r"^audio_settings_menu$"), group=2)
 async def audio_settings_menu_cb(client, query: CallbackQuery):
     buttons = [
         [
@@ -92,7 +93,7 @@ async def audio_settings_menu_cb(client, query: CallbackQuery):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-@Client.on_callback_query(filters.regex(r"^audio_(tam|tel|hin|eng|mal|default)$"))
+@Client.on_callback_query(filters.regex(r"^audio_(tam|tel|hin|eng|mal|default)$"), group=2)
 async def audio_selection_cb(client, query: CallbackQuery):
     lang_code = query.data.split("_")[1]
     user_id = query.from_user.id
@@ -106,12 +107,11 @@ async def audio_selection_cb(client, query: CallbackQuery):
         selected_lang = lang_names.get(lang_code, lang_code)
         await query.answer(f"Audio set to {selected_lang}!", show_alert=True)
         
-    # Ithu click panna udane menu refresh aagi "Current Status" update aagidum
     await audio_settings_menu_cb(client, query)
 
 
 # =============== DUMP SETTINGS (Admin Only) ===============
-@Client.on_callback_query(filters.regex(r"^dump_settings_menu$") & filters.user(Config.ADMIN))
+@Client.on_callback_query(filters.regex(r"^dump_settings_menu$") & filters.user(Config.ADMIN), group=2)
 async def dump_settings_menu(client, query: CallbackQuery):
     user_id = query.from_user.id
     dump_status = await digital_botz.get_dump_status(user_id)
@@ -134,7 +134,7 @@ async def dump_settings_menu(client, query: CallbackQuery):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-@Client.on_callback_query(filters.regex(r"^set_dump_(on|off)$") & filters.user(Config.ADMIN))
+@Client.on_callback_query(filters.regex(r"^set_dump_(on|off)$") & filters.user(Config.ADMIN), group=2)
 async def set_dump_status_cb(client, query: CallbackQuery):
     user_id = query.from_user.id
     action = query.data.split("_")[2]
