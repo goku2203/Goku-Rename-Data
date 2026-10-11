@@ -47,6 +47,11 @@ async def add_metadata(file_path: str) -> str:
     cmd = [
         "ffmpeg", "-y", "-i", file_path, "-c", "copy", "-map", "0",
         "-metadata", f"title={title}",
+        "-metadata", f"encoder={title}",
+        "-metadata", f"uploader={title}",
+        "-metadata", f"website={title}",
+        "-metadata", f"artist={title}",
+        "-metadata", f"notes={title}",
         "-metadata:s:v", f"title={title}",
         "-metadata:s:a", f"title={title}",
         "-metadata:s:s", f"title={title}",
