@@ -428,7 +428,8 @@ async def upload_doc(bot, update):
 
     # --- PUDHU DUMP LOGIC ---
     dump_id = await digital_botz.get_dump(user_id)
-    if dump_id and success_msg:
+    dump_status = await digital_botz.get_dump_status(user_id)
+    if dump_id and dump_status and success_msg:
         try:
             # 1. First file-ai dump channel-kku forward pannum
             await success_msg.copy(int(dump_id))
