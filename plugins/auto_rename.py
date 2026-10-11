@@ -139,7 +139,6 @@ class EnhancedAutoRenamer:
         template = re.sub(r"\.+$", "", template) if not info["extension"] else template
         return self._normalize_output_name(template)
 
-
 @Client.on_message(filters.command(["autorename", "setformat"]))
 async def set_format_command(client: Client, message: Message):
     user_id = message.from_user.id
@@ -153,7 +152,7 @@ async def set_format_command(client: Client, message: Message):
         
         reply_text += "**Available Placeholders:**\n"
         placeholders = [
-            "`{filename}` - Original File Name. ", 
+            "`{filename}` - Original File Name.", 
             "`{title}` - Movie/Series title",
             "`{year}` - Release year",
             "`{season}` - Season number (S01)",
@@ -170,9 +169,9 @@ async def set_format_command(client: Client, message: Message):
         
         reply_text += "\n".join(placeholders)
         reply_text += "\n\n**Example Formats:**\n"
-        reply_text += "• `{title} ({year}) {quality} {language}.{ext}`\n"
-        reply_text += "• `{title} {season}{episode} {quality}.{ext}`\n"
-        reply_text += "• `{title} {quality} {source} {video_codec}.{ext}`\n\n"
+        reply_text += "  `{title} ({year}) {quality} {language}.{ext}`\n"
+        reply_text += "  `{title} {season}{episode} {quality}.{ext}`\n"
+        reply_text += "  `{title} {quality} {source} {video_codec}.{ext}`\n\n"
         reply_text += "**Usage:** `/autorename {title} ({year}) {quality} {language}.{ext}`"
         
         buttons = [
@@ -182,22 +181,37 @@ async def set_format_command(client: Client, message: Message):
             ],
             [
                 InlineKeyboardButton("🎵 Music Format", callback_data="format_music"),
-                InlineKeyboardButton("📄 Document Format", callback_data="format_doc")
+                InlineKeyboardButton("📁 Document Format", callback_data="format_doc")
             ],
             [
-                InlineKeyboardButton("✍️ Custom Format", callback_data="format_custom")
+                InlineKeyboardButton("⚙️ Custom Format", callback_data="format_custom")
             ]
         ]
         
-        await message.reply_text(
+        # msg variable-la save panni auto-delete pandrom
+        msg = await message.reply_text(
             reply_text,
             reply_markup=InlineKeyboardMarkup(buttons)
         )
+        
+        await asyncio.sleep(60) # User padikka 60 seconds time
+        try:
+            await message.delete() # User command delete aagum
+            await msg.delete() # Bot message delete aagum
+        except:
+            pass
         return
     
     format_template = " ".join(message.command[1:])
     await digital_botz.add_user_format_template(user_id, format_template)
-    await message.reply_text(f"✅ Format set successfully!\n\n`{format_template}`")
+    msg = await message.reply_text(f"✅ Format set successfully!\n\n`{format_template}`")
+    
+    await asyncio.sleep(15) # Success aana message 15 seconds-la delete aagum
+    try:
+        await message.delete()
+        await msg.delete()
+    except:
+        pass
 
 @Client.on_callback_query(filters.regex(r"^format_"))
 async def format_callback(client, callback_query):
