@@ -24,6 +24,7 @@ class Database:
             prefix=None,
             suffix=None,
             dump_id=None,
+            dump_status=False,
             watermark=None,
             scale=None,
             join_date=datetime.date.today().isoformat(),
@@ -167,5 +168,12 @@ class Database:
     async def get_wm_scale(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return float(user.get('wm_scale', 1.0)) if user else 1.0
+
+    async def set_dump_status(self, id, status: bool):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'dump_status': status}})
+
+    async def get_dump_status(self, id):
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('dump_status', False) if user else False
     
 digital_botz = Database(Config.DB_URL, Config.DB_NAME)
