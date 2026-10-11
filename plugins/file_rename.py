@@ -345,7 +345,30 @@ async def upload_doc(bot, update):
     audio_lang = user_data.get('audio_lang', None)
     
     # User set panna audio-ah default ah maathum code
-    audio_cmd = f'-disposition:a 0 -disposition:a:m:language:{audio_lang} default ' if audio_lang else ''
+    audio_cmd = ""
+    if audio_lang:
+        import json
+        # FFprobe vechu exact stream index kandupudikkum logic
+        probe_cmd = f'ffprobe -v quiet -print_format json -show_streams -select_streams a "{file_path}"'
+        try:
+            probe_proc = await asyncio.create_subprocess_shell(probe_cmd, stdout=asyncio.subprocess.PIPE)
+            stdout, _ = await probe_proc.communicate()
+            probe_data = json.loads(stdout)
+            for stream in probe_data.get("streams", []):
+                tags = stream.get("tags", {})
+                lang = tags.get("language", "").lower()
+                if not lang:
+                    lang = tags.get("LANGUAGE", "").lower()
+                if lang == audio_lang.lower():
+                    stream_index = stream.get("index")
+                    audio_cmd = f'-disposition:a 0 -disposition:{stream_index} default '
+                    break
+        except Exception as e:
+            print(f"FFprobe error: {e}")
+        
+        # Kandupudikka mudila na pazhaiya method backup
+        if not audio_cmd:
+            audio_cmd = f'-disposition:a 0 -disposition:a:m:language:{audio_lang} default '
     
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 {audio_cmd}-metadata title="{custom_metadata_title}" -metadata author="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:v encoder="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:a encoder="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" -metadata:s:s encoder="{custom_metadata_title}" "{out_path}"'
     
