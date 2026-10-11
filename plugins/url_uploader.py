@@ -52,17 +52,21 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
         cmd.extend(["-disposition:a", "0", f"-disposition:a:m:language:{audio_lang}", "default"])
         
     cmd.extend([
-        "-metadata", f"title={title}",
-        "-metadata", f"encoder={title}",
-        "-metadata", f"uploader={title}",
-        "-metadata", f"website={title}",
-        "-metadata", f"artist={title}",
-        "-metadata", f"notes={title}",
-        "-metadata:s:v", f"title={title}",
-        "-metadata:s:a", f"title={title}",
-        "-metadata:s:s", f"title={title}",
-        meta_path
-    ])
+            "-metadata", f"title={title}",
+            "-metadata", f"author={title}",
+            "-metadata", f"encoder={title}",
+            "-metadata", f"uploader={title}",
+            "-metadata", f"website={title}",
+            "-metadata", f"artist={title}",
+            "-metadata", f"notes={title}",
+            "-metadata:s:v", f"title={title}",
+            "-metadata:s:v", f"encoder={title}",
+            "-metadata:s:a", f"title={title}",
+            "-metadata:s:a", f"encoder={title}",
+            "-metadata:s:s", f"title={title}",
+            "-metadata:s:s", f"encoder={title}",
+            meta_path
+        ])
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
