@@ -342,8 +342,12 @@ async def upload_doc(bot, update):
     out_path = f"Renames/meta_{new_filename}"
     
     custom_metadata_title = script.METADATA_TITLE
+    audio_lang = user_data.get('audio_lang', None)
     
-    cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 -metadata title="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
+    # User set panna audio-ah default ah maathum code
+    audio_cmd = f'-disposition:a 0 -disposition:a:m:language:{audio_lang} default ' if audio_lang else ''
+    
+    cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 {audio_cmd}-metadata title="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" "{out_path}"'
     
     proc = await asyncio.create_subprocess_shell(cmd)
     await proc.communicate()
