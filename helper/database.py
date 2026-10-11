@@ -1,11 +1,3 @@
-# (c) @RknDeveloperr
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-# Special Thanks To (https://github.com/JayMahakal98)
-# Update Channel @Digital_Botz & @DigitalBotz_Support
-
 import motor.motor_asyncio, datetime, pytz
 from config import Config
 from helper.utils import send_log
@@ -31,6 +23,7 @@ class Database:
             format_template="{filename}",            
             upload_type=None,
             rename_mode="auto",
+            audio_lang=None,
             ban_status=dict(
                 is_banned=False,
                 ban_duration=0,
@@ -175,5 +168,12 @@ class Database:
     async def get_dump_status(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return user.get('dump_status', False) if user else False
+
+    async def set_audio_lang(self, id, audio_lang):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'audio_lang': audio_lang}})
+
+    async def get_audio_lang(self, id):
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('audio_lang', None) if user else None
     
 digital_botz = Database(Config.DB_URL, Config.DB_NAME)
