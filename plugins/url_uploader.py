@@ -213,7 +213,8 @@ async def url_uploader_handler(client, message):
     else:
         # Handle Dump Channel Forwarding
         dump_id = await digital_botz.get_dump(user_id)
-        if dump_id and filw:
+        dump_status = await digital_botz.get_dump_status(user_id)
+        if dump_id and dump_status and filw:
             try:
                 await filw.copy(int(dump_id))
                 await client.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
