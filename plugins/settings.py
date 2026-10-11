@@ -13,19 +13,19 @@ async def settings_command(client, message):
     audio_status = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
 
     buttons = [
-        [InlineKeyboardButton("  Audio Settings", callback_data="audio_settings_menu")]
+        [InlineKeyboardButton("🔊 Audio Settings", callback_data="audio_settings_menu")]
     ]
     
     admin_text = ""
     # Admin mattum Dump Settings paaka mudiyum
     if user_id in Config.ADMIN:
-        buttons.append([InlineKeyboardButton("  Dump Settings", callback_data="dump_settings_menu")])
+        buttons.append([InlineKeyboardButton("⚙️ Dump Settings", callback_data="dump_settings_menu")])
         dump_status = await digital_botz.get_dump_status(user_id)
         dump_txt = "ON  " if dump_status else "OFF  "
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
         
     # Last-la close button
-    buttons.append([InlineKeyboardButton("  Close", callback_data="close")])
+    buttons.append([InlineKeyboardButton("❌ Close", callback_data="close")])
 
     await message.reply_text(
         f"**  Settings Menu**\n\n**Audio Status:** `{audio_status}`{admin_text}\n\nClick the button below to change your settings.",
@@ -44,17 +44,17 @@ async def back_to_settings_cb(client, query: CallbackQuery):
     audio_status = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
 
     buttons = [
-        [InlineKeyboardButton("  Audio Settings", callback_data="audio_settings_menu")]
+        [InlineKeyboardButton("🔊 Audio Settings", callback_data="audio_settings_menu")]
     ]
     
     admin_text = ""
     if user_id in Config.ADMIN:
-        buttons.append([InlineKeyboardButton("  Dump Settings", callback_data="dump_settings_menu")])
+        buttons.append([InlineKeyboardButton("⚙️ Dump Settings", callback_data="dump_settings_menu")])
         dump_status = await digital_botz.get_dump_status(user_id)
         dump_txt = "ON  " if dump_status else "OFF  "
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
         
-    buttons.append([InlineKeyboardButton("  Close", callback_data="close")])
+    buttons.append([InlineKeyboardButton("❌ Close", callback_data="close")])
 
     await query.message.edit_text(
         f"**  Settings Menu**\n\n**Audio Status:** `{audio_status}`{admin_text}\n\nClick the button below to change your settings.",
@@ -67,20 +67,20 @@ async def back_to_settings_cb(client, query: CallbackQuery):
 async def audio_settings_menu_cb(client, query: CallbackQuery):
     buttons = [
         [
-            InlineKeyboardButton("  Tamil", callback_data="audio_tam"),
-            InlineKeyboardButton("  Telugu", callback_data="audio_tel")
+            InlineKeyboardButton("🔊 Tamil", callback_data="audio_tam"),
+            InlineKeyboardButton("🔊 Telugu", callback_data="audio_tel")
         ],
         [
-            InlineKeyboardButton("  Hindi", callback_data="audio_hin"),
-            InlineKeyboardButton("  English", callback_data="audio_eng")
+            InlineKeyboardButton("🔊 Hindi", callback_data="audio_hin"),
+            InlineKeyboardButton("🔊 English", callback_data="audio_eng")
         ],
         [
-            InlineKeyboardButton("  Malayalam", callback_data="audio_mal"),
-            InlineKeyboardButton("  Default (Off)", callback_data="audio_default")
+            InlineKeyboardButton("🔊 Malayalam", callback_data="audio_mal"),
+            InlineKeyboardButton("🔇 Default (Off)", callback_data="audio_default")
         ],
         [
-            InlineKeyboardButton("  Back", callback_data="back_to_settings"),
-            InlineKeyboardButton("  Close", callback_data="close")
+            InlineKeyboardButton("🔙 Back", callback_data="back_to_settings"),
+            InlineKeyboardButton("❌ Close", callback_data="close")
         ]
     ]
     
@@ -120,12 +120,12 @@ async def dump_settings_menu(client, query: CallbackQuery):
     
     buttons = [
         [
-            InlineKeyboardButton("ON  ", callback_data="set_dump_on"),
-            InlineKeyboardButton("OFF  ", callback_data="set_dump_off")
+            InlineKeyboardButton("ON 🟢", callback_data="set_dump_on"),
+            InlineKeyboardButton("OFF 🔴", callback_data="set_dump_off")
         ],
         [
-            InlineKeyboardButton("  Back", callback_data="back_to_settings"),
-            InlineKeyboardButton("  Close", callback_data="close")
+            InlineKeyboardButton("🔙 Back", callback_data="back_to_settings"),
+            InlineKeyboardButton("❌ Close", callback_data="close")
         ]
     ]
     
