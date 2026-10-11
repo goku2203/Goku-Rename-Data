@@ -102,7 +102,14 @@ async def url_uploader_handler(client, message):
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.get(url) as response:
                 if response.status != 200:
-                    return await rkn_processing.edit("❌ Failed to download from the provided URL. Ensure it is a direct link.")
+                        await rkn_processing.edit("❌ Failed to download from the provided URL. Ensure it is a direct link.")
+                        await asyncio.sleep(5)
+                        try:
+                            await message.delete()
+                            await rkn_processing.delete()
+                        except:
+                            pass
+                        return
                 
                 # File name extract panra puthiya logic
                 cd = response.headers.get('Content-Disposition')
@@ -140,7 +147,14 @@ async def url_uploader_handler(client, message):
                             except: 
                                 pass
     except Exception as e:
-        return await rkn_processing.edit(f"❌ Error during download: {e}")
+        await rkn_processing.edit(f"❌ Error during download: {e}")
+        await asyncio.sleep(5)
+        try:
+            await message.delete()
+            await rkn_processing.delete()
+        except:
+            pass
+        return
         
     await rkn_processing.edit("`📝 Applying Auto-Rename Format...`")
     
