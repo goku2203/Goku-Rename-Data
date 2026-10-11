@@ -49,7 +49,30 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
     ]
     
     if audio_lang:
-        cmd.extend(["-disposition:a", "0", f"-disposition:a:m:language:{audio_lang}", "default"])
+        import json
+        # FFprobe vechu exact stream index kandupudikkum logic
+        stream_index = None
+        probe_cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", "-select_streams", "a", file_path]
+        try:
+            probe_proc = await asyncio.create_subprocess_exec(*probe_cmd, stdout=asyncio.subprocess.PIPE)
+            stdout, _ = await probe_proc.communicate()
+            probe_data = json.loads(stdout)
+            for stream in probe_data.get("streams", []):
+                tags = stream.get("tags", {})
+                lang = tags.get("language", "").lower()
+                if not lang:
+                    lang = tags.get("LANGUAGE", "").lower()
+                if lang == audio_lang.lower():
+                    stream_index = stream.get("index")
+                    break
+        except Exception as e:
+            print(f"FFprobe error: {e}")
+        
+        cmd.extend(["-disposition:a", "0"])
+        if stream_index is not None:
+            cmd.extend([f"-disposition:{stream_index}", "default"])
+        else:
+            cmd.extend([f"-disposition:a:m:language:{audio_lang}", "default"])
         
     cmd.extend([
             "-metadata", f"title={title}",
