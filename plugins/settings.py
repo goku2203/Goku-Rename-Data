@@ -1,6 +1,6 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from helper.database import digital_botz
+from helper.database import goku_stark
 from config import Config
 
 @Client.on_message(filters.private & filters.command("settings"))
@@ -8,7 +8,7 @@ async def settings_command(client, message):
     user_id = message.from_user.id
     
     # Current Audio Status Edukka
-    current_audio = await digital_botz.get_audio_lang(user_id)
+    current_audio = await goku_stark.get_audio_lang(user_id)
     lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
     audio_status = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
 
@@ -20,7 +20,7 @@ async def settings_command(client, message):
     # Admin mattum Dump Settings paaka mudiyum
     if user_id in Config.ADMIN:
         buttons.append([InlineKeyboardButton("⚙️ Dump Settings", callback_data="dump_settings_menu")])
-        dump_status = await digital_botz.get_dump_status(user_id)
+        dump_status = await goku_stark.get_dump_status(user_id)
         dump_txt = "ON  " if dump_status else "OFF  "
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
         
@@ -39,7 +39,7 @@ async def back_to_settings_cb(client, query: CallbackQuery):
     user_id = query.from_user.id
     
     # Current Audio Status Edukka
-    current_audio = await digital_botz.get_audio_lang(user_id)
+    current_audio = await goku_stark.get_audio_lang(user_id)
     lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
     audio_status = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
 
@@ -50,7 +50,7 @@ async def back_to_settings_cb(client, query: CallbackQuery):
     admin_text = ""
     if user_id in Config.ADMIN:
         buttons.append([InlineKeyboardButton("⚙️ Dump Settings", callback_data="dump_settings_menu")])
-        dump_status = await digital_botz.get_dump_status(user_id)
+        dump_status = await goku_stark.get_dump_status(user_id)
         dump_txt = "ON  " if dump_status else "OFF  "
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
         
@@ -84,7 +84,7 @@ async def audio_settings_menu_cb(client, query: CallbackQuery):
         ]
     ]
     
-    current_audio = await digital_botz.get_audio_lang(query.from_user.id)
+    current_audio = await goku_stark.get_audio_lang(query.from_user.id)
     lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
     current_lang = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
     
@@ -99,10 +99,10 @@ async def audio_selection_cb(client, query: CallbackQuery):
     user_id = query.from_user.id
     
     if lang_code == "default":
-        await digital_botz.set_audio_lang(user_id, None)
+        await goku_stark.set_audio_lang(user_id, None)
         await query.answer("Audio set to Default (Off)!", show_alert=True)
     else:
-        await digital_botz.set_audio_lang(user_id, lang_code)
+        await goku_stark.set_audio_lang(user_id, lang_code)
         lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
         selected_lang = lang_names.get(lang_code, lang_code)
         await query.answer(f"Audio set to {selected_lang}!", show_alert=True)
@@ -114,7 +114,7 @@ async def audio_selection_cb(client, query: CallbackQuery):
 @Client.on_callback_query(filters.regex(r"^dump_settings_menu$") & filters.user(Config.ADMIN), group=2)
 async def dump_settings_menu(client, query: CallbackQuery):
     user_id = query.from_user.id
-    dump_status = await digital_botz.get_dump_status(user_id)
+    dump_status = await goku_stark.get_dump_status(user_id)
     
     status_text = "ON  " if dump_status else "OFF  "
     
@@ -140,10 +140,10 @@ async def set_dump_status_cb(client, query: CallbackQuery):
     action = query.data.split("_")[2]
     
     if action == "on":
-        await digital_botz.set_dump_status(user_id, True)
+        await goku_stark.set_dump_status(user_id, True)
         await query.answer("Dump is now ON!", show_alert=True)
     else:
-        await digital_botz.set_dump_status(user_id, False)
+        await goku_stark.set_dump_status(user_id, False)
         await query.answer("Dump is now OFF!", show_alert=True)
         
     await dump_settings_menu(client, query)
