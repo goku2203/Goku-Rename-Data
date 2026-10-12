@@ -34,7 +34,7 @@ __programer__ = "<a href=https://t.me/Goku_Stark>Goku-Stark-Auto-Rename-Bot</a>"
 __library__ = "<a href=https://github.com/pyrogram>Pyʀᴏɢʀᴀᴍ</a>"
 __language__ = "<a href=https://www.python.org/>Pyᴛʜᴏɴ 3</a>"
 __database__ = "<a href=https://cloud.mongodb.com/>Mᴏɴɢᴏ DB</a>"
-__developer__ = "<a href=https://t.me/Goku_Stark>Digital Botz</a>"
+__developer__ = "<a href=https://t.me/Goku_Stark>Goku_Stark</a>"
 __maindeveloper__ = "<a href=https://t.me/Goku_Stark>Goku_Stark</a>"
 
 # main copyright herders (©️)
