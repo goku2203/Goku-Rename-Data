@@ -69,13 +69,9 @@ Exᴀᴍᴩʟᴇ:-/n
 V𝟹.𝟶.𝟶 [STABLE]
 """
     
-    DEV_TXT = """<b><u>Sᴩᴇᴄɪᴀʟ Tʜᴀɴᴋꜱ & Dᴇᴠᴇʟᴏᴩᴇʀꜱ</b></u>
+    DEV_TXT = """<b><u>Dᴇᴠᴇʟᴏᴩᴇʀꜱ</b></u>
     
-» 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://github.com/DigitalBotz/Digital-Auto-Rename-Bot>Digital-Auto-Rename-Bot</a>
-
-• ❣️ <a href=https://github.com/RknDeveloper>RknDeveloper</a>
-• ❣️ <a href=https://github.com/DigitalBotz>DigitalBotz</a>
-• ❣️️ <a href=https://github.com/JayMahakal98>Jay Mahakal</a> """
+» 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://t.me/Goku_Stark>goku-stark-Auto-Rename-Bot</a>"""
 
     RKN_PROGRESS = """<b>\n\n🎬 **Output:** {5}\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n\n ────[ Pʟᴇᴀsᴇ Wᴀɪᴛ... ]────\n</b>"""
 
