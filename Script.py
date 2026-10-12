@@ -73,7 +73,7 @@ V𝟹.𝟶.𝟶 [STABLE]
     
 » 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://t.me/Goku_Stark>goku-stark-Auto-Rename-Bot</a>"""
 
-    RKN_PROGRESS = """<b>\n\n🎬 **Output:** {5}\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n\n ────[ Pʟᴇᴀsᴇ Wᴀɪᴛ... ]────\n</b>"""
+    RKN_PROGRESS = """<b>\n\n🎬 **Output:▼**\n<blockquote><b>{5}</b></blockquote>\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n\n ────[ Pʟᴇᴀsᴇ Wᴀɪᴛ... ]────\n</b>"""
 
     # Custom Metadata & Tags
     METADATA_TITLE = "@Goku_Stark"
