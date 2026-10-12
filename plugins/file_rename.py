@@ -478,6 +478,16 @@ async def upload_doc(bot, update):
 
 @Client.on_message(filters.private & filters.command("set_type"))
 async def set_media_cmd(client, message):
+    user_id = message.from_user.id
+    current_type = await goku_stark.get_upload_type(user_id)
+    
+    if current_type == "doc":
+        status = "DOCUMENT"
+    elif current_type == "video":
+        status = "VIDEO"
+    else:
+        status = "NOT SET"
+
     buttons = [
         [
             InlineKeyboardButton("📁 Document", callback_data="set_type_doc"),
@@ -488,7 +498,7 @@ async def set_media_cmd(client, message):
         ]
     ]
     await message.reply_text(
-        "**Select Default Output Format:**\n\nThe file will be automatically renamed using the format you select here.",
+        f"**Current Status:** `{status}`\n\n**Select Default Output Format:**\n\nThe file will be automatically renamed using the format you select here.",
         reply_markup=InlineKeyboardMarkup(buttons),
         reply_to_message_id=message.id
     )
