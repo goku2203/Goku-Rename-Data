@@ -1,7 +1,7 @@
 import random, asyncio, datetime, pytz, time, psutil, shutil
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply, CallbackQuery
-from helper.database import digital_botz
+from helper.database import goku_stark
 from config import Config
 from script import script
 from helper.utils import humanbytes
@@ -19,7 +19,7 @@ async def start(client, message):
          ]]
         
     user = message.from_user
-    await digital_botz.add_user(client, message) 
+    await goku_stark.add_user(client, message) 
     if Config.RKN_PIC:
         await message.reply_photo(Config.RKN_PIC, caption=script.START_TXT.format(user.mention), reply_markup=InlineKeyboardMarkup(start_button))    
     else:
@@ -83,7 +83,7 @@ async def cb_handler(client, query: CallbackQuery):
              InlineKeyboardButton(" Bᴀᴄᴋ", callback_data = "help")]])) 
         
     elif data == "bot_status":
-        total_users = await digital_botz.total_users_count()
+        total_users = await goku_stark.total_users_count()
         total_premium_users = "Disabled ✅"
         uptime = time.strftime("%Hh%Mm%Ss", time.gmtime(time.time() - client.uptime))    
         sent = humanbytes(psutil.net_io_counters().bytes_sent)
