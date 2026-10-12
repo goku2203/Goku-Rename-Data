@@ -8,7 +8,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import MessageNotModified
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
-from helper.database import digital_botz
+from helper.database import goku_stark
 
 # Import designs and helpers from thumbnail_designs.py
 try:
@@ -130,7 +130,7 @@ async def get_info(media_type, tmdb_id):
 
 async def get_scale(user_id):
     try:
-        s = await digital_botz.get_wm_scale(user_id)
+        s = await goku_stark.get_wm_scale(user_id)
         s = float(s) if s else 1.0
     except Exception:
         s = 1.0
@@ -138,7 +138,7 @@ async def get_scale(user_id):
 
 async def get_wm_text(user_id):
     try:
-        t = await digital_botz.get_watermark(user_id)
+        t = await goku_stark.get_watermark(user_id)
     except Exception:
         t = None
     return t or DEFAULT_WM
@@ -508,7 +508,7 @@ async def set_watermark_cmd(client, message):
     user_id = message.from_user.id
     if len(message.command) > 1:
         watermark_name = message.text.split(" ", 1)[1].strip()[:30]
-        await digital_botz.set_watermark(user_id, watermark_name)
+        await goku_stark.set_watermark(user_id, watermark_name)
         text = await wm_menu_text(user_id, status_alert=f"✅ Watermark Name saved: `{watermark_name}`")
         return await message.reply_text(text, reply_markup=wm_menu_markup())
 
@@ -788,7 +788,7 @@ async def wm_size_cb(client, query: CallbackQuery):
         return await query.answer("Size limit reached! (0.4x - 3.0x)", show_alert=True)
 
     await query.answer(f"📏 Size: {new_scale}x ✅")
-    await digital_botz.set_wm_scale(user_id, new_scale)   # Permanent DB Save
+    await goku_stark.set_wm_scale(user_id, new_scale)   # Permanent DB Save
 
     try:
         await show_panel(client, query, user_id, tmdb_id, media_type, idx, st)
@@ -885,7 +885,7 @@ async def wm_menu_scale_cb(client, query: CallbackQuery):
     if new_scale == scale:
         return await query.answer("Size limit reached! (0.4x - 3.0x)", show_alert=True)
 
-    await digital_botz.set_wm_scale(user_id, new_scale)
+    await goku_stark.set_wm_scale(user_id, new_scale)
     await query.answer(f"📏 Size: {new_scale}x ✅")
     text = await wm_menu_text(user_id, status_alert=f"📏 Size updated: `{new_scale}x` ✅")
     try:
@@ -896,8 +896,8 @@ async def wm_menu_scale_cb(client, query: CallbackQuery):
 @Client.on_callback_query(filters.regex(r"^wm_menu_reset$"), group=1)
 async def wm_menu_reset_cb(client, query: CallbackQuery):
     user_id = query.from_user.id
-    await digital_botz.set_watermark(user_id, DEFAULT_WM)
-    await digital_botz.set_wm_scale(user_id, 1.0)
+    await goku_stark.set_watermark(user_id, DEFAULT_WM)
+    await goku_stark.set_wm_scale(user_id, 1.0)
     await query.answer("Reset to default watermark & size! ✅")
     text = await wm_menu_text(user_id, status_alert="🔄 Reset to defaults (`@Techgokul`, `1.0x`) ✅")
     try:
@@ -932,7 +932,7 @@ async def receive_watermark(client, message):
     st = WAITING.pop(user_id, None)
     if st:
         name = message.text.strip()[:30]
-        await digital_botz.set_watermark(user_id, name)
+        await goku_stark.set_watermark(user_id, name)
 
         # Cleanup prompt and input messages
         for chat_id, msg_id in ((message.chat.id, message.id), (st["chat_id"], st.get("prompt_id"))):
