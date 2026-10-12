@@ -23,7 +23,7 @@ except ImportError:
     )
 
 # Enter your TMDB API Key here
-TMDB_API_KEY = "f0ed821364e340369110e83b814899ed"
+TMDB_API_KEY = ""
 
 DEFAULT_WM = "@Techgokul"      # Default watermark if user hasn't set one
 SCALE_MIN = 0.4
