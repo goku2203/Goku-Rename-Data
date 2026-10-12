@@ -7,11 +7,11 @@ from pyrogram import ContinuePropagation # Itha puthusa add pannanum
 # extra imports
 from config import Config
 from script import script
-from helper.database import digital_botz
+from helper.database import goku_stark
 import datetime 
 
 async def not_subscribed(_, client, message):
-    await digital_botz.add_user(client, message)
+    await goku_stark.add_user(client, message)
     if not Config.FORCE_SUB:
         return False
     try:
@@ -24,14 +24,14 @@ async def not_subscribed(_, client, message):
         return False
 
 async def handle_banned_user_status(bot, message):
-    await digital_botz.add_user(bot, message)
+    await goku_stark.add_user(bot, message)
      
     user_id = message.from_user.id
-    ban_status = await digital_botz.get_ban_status(user_id)
+    ban_status = await goku_stark.get_ban_status(user_id)
     if ban_status.get("is_banned", False):
         if ( datetime.date.today() - datetime.date.fromisoformat(ban_status["banned_on"])
         ).days > ban_status["ban_duration"]:
-            await digital_botz.remove_ban(user_id)
+            await goku_stark.remove_ban(user_id)
         else:
             return await message.reply_text("Sorry Sir,   You are Banned!.. Please Contact - @Techgokul")
      
