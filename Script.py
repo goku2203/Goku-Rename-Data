@@ -1,28 +1,27 @@
 class script(object):
     # part of text configuration
-    START_TXT = """<b>Hi {} 👋\n
-    "Welcome to the Advanced Rename Bot! 🚀"
-    
-    "What I can do:
-    • Auto and Manual Rename your files easily 📁
-    • Change or add custom thumbnails 🖼️
-    • Convert Video to File & File to Video 🔄
-    • Set Prefix & Suffix ✨
-    • Powerful Auto Rename Format ⚡
-    • Set custom captions for your files 📝"
+    START_TXT = """<b>Hi {} 👋</b>
 
-    Created By : @Goku_Stark 💞</b>"""
+<blockquote><b><i>Welcome to the Advanced Rename Bot! 🚀</i></b>
+
+<b>What I can do:</b>
+• <b>Auto & Manual Rename</b> files 📁
+• <b>Custom Thumbnails</b> & <b>Captions</b> 🖼️
+• <b>Video ↔️ File</b> converter 🔄
+• <b>Prefix, Suffix & Auto Format</b> ✨</blockquote>
+
+<i>Created By :</i> <b>@Goku_Stark 💖</b>"""
 
     ABOUT_TXT = """<b>
-⦿ 🤖 ᴍy ɴᴀᴍᴇ : {}
+⦿ 🤖 Mʏ ɴᴀᴍᴇ : {}
 ⦿ 🖥️ Dᴇᴠᴇʟᴏᴩᴇʀꜱ : {}
 ⦿ ✏️ Lᴀɴɢᴜᴀɢᴇ: {}
 ⦿ 💾 Dᴀᴛᴀ Bᴀꜱᴇ: {}
-⦿ 📊 ᴠᴇʀsɪᴏɴ: <a href=https://t.me/Goku_Stark>{}</a></b>"""
+⦿ 👑 Oᴡɴᴇʀ: <a href=https://t.me/Goku_Stark>{}</a></b>"""
 
     HELP_TXT = """
 ✏️ <b><u>Hᴏᴡ Tᴏ Rᴇɴᴀᴍᴇ A Fɪʟᴇ</u></b>
-<b>•</b> Send any file, enter a new file name, and select the format: **Document, Video, or Audio**."""
+<b>•</b> Sᴇɴᴅ ᴀɴʏ ғɪʟᴇ, ᴇɴᴛᴇʀ ᴀ ɴᴇᴡ ғɪʟᴇ ɴᴀᴍᴇ, ᴀɴᴅ sᴇʟᴇᴄᴛ ᴛʜᴇ ғᴏʀᴍᴀᴛ: **Document, Video, or Audio**."""
     
     THUMBNAIL = """
 🌌 <b><u>Hᴏᴡ Tᴏ Sᴇᴛ Tʜᴜᴍʙɴɪʟᴇ</u></b>
