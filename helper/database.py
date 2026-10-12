@@ -176,4 +176,4 @@ class Database:
         user = await self.col.find_one({'_id': int(id)})
         return user.get('audio_lang', None) if user else None
     
-Goku_Stark = Database(Config.DB_URL, Config.DB_NAME)
+goku_stark = Database(Config.DB_URL, Config.DB_NAME)
