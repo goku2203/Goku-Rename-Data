@@ -3,7 +3,7 @@
     "description": "Telegram File Renamer Bot ",
     "logo": "https://telegra.ph/file/b746aadfe59959eb76f59.jpg",
     "keywords": ["Renamer Bot", "Mongo DB"],    
-    "repository": "https://github.com/DigitalBotz/Digital-Rename-Bot",
+    "repository": "https://t.me/Goku_Stark",
     "env": {
         "API_ID": {
             "description": "Your APP ID From my.telegram.org ",
@@ -36,11 +36,11 @@
         },
         "DB_NAME":{ 
             "description":"Your Mongo DB Database Name ",
-            "value": "Digital_Rename_Bot",
+            "value": "goku-stark_Rename_Bot",
             "required": false
         },
         "RKN_PIC": {
-            "description": "Your Bot start cmd Pic from @RKN_Telegraphbot",
+            "description": "Your Bot start cmd Pic from @Goku_Stark",
             "value": "https://telegra.ph/file/b746aadfe59959eb76f59.jpg",
             "required": false
         }
