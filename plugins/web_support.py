@@ -1,13 +1,12 @@
-# (c) @RknDeveloperr
-# Rkn Developer 
+# (c) @Goku_Stark
 # Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-# Special Thanks To @ReshamOwner
-# Update Channel @Digital_Botz & @DigitalBotz_Support
+# Telegram Channel @Goku_Stark
+# Developer @Goku_Stark
+# Special Thanks To @Goku_Stark
+# Update Channel @goku_stark
 """
 Apache License 2.0
-Copyright (c) 2025 @Digital_Botz
+Copyright (c) 2025 @goku_stark
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +23,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Telegram Link : https://t.me/Digital_Botz 
-Repo Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot
-License Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot/blob/main/LICENSE
+Telegram Link : https://t.me/goku_stark
+Repo Link : https://t.me/Goku_Stark
+License Link : https://t.me/Goku_Stark
 """
 
 from aiohttp import web
@@ -39,14 +38,14 @@ import base64
 from config import Config
 from plugins import __version__
 from helper.utils import humanbytes
-from helper.database import digital_botz
+from helper.database import goku_stark
 
 # Ensure templates directory exists
 os.makedirs('templates', exist_ok=True)
 
 async def get_status():
     # Calculate your bot status metrics
-    total_users = await digital_botz.total_users_count()
+    total_users = await goku_stark.total_users_count()
     
     
     currentTime = time.strftime("%Hh%Mm%Ss", time.gmtime(time.time() - Config.BOT_UPTIME))    
@@ -116,9 +115,3 @@ async def web_server():
     web_app = web.Application(client_max_size=30000000)
     web_app.add_routes(DigitalAutoRenameBot)
     return web_app
-
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
-# Update Channel @Digital_Botz & @DigitalBotz_Support
