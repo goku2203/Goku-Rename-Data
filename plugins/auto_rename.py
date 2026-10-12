@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from helper.database import digital_botz
+from helper.database import goku_stark
 from script import script
 
 # ---------------------------------------------------------------
@@ -144,7 +144,7 @@ async def set_format_command(client: Client, message: Message):
     user_id = message.from_user.id
     
     if len(message.command) < 2:
-        current_format = await digital_botz.get_format_template(user_id)
+        current_format = await goku_stark.get_format_template(user_id)
         if current_format:
             reply_text = f"📝 **Your Current Format:**\n`{current_format}`\n\n"
         else:
@@ -203,7 +203,7 @@ async def set_format_command(client: Client, message: Message):
         return
     
     format_template = " ".join(message.command[1:])
-    await digital_botz.add_user_format_template(user_id, format_template)
+    await goku_stark.add_user_format_template(user_id, format_template)
     msg = await message.reply_text(f"✅ Format set successfully!\n\n`{format_template}`")
     
     await asyncio.sleep(15) # Success aana message 15 seconds-la delete aagum
@@ -227,7 +227,7 @@ async def format_callback(client, callback_query):
     }
     
     if data in formats:
-        await digital_botz.add_user_format_template(user_id, formats[data])
+        await goku_stark.add_user_format_template(user_id, formats[data])
         await callback_query.message.edit_text(
             f"✅ Format set to **{data.split('_')[1].title()}**!\n\n`{formats[data]}`"
         )
@@ -236,9 +236,9 @@ async def format_callback(client, callback_query):
 @Client.on_message(filters.private & filters.command("viewformat"))
 async def view_format_cmd(client, message):
     user_id = message.from_user.id
-    current_format = await digital_botz.get_format_template(user_id)
-    prefix = await digital_botz.get_prefix(user_id)
-    suffix = await digital_botz.get_suffix(user_id)
+    current_format = await goku_stark.get_format_template(user_id)
+    prefix = await goku_stark.get_prefix(user_id)
+    suffix = await goku_stark.get_suffix(user_id)
     
     text = "**📊 Yᴏᴜʀ Cᴜʀʀᴇɴᴛ Aᴜᴛᴏ-Rᴇɴᴀᴍᴇ Sᴇᴛᴛɪɴɢꜱ:**\n\n"
     text += f"**👉 Fᴏʀᴍᴀᴛ:** `{current_format if current_format else '{filename}'}`\n"
