@@ -77,11 +77,10 @@ async def cb_handler(client, query: CallbackQuery):
     elif data == "about":
         about_button = [
             [
-                InlineKeyboardButton("𝚂ᴏᴜʀᴄᴇ", callback_data="source_code"), 
+                InlineKeyboardButton("ʟɪᴠᴇ sᴛᴀᴛᴜs", callback_data="live_status"),
                 InlineKeyboardButton("ʙᴏᴛ sᴛᴀᴛᴜs", callback_data="bot_status")
             ],
             [
-                InlineKeyboardButton("ʟɪᴠᴇ sᴛᴀᴛᴜs", callback_data="live_status"),
                 InlineKeyboardButton("Bᴀᴄᴋ", callback_data="start")
             ]
         ]
@@ -135,20 +134,6 @@ async def cb_handler(client, query: CallbackQuery):
             disable_web_page_preview=True,
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Bᴀᴄᴋ", callback_data="about")]])
         ) 
-      
-    elif data == "source_code":
-        source_button = [
-            [InlineKeyboardButton("💞 Sᴏᴜʀᴄᴇ Cᴏᴅᴇ 💞", url="https://t.me/Goku_Stark")],
-            [
-                InlineKeyboardButton("🔒 Cʟᴏꜱᴇ", callback_data="close"),
-                InlineKeyboardButton("◀️ Bᴀᴄᴋ", callback_data="start")
-            ]
-        ]
-        await query.message.edit_text(
-            text=script.DEV_TXT,
-            disable_web_page_preview=True,
-            reply_markup=InlineKeyboardMarkup(source_button)
-        )
             
     elif data.startswith("upload"):
         await upload_doc(client, query)
