@@ -12,12 +12,12 @@ from plugins.file_rename import upload_doc
 async def start(client, message):
     start_button = [
         [
-            InlineKeyboardButton('Hᴇʟᴩ', callback_data='help'),
-            InlineKeyboardButton('Aʙᴏυᴛ', callback_data='about')
+            InlineKeyboardButton('Hᴇʟᴘ', callback_data='help'),
+            InlineKeyboardButton('Aʙᴏᴜᴛ', callback_data='about')
         ],
         [
-            InlineKeyboardButton('Uᴩᴅᴀ𝚃ᴇꜱ', url='https://t.me/goku_n'),
-            InlineKeyboardButton('Sᴜᴩᴩᴏʀ𝚃', url='https://t.me/Naruto_Shippuden_tamil_hddd')
+            InlineKeyboardButton('Uᴘᴅᴀᴛᴇs', url='https://t.me/goku_n'),
+            InlineKeyboardButton('Sᴜᴘᴘᴏʀᴛ', url='https://t.me/Naruto_Shippuden_tamil_hddd')
         ]
     ]
         
@@ -44,12 +44,12 @@ async def cb_handler(client, query: CallbackQuery):
     if data == "start":
         start_button = [
             [
-            InlineKeyboardButton('Hᴇʟᴩ', callback_data='help'),
-            InlineKeyboardButton('Aʙᴏυᴛ', callback_data='about')
+            InlineKeyboardButton('Hᴇʟᴘ', callback_data='help'),
+            InlineKeyboardButton('Aʙᴏᴜᴛ', callback_data='about')
         ],
         [
-            InlineKeyboardButton('Uᴩᴅᴀ𝚃ᴇꜱ', url='https://t.me/goku_n'),
-            InlineKeyboardButton('Sᴜᴩᴩᴏʀ𝚃', url='https://t.me/Naruto_Shippuden_tamil_hddd')
+            InlineKeyboardButton('Uᴘᴅᴀᴛᴇs', url='https://t.me/goku_n'),
+            InlineKeyboardButton('Sᴜᴘᴘᴏʀᴛ', url='https://t.me/Naruto_Shippuden_tamil_hddd')
         ]
     ]
         await query.message.edit_text(
@@ -61,8 +61,8 @@ async def cb_handler(client, query: CallbackQuery):
     elif data == "help":
         help_button = [
             [
-                InlineKeyboardButton("ᴛʜᴜᴍʙɴᴀɪʟ", callback_data="thumbnail"),
-                InlineKeyboardButton("ᴄᴀᴘᴛɪᴏɴ", callback_data="caption")
+                InlineKeyboardButton("Tʜᴜᴍʙɴᴀɪʟ", callback_data="thumbnail"),
+                InlineKeyboardButton("Cᴀᴘᴛɪᴏɴ", callback_data="caption")
             ],
             [
                 InlineKeyboardButton("Bᴀᴄᴋ", callback_data="start")
@@ -77,8 +77,8 @@ async def cb_handler(client, query: CallbackQuery):
     elif data == "about":
         about_button = [
             [
-                InlineKeyboardButton("ʟɪᴠᴇ sᴛᴀᴛᴜs", callback_data="live_status"),
-                InlineKeyboardButton("ʙᴏᴛ sᴛᴀᴛᴜs", callback_data="bot_status")
+                InlineKeyboardButton("Lɪᴠᴇ Sᴛᴀᴛᴜs", callback_data="live_status"),
+                InlineKeyboardButton("Bᴏᴛ Sᴛᴀᴛᴜs", callback_data="bot_status")
             ],
             [
                 InlineKeyboardButton("Bᴀᴄᴋ", callback_data="start")
