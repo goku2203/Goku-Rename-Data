@@ -1,8 +1,7 @@
-# (c) @RknDeveloperr
-# Rkn Developer 
+# (c) @Goku_Stark
 # Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
+# Telegram Channel @Goku_Stark
+# Developer @Goku_Stark
 """
 Apache License 2.0
 Copyright (c) 2025 @Goku_Stark
