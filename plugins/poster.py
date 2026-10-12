@@ -25,7 +25,7 @@ except ImportError:
 # Enter your TMDB API Key here
 TMDB_API_KEY = ""
 
-DEFAULT_WM = "@Techgokul"      # Default watermark if user hasn't set one
+DEFAULT_WM = "@Goku_Stark"      # Default watermark if user hasn't set one
 SCALE_MIN = 0.4
 SCALE_MAX = 3.0
 SCALE_STEP = 0.2
@@ -808,7 +808,7 @@ async def wm_set_cb(client, query: CallbackQuery):
 
     prompt = await client.send_message(
         query.message.chat.id,
-        "**✏️ Send your new Watermark Name**\n\nEx :- `@Techgokul`\n\n__(Send text within 60 seconds)__",
+        "**✏️ Send your new Watermark Name**\n\nEx :- `@Goku_Stark`\n\n__(Send text within 60 seconds)__",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="wmcancel")]])
     )
     WAITING[user_id] = {
@@ -852,7 +852,7 @@ async def wm_menu_name_cb(client, query: CallbackQuery):
 
     prompt = await client.send_message(
         query.message.chat.id,
-        "**✏️ Send your Watermark Name**\n\nEx :- `@Techgokul`\n\n__(Send text within 60 seconds)__",
+        "**✏️ Send your Watermark Name**\n\nEx :- `@Goku_Stark`\n\n__(Send text within 60 seconds)__",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="wmcancel")]])
     )
     WAITING[user_id] = {
@@ -899,7 +899,7 @@ async def wm_menu_reset_cb(client, query: CallbackQuery):
     await goku_stark.set_watermark(user_id, DEFAULT_WM)
     await goku_stark.set_wm_scale(user_id, 1.0)
     await query.answer("Reset to default watermark & size! ✅")
-    text = await wm_menu_text(user_id, status_alert="🔄 Reset to defaults (`@Techgokul`, `1.0x`) ✅")
+    text = await wm_menu_text(user_id, status_alert="🔄 Reset to defaults (`@Goku_Stark`, `1.0x`) ✅")
     try:
         await query.message.edit_text(text, reply_markup=wm_menu_markup())
     except MessageNotModified:
