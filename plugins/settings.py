@@ -178,10 +178,10 @@ async def set_dump_status_cb(client, query: CallbackQuery):
 
     if action == "on":
         await goku_stark.set_dump_status(user_id, True)
-        await query.answer("Dump is now ON!", show_alert=True)
+        await query.answer("Dump is now ON!")
     else:
         await goku_stark.set_dump_status(user_id, False)
-        await query.answer("Dump is now OFF!", show_alert=True)
+        await query.answer("Dump is now OFF!")
         
     await dump_settings_menu(client, query)
 
@@ -241,11 +241,11 @@ async def audio_selection_cb(client, query: CallbackQuery):
     
     if lang_code == "default":
         await goku_stark.set_audio_lang(user_id, None)
-        await query.answer("Audio set to Default (Off)!", show_alert=True)
+        await query.answer("Audio set to Default (Off)!")
     else:
         await goku_stark.set_audio_lang(user_id, lang_code)
         lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
         selected_lang = lang_names.get(lang_code, lang_code)
-        await query.answer(f"Audio set to {selected_lang}!", show_alert=True)
+        await query.answer(f"Audio set to {selected_lang}!")
         
     await audio_settings_menu_cb(client, query)
