@@ -1,112 +1,291 @@
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+<div align="center">
 
-![Typing SVG](https://readme-typing-svg.herokuapp.com/?lines=𝗪𝗘𝗟𝗖𝗢𝗠+𝗧𝗢+𝗗𝗜𝗚𝗜𝗧𝗔𝗟+𝗔𝗨𝗧𝗢+𝗥𝗘𝗡𝗔𝗠𝗘+𝗕𝗢𝗧!;𝗖𝗥𝗘𝗔𝗧𝗘𝗗+𝗕𝗬+𝗗𝗜𝗚𝗜𝗧𝗔𝗟+𝗕𝗢𝗧𝗭!;𝗜+𝗔𝗠+𝗣𝗢𝗪𝗘𝗥𝗙𝗨𝗟+𝗧𝗚+𝗥𝗘𝗡𝗔𝗠𝗘+𝗕𝗢𝗧!&color=4169E1)
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=230&section=header&text=GOKU%20RENAME%20BOT&fontSize=58&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Rename%20%E2%80%A2%20Thumbnail%20%E2%80%A2%20Poster%20%E2%80%A2%20Upload%20%E2%80%A2%20Automate&descAlignY=60&descSize=18" width="100%"/>
 
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=3000&pause=900&color=00D9FF&center=true&vCenter=true&width=700&lines=%E2%9A%A1+Lightning-fast+Telegram+File+Renamer;%F0%9F%A4%96+Smart+Auto+Rename+%2B+Manual+Rename;%F0%9F%8E%A8+18+Poster+%26+Thumbnail+Designs;%F0%9F%94%97+Direct+URL+Uploader;%F0%9F%91%91+Crafted+by+Goku+Stark" alt="Typing SVG" />
+</a>
 
+<br/>
 
-<p align="center">
-  <img src="https://files.catbox.moe/561z4s.jpg" alt="RKN RENAME BOT V1">
-</p>
+![Forks](https://img.shields.io/github/forks/goku2203/Goku-Rename-Data?style=for-the-badge&color=7b2ff7&logo=github)
+![Stars](https://img.shields.io/github/stars/goku2203/Goku-Rename-Data?style=for-the-badge&color=f7b32b&logo=github)
+![Issues](https://img.shields.io/github/issues/goku2203/Goku-Rename-Data?style=for-the-badge&color=ff4d6d&logo=github)
+![License](https://img.shields.io/github/license/goku2203/Goku-Rename-Data?style=for-the-badge&color=00c6ff)
 
-<p align="center">
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pyrofork](https://img.shields.io/badge/Pyrofork-2.3.69-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Motor-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-Powered-007808?style=for-the-badge&logo=ffmpeg&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-![Fork](https://img.shields.io/github/forks/DigitalBotz/Digital-Auto-Rename-Bot?style=for-the-badge)
-![Stars](https://img.shields.io/github/stars/DigitalBotz/Digital-Auto-Rename-Bot?color=%23&style=for-the-badge)
-![License](https://img.shields.io/github/license/DigitalBotz/Digital-Auto-Rename-Bot?style=for-the-badge)
-![Issues](https://img.shields.io/github/issues/DigitalBotz/Digital-Auto-Rename-Bot?style=for-the-badge)
+<br/>
 
-</p>
+[![Telegram Channel](https://img.shields.io/badge/Telegram-@Goku__Stark-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/Goku_Stark)
+[![GitHub](https://img.shields.io/badge/GitHub-goku2203-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/goku2203)
 
+### 👑 Developer: **Goku Stark**
 
-### Sᴀᴍᴩʟᴇ Bᴏᴛ (Official Digital Auto Rename Bot)
+</div>
 
-* [Rkn_RenameBot](http://t.me/Rkn_RenameBot)
-* [Digital Auto _Rename_Bot](http://t.me/Digital_Auto_Rename_Bot)
+---
 
+## 📖 About
 
-## Deploy Me 🥀
+**Goku Rename Bot** is a powerful, feature-packed **Telegram file renamer** built with **Pyrofork + MongoDB + FFmpeg**.
+Send a file or a direct link, and the bot cleans the name, applies your prefix / suffix / format, adds your thumbnail & caption, and uploads it back — fast, with a live progress bar.
 
-<details><summary>📌 Deploy to Koyeb </summary>
-  
-[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/RknDeveloper/Digital-Auto-Rename-Bot&env[BOT_TOKEN]&env[API_ID]&env[API_HASH]&env[WEBHOOK]=True&env[ADMIN]&env[DB_URL]&env[DB_NAME]=Rkn-Developer&env[FORCE_SUB]&env[START_PIC]&env[LOG_CHANNEL]=You%20Dont%20Need%20LogChannel%20To%20Remove%20This%20Variable&run_command=python%20bot.py&branch=main&name=rkn-rename) 
+It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 designs + custom watermark) and a beautiful **live web status dashboard**.
+
+---
+
+## ✨ Features
+
+### 🔁 Renaming
+| Feature | Description |
+|---|---|
+| 🤖 **Auto Rename** | Smart parser cleans junk from file names — `[tags]`, website domains, `@usernames`, zero-width characters — and detects **Season / Episode** (`S01E05`) and **Quality** (`720p`, `1080p`…) |
+| ✍️ **Manual Rename** | Bot waits for you to type the new name |
+| 🔀 **Rename Mode Switch** | Toggle Auto ↔ Manual anytime with `/mode` |
+| 🧩 **Custom Format Template** | Build your own naming pattern with `/autorename` |
+| 🏷️ **Prefix & Suffix** | Add your own tag before / after every file name |
+| 📏 **Safe Filename Length** | Names are trimmed automatically so uploads never fail |
+| 📦 **Many Formats** | mkv, mp4, avi, webm, mov, mp3, flac, zip, rar, 7z, pdf, apk, srt, ass, images & more |
+
+### 📤 Upload & Output
+| Feature | Description |
+|---|---|
+| 🎥 **Video ↔ Document ↔ Audio** | Choose output type per file, or set a default with `/set_type` |
+| 🔗 **Direct URL Uploader** | Paste any direct `http(s)` link — the bot downloads, renames and uploads it |
+| 🖼️ **Permanent Thumbnail** | Send a photo once, it is used on every upload |
+| 📝 **Custom Caption** | Variables supported: `{filename}`, `{filesize}`, `{duration}` |
+| 🗂️ **Dump Channel** | Auto-forward every finished file to your own channel with `/dump` |
+| 🐘 **Big File Support** | Up to **4 GB** with a Premium `STRING_SESSION` |
+| ⏳ **Smart Queue + Progress Bar** | One file at a time, live speed / ETA / percentage |
+
+### 🎵 Media Tools (FFmpeg)
+| Feature | Description |
+|---|---|
+| 🌐 **Audio Language Priority** | Make **Tamil / Telugu / Hindi / English / Malayalam** the default audio track automatically |
+| 🧼 **Custom Metadata** | Rewrites title, author, encoder & stream tags with your own branding |
+
+### 🎨 Poster & Thumbnail Generator
+| Feature | Description |
+|---|---|
+| 🎬 **TMDB Powered** | Search any movie or TV show with `/poster` (or `/p`) |
+| 🖼️ **Backdrop Browser** | Flip through backdrops with **◀️ Prev / Next ▶️** |
+| 🎨 **18 Premium Designs** | Cyber Glow, Cinematic Prime, Vision Glass, Tokyo Action, Aurora Horizon, Royale Gold, Cyber Logo, Crimson Phantom, Synthwave Neon, Glacial Frost, Comic Pop, Inferno Blaze, Sakura Dream, Shonen Burst, Midnight Moon, Mecha HUD, Manga Panel, Spirit Breeze |
+| 💧 **Custom Watermark** | Your own name + adjustable size (`/set_watermark`) |
+| ⚡ **One-Tap Generate** | Plain image or fully styled design in a single click |
+| 🧹 **Auto Delete** | Poster messages clean themselves after 1 hour |
+
+### 🛡️ Admin & Security
+| Feature | Description |
+|---|---|
+| 🔐 **Force Subscribe** | Users must join your channel before using the bot |
+| 🚫 **Ban / Unban** | Time-based bans with a reason, plus a banned-users list |
+| 📢 **Broadcast** | Send a message to every user (reply to any message) |
+| 📊 **Stats & Logs** | Uptime, total users, premium users, CPU / RAM / disk, bot logs |
+| 💎 **Premium Mode** | Premium users + upload-limit control (free limit configurable) |
+| 🔄 **Remote Restart** | Restart the bot from Telegram |
+| 🗃️ **Log Channel** | Optional channel for activity logs |
+
+### 🌐 Web Dashboard
+A stylish **Ultra Status** page served by the bot itself — live bot status, users, uptime, CPU, RAM, disk and network usage. Also keeps **Render / Koyeb** web services awake.
+
+### ⚙️ Settings Panel
+Everything in one inline menu with `/settings`: **Prefix · Suffix · Caption · Audio Language · Dump Channel** (admin).
+
+---
+
+## 🚀 Deploy Me
+
+<details>
+<summary>📌 <b>Deploy to Render</b></summary>
+
+<br/>
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/goku2203/Goku-Rename-Data)
+
 </details>
 
-<details><summary>📌 Deploy to Render </summary>
-  
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DigitalBotz/Digital-Auto-Rename-Bot)
+<details>
+<summary>📌 <b>Deploy to Koyeb</b></summary>
+
+<br/>
+
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/goku2203/Goku-Rename-Data&env[BOT_TOKEN]&env[API_ID]&env[API_HASH]&env[ADMIN]&env[DB_URL]&env[DB_NAME]=Goku-Rename-Bot&env[FORCE_SUB]&env[LOG_CHANNEL]&run_command=python%20bot.py&branch=main&name=goku-rename-bot)
 
 </details>
 
-<details><summary>📌 Deploy To Railway </summary>
-<a href="https://graph.org/file/fabd75cd5043d2cfdc13d.jpg"><img src="https://railway.app/button.svg" alt="Deploy"></a>
+<details>
+<summary>📌 <b>Deploy to Heroku</b></summary>
+
+<br/>
+
+<a href="https://heroku.com/deploy?template=https://github.com/goku2203/Goku-Rename-Data">
+  <img src="https://img.shields.io/badge/Deploy%20To%20Heroku-7952b3?style=for-the-badge&logo=heroku&logoColor=white" alt="Deploy to Heroku" height="38"/>
+</a>
+
 </details>
 
-<details><summary>📌 Deploy to Heroku </summary>
+<details>
+<summary>📌 <b>Deploy to Railway</b></summary>
 
-<a href="https://heroku.com/deploy?template=https://github.com/DigitalBotz/Digital-Auto-Rename-Bot"><img src="https://img.shields.io/badge/Deploy%20To%20Heroku-black?style=for-the-badge&logo=heroku" width="220" height="38.45"></p></a>
+<br/>
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/goku2203/Goku-Rename-Data)
+
 </details>
 
-## Rᴇǫᴜɪʀᴇᴅ Cᴏɴғɪɢs
+<details>
+<summary>🐳 <b>Run with Docker / VPS</b></summary>
 
-* `BOT_TOKEN`  - Get Bot Token From @BotFather
-* `API_ID` - From my.telegram.org
-* `API_HASH` - From my.telegram.org
-* `ADMIN` - AUTH Or Bot Controllers Id's Multiple Id Use Space To Split 
-* `DB_URL`  - Mongo Database URL From https://cloud.mongodb.com
-* `DB_NAME`  - Your Database Name From Mongodb.
-* `FORCE_SUB` - Your Force Sub Channel Username Without @
-* `LOG_CHANNEL` - Bot Logs Sending Channel. If You Don't Need This To Remove This Variable In Your Server
-* `STRING_SESSION` - Your Tg Premium Account String Session Required. `[Note :- If you remove the string session, 4GB files doesn't works on the bot.]`
+<br/>
 
-## 🥰 Features
+```bash
+git clone https://github.com/goku2203/Goku-Rename-Data
+cd Goku-Rename-Data
 
-* Renames very fast .
-* Permanent Thumbnail support.
-* Force join for the user for use.
-* Supports Broadcasts.
-* Set custom caption.
-* Has a custom Start-up pic.
-* Force subscribe available.
-* Supports ulimited auto renaming at a time.
-* Admin Command Available.
-* handle ban/unban members using command.
-* Deploy to Koyeb + Heroku + Railway + Render.
-* Developer Service 24x7. 🔥
+# Docker
+docker build -t goku-rename-bot .
+docker run -d --env-file .env goku-rename-bot
 
-
-## Botfather Commands
+# or plain Python (needs ffmpeg installed)
+pip install -r requirements.txt
+python3 bot.py
 ```
-start - 𝖈ʜᴇᴄᴋ 𝖎 𝖆ᴍ ʟɪᴠᴇ.
-view_thumb - 𝖙ᴏ 𝖘ᴇᴇ 𝖞ᴏᴜʀ 𝖈ᴜ𝖘ᴛᴏᴍ 𝖙ʜᴜᴍʙɴᴀɪʟ !!
-del_thumb - 𝖙ᴏ 𝖉ᴇʟᴇᴛᴇ 𝖞ᴏᴜʀ 𝖈ᴜ𝖘ᴛᴏᴍ 𝖙ʜᴜᴍʙɴᴀɪʟ !!
-set_caption - Sᴇᴛ A Cᴜsᴛᴏᴍ Cᴀᴘᴛɪᴏɴ !!
-see_caption - Sᴇᴇ Yᴏᴜʀ Cᴜsᴛᴏᴍ Cᴀᴘᴛɪᴏɴ !!
-del_caption - Dᴇʟᴇᴛᴇ Cᴜsᴛᴏᴍ Cᴀᴘᴛɪᴏɴ !!
-autorename - Set Custom Format (auto renaming process) 
-restart - ᴛᴏ ʀᴇsᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ ᴀɴᴅ sᴇɴᴅ ᴍᴇssᴀɢᴇ ᴀʟʟ ᴅʙ ᴜsᴇʀs (Aᴅᴍɪɴ Oɴʟʏ)
-ban - ban members using command (admin only)
-unban - unban members using command (admin only)
-banned_users - check bot all ban users using command (admin only)
-logs - ᴄʜᴇᴄᴋ ʙᴏᴛ ʟᴏɢs (Aᴅᴍɪɴ Oɴʟʏ)
-status - Cʜᴇᴄᴋ Bᴏᴛ Sᴛᴀᴛᴜs (Aᴅᴍɪɴ Oɴʟʏ)
-broadcast - Sᴇɴᴅ Mᴇssᴀɢᴇ Tᴏ Aʟʟ Usᴇʀs (Aᴅᴍɪɴ Oɴʟʏ)
+
+</details>
+
+---
+
+## 🔑 Required Configs
+
+| Variable | Required | Description |
+|---|:---:|---|
+| `API_ID` | ✅ | From [my.telegram.org](https://my.telegram.org) |
+| `API_HASH` | ✅ | From [my.telegram.org](https://my.telegram.org) |
+| `BOT_TOKEN` | ✅ | Get it from [@BotFather](https://t.me/BotFather) |
+| `ADMIN` | ✅ | Admin user ID(s), separated by a space |
+| `DB_URL` | ✅ | MongoDB URL from [cloud.mongodb.com](https://cloud.mongodb.com) |
+| `DB_NAME` | ➖ | Your MongoDB database name |
+| `FORCE_SUB` | ➖ | Force-sub channel username **without** `@` |
+| `LOG_CHANNEL` | ➖ | Log channel ID (must start with `-100`) |
+| `RKN_PIC` | ➖ | Image URL shown on `/start` |
+| `PORT` | ➖ | Web server port (default `8080`) |
+| `STRING_SESSION` | ➖ | Telegram **Premium** account string session — needed for **4 GB** files |
+
+> 🎬 **Poster generator:** add your free [TMDB API key](https://www.themoviedb.org/settings/api) in `plugins/poster.py` → `TMDB_API_KEY`.
+
+---
+
+## 🤖 Bot Commands
+
+<details>
+<summary>👤 <b>User Commands</b></summary>
+
+```text
+start         - Check I am alive
+settings      - Open the settings panel
+mode          - Switch Auto / Manual rename
+set_type      - Default output: Document or Video
+autorename    - Set custom rename format
+viewformat    - View your rename format
+set_prefix    - Set a file name prefix
+del_prefix    - Delete prefix
+set_suffix    - Set a file name suffix
+del_suffix    - Delete suffix
+set_caption   - Set a custom caption
+see_caption   - View your caption
+del_caption   - Delete your caption
+view_thumb    - View your thumbnail
+del_thumb     - Delete your thumbnail
+dump          - Set your dump channel
+see_dump      - View your dump channel
+del_dump      - Remove your dump channel
+poster        - Generate a movie / series poster
+set_watermark - Set your poster watermark
 ```
 
-## Note:
+</details>
 
-- Please, Just Fork The Repo And Edit As Per Your Needs. # Don't Remove My Credit.
-- ᴅᴏ ɴᴏᴛ ʀᴇᴍᴏᴠᴇ ᴄʀᴇᴅɪᴛs ɢɪᴠᴇɴ ɪɴ ᴛʜɪs ʀᴇᴘᴏ.
-- Importing this repo instead of forking is strictly prohibited, Kindly fork and edit as your wish. Must Give Credits for developer(s)
-- If you find any bugs or errors, [report](https://t.me/DigitalBotz_Support) it
+<details>
+<summary>👑 <b>Admin Commands</b></summary>
 
-## ❣️ Special Thanks 👍
+```text
+status        - Bot & server status
+logs          - Get bot logs
+restart       - Restart the bot
+ban           - Ban a user
+unban         - Unban a user
+banned_users  - List banned users
+broadcast     - Message all users (reply to a message)
+```
 
-- Thanks To RknDeveloper For His Awesome [Digital-Rename-Bot](https://github.com/DigitalBotz/Digital-Auto-Rename-Bot)
-- Thanks To [RknDeveloper](https://github.com/RknDeveloper) who have edited and modified this repo as now it is. (It's me 😂)
-- Thanks To [JayMahakal](https://github.com/JayMahakal98) who have edited and modified this repo as now it is.
-- Thanks To Rkn Developer Teams ✅ (Edit & New Feature Added)
-- Special Repo Owner Thanks To [Digital Botz](https://github.com/DigitalBotz) 🥲
+</details>
 
-## Last Updated
-- `22-12-2025 12:15:30 AM`
+---
+
+## 🧩 How To Use
+
+1. Send **any file** (or a **direct link**) to the bot.
+2. In **Auto** mode it renames instantly. In **Manual** mode, reply with the new name.
+3. Pick **Document / Video / Audio** (or let your default `/set_type` decide).
+4. Your thumbnail, caption, prefix & suffix are applied — done! ✅
+
+---
+
+## 🗂️ Project Structure
+
+```text
+Goku-Rename-Data/
+├── bot.py                    # Entry point
+├── config.py                 # Environment config
+├── script.py                 # All bot texts
+├── app.json                  # Heroku template
+├── Dockerfile · Procfile     # Deployment files
+├── helper/
+│   ├── database.py           # MongoDB user settings
+│   └── utils.py              # Progress bar, helpers
+├── plugins/
+│   ├── file_rename.py        # Core renamer + FFmpeg
+│   ├── auto_rename.py        # Smart name parser
+│   ├── url_uploader.py       # Direct link uploader
+│   ├── poster.py             # TMDB poster generator
+│   ├── thumbnail_designs.py  # 18 poster designs
+│   ├── settings.py           # Settings panel
+│   ├── thumb_and_cap.py      # Thumbnail & caption
+│   ├── dump.py               # Dump channel
+│   ├── force_sub.py          # Force subscribe
+│   ├── admin_panel.py        # Admin tools
+│   └── web_support.py        # Web dashboard server
+└── templates/welcome.html    # Status page UI
+```
+
+---
+
+## 📌 Note
+
+- Fork the repo and edit it as you like. ⭐ A star is always appreciated!
+- Please **keep the credits** — it is required by the license.
+- Found a bug? Open an [issue](https://github.com/goku2203/Goku-Rename-Data/issues) or message on [Telegram](https://t.me/Goku_Stark).
+
+## ❣️ Special Thanks
+
+- 💖 **[Goku Stark](https://t.me/Goku_Stark)** — developer & maintainer of this version
+- 🙏 **[Digital Botz](https://github.com/DigitalBotz)** & **[RknDeveloper](https://github.com/RknDeveloper)** — original base project, [Digital-Auto-Rename-Bot](https://github.com/DigitalBotz/Digital-Auto-Rename-Bot)
+- 🙏 **[JayMahakal](https://github.com/JayMahakal98)** — contributions to the earlier base
+- 🎬 **[TMDB](https://www.themoviedb.org)** — movie & series data and images
+
+---
+
+<div align="center">
+
+### 🕒 Last Updated: `12-10-2026`
+
+**Made with ❤️ by [Goku Stark](https://t.me/Goku_Stark)**
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:24243e,50:302b63,100:0f0c29&height=120&section=footer" width="100%"/>
+
+</div>
