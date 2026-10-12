@@ -1,7 +1,7 @@
 import os, re, time, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
-from helper.database import digital_botz
+from helper.database import goku_stark
 from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
@@ -113,7 +113,7 @@ async def url_uploader_handler(client, message):
     user_id = message.from_user.id
     url = message.text.strip()
     
-    user_data = await digital_botz.get_user_data(user_id)
+    user_data = await goku_stark.get_user_data(user_id)
     upload_type = user_data.get('upload_type', 'video')
     
     if not upload_type:
@@ -268,8 +268,8 @@ async def url_uploader_handler(client, message):
             pass
     else:
         # Handle Dump Channel Forwarding
-        dump_id = await digital_botz.get_dump(user_id)
-        dump_status = await digital_botz.get_dump_status(user_id)
+        dump_id = await goku_stark.get_dump(user_id)
+        dump_status = await goku_stark.get_dump_status(user_id)
         if dump_id and dump_status and filw:
             try:
                 await filw.copy(int(dump_id))
