@@ -1,23 +1,23 @@
 class script(object):
     # part of text configuration
-    START_TXT = """<b>Hi {} 👋</b>
+    START_TXT = """<b>{}...</b>
 
-<blockquote><b><i>Welcome to the Advanced Rename Bot! 🚀</i></b>
+<blockquote><b><i>Welcome to the Advanced Rename Bot! 🚀</i></b></blockquote>
 
-<b>What I can do:</b>
+<blockquote><b>What I can do:</b>
 • <b>Auto & Manual Rename</b> files 📁
 • <b>Custom Thumbnails</b> & <b>Captions</b> 🖼️
 • <b>Video ↔️ File</b> converter 🔄
 • <b>Prefix, Suffix & Auto Format</b> ✨</blockquote>
 
-<i>Created By :</i> <b>@Goku_Stark 💖</b>"""
+<blockquote><i>Created By: <b>@Goku_Stark 💖</i></b></blockquote>"""
 
-    ABOUT_TXT = """<b>
-⦿ 🤖 Mʏ ɴᴀᴍᴇ : {}
-⦿ 🖥️ Dᴇᴠᴇʟᴏᴩᴇʀꜱ : {}
-⦿ ✏️ Lᴀɴɢᴜᴀɢᴇ: {}
-⦿ 💾 Dᴀᴛᴀ Bᴀꜱᴇ: {}
-⦿ 👑 Oᴡɴᴇʀ: <a href=https://t.me/Goku_Stark>{}</a></b>"""
+    ABOUT_TXT = """<b>🤖 MY NAME : {0}
+💻 Dᴇᴠᴇʟᴏᴘᴇʀ : <a href="https://t.me/Goku_Stark">Goku Stark</a>
+📚 Lɪʙʀᴀʀʏ : <a href="https://github.com/pyrogram">Pyrogram</a>
+✏️ Lᴀɴɢᴜᴀɢᴇ : <a href="https://www.python.org/">Python 3</a>
+💾 Dᴀᴛᴀʙᴀsᴇ : <a href="https://cloud.mongodb.com/">MongoDB</a>
+👑 Oᴡɴᴇʀ : <a href="https://t.me/Goku_Stark">Goku Stark</a></b>"""
 
     HELP_TXT = """
 ✏️ <b><u>Hᴏᴡ Tᴏ Rᴇɴᴀᴍᴇ A Fɪʟᴇ</u></b>
@@ -70,7 +70,7 @@ V𝟹.𝟶.𝟶 [STABLE]
     
     DEV_TXT = """<b><u>Dᴇᴠᴇʟᴏᴩᴇʀꜱ</b></u>
     
-» 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://t.me/Goku_Stark>goku-stark-Auto-Rename-Bot</a>"""
+» 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://t.me/Goku_Stark>Goku Stark</a>"""
 
     RKN_PROGRESS = """<b>\n\n🎬 **Output:▼**\n<blockquote><b>{5}</b></blockquote>\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n\n ────[ Pʟᴇᴀsᴇ Wᴀɪᴛ... ]────\n</b>"""
 
