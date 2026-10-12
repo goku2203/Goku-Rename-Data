@@ -12,7 +12,7 @@ from PIL import Image
 
 # bots imports
 from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, file_queue_lock
-from helper.database import digital_botz
+from helper.database import goku_stark
 from config import Config
 from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
@@ -48,8 +48,8 @@ async def rename_start(client, message):
     dcid = FileId.decode(rkn_file.file_id).dc_id
     extension_type = mime_type.split('/')[0]
     
-    upload_type = await digital_botz.get_upload_type(user_id)
-    rename_mode = await digital_botz.get_rename_mode(user_id)
+    upload_type = await goku_stark.get_upload_type(user_id)
+    rename_mode = await goku_stark.get_rename_mode(user_id)
     
     # Auto Mode Logic
     if rename_mode == "auto":
@@ -103,7 +103,7 @@ async def custom_rename_handler(client, message):
     custom_name = message.text
     user_id = message.from_user.id
     
-    upload_type = await digital_botz.get_upload_type(user_id)
+    upload_type = await goku_stark.get_upload_type(user_id)
     if not upload_type:
         return await message.reply_text("❌ Default Output Format set aagala!\n\nFirst `/set_type` Use the command to select **Document** or **Video**, then send your file.")
         
@@ -191,7 +191,7 @@ async def upload_doc(bot, update):
     media = getattr(file, file.media.value)
     
     custom_name = getattr(update, "custom_name", None)
-    user_data = await digital_botz.get_user_data(user_id)
+    user_data = await goku_stark.get_user_data(user_id)
     
     raw_ext = ""
     if media and getattr(media, "file_name", None) and "." in media.file_name:
@@ -454,8 +454,8 @@ async def upload_doc(bot, update):
         success_msg = filw
 
     # --- PUDHU DUMP LOGIC ---
-    dump_id = await digital_botz.get_dump(user_id)
-    dump_status = await digital_botz.get_dump_status(user_id)
+    dump_id = await goku_stark.get_dump(user_id)
+    dump_status = await goku_stark.get_dump_status(user_id)
     if dump_id and dump_status and success_msg:
         try:
             # 1. First file-ai dump channel-kku forward pannum
@@ -499,10 +499,10 @@ async def set_type_callback(client, callback_query):
     data = callback_query.data
     
     if data == "set_type_doc":
-        await digital_botz.set_upload_type(user_id, "doc")
+        await goku_stark.set_upload_type(user_id, "doc")
         await callback_query.answer("✅ Default Output set to: DOCUMENT", show_alert=True)
     elif data == "set_type_video":
-        await digital_botz.set_upload_type(user_id, "video")
+        await goku_stark.set_upload_type(user_id, "video")
         await callback_query.answer("✅ Default Output set to: VIDEO", show_alert=True)
         
     try:
@@ -515,7 +515,7 @@ async def set_type_callback(client, callback_query):
 @Client.on_message(filters.private & filters.command("mode"))
 async def set_mode_cmd(client, message):
     user_id = message.from_user.id
-    current_mode = await digital_botz.get_rename_mode(user_id) 
+    current_mode = await goku_stark.get_rename_mode(user_id) 
     
     buttons = [
         [
@@ -538,10 +538,10 @@ async def rename_mode_callback(client, callback_query):
     data = callback_query.data
     
     if data == "rename_mode_auto":
-        await digital_botz.set_rename_mode(user_id, "auto")
+        await goku_stark.set_rename_mode(user_id, "auto")
         await callback_query.answer("✅ Mode set to: AUTO RENAME", show_alert=True)
     elif data == "rename_mode_manual":
-        await digital_botz.set_rename_mode(user_id, "manual")
+        await goku_stark.set_rename_mode(user_id, "manual")
         await callback_query.answer("✅ Mode set to: MANUAL RENAME", show_alert=True)
         
     try:
@@ -565,7 +565,7 @@ async def set_prefix_cmd(client, message):
             pass
         return
     prefix = message.text.split(" ", 1)[1]
-    await digital_botz.set_prefix(message.from_user.id, prefix)
+    await goku_stark.set_prefix(message.from_user.id, prefix)
     msg = await message.reply_text(f"✅ Prefix set to: `{prefix}`")
     await asyncio.sleep(5)
     try:
@@ -576,7 +576,7 @@ async def set_prefix_cmd(client, message):
 
 @Client.on_message(filters.private & filters.command("del_prefix"))
 async def del_prefix_cmd(client, message):
-    await digital_botz.set_prefix(message.from_user.id, None)
+    await goku_stark.set_prefix(message.from_user.id, None)
     msg = await message.reply_text("❌ Prefix deleted.")
     await asyncio.sleep(5)
     try:
@@ -597,7 +597,7 @@ async def set_suffix_cmd(client, message):
             pass
         return
     suffix = message.text.split(" ", 1)[1]
-    await digital_botz.set_suffix(message.from_user.id, suffix)
+    await goku_stark.set_suffix(message.from_user.id, suffix)
     msg = await message.reply_text(f"✅ Suffix set to: `{suffix}`")
     await asyncio.sleep(5)
     try:
@@ -608,7 +608,7 @@ async def set_suffix_cmd(client, message):
 
 @Client.on_message(filters.private & filters.command("del_suffix"))
 async def del_suffix_cmd(client, message):
-    await digital_botz.set_suffix(message.from_user.id, None)
+    await goku_stark.set_suffix(message.from_user.id, None)
     msg = await message.reply_text("❌ Suffix deleted.")
     await asyncio.sleep(5)
     try:
