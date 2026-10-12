@@ -5,7 +5,7 @@
 # Developer @RknDeveloperr
 """
 Apache License 2.0
-Copyright (c) 2025 @Digital_Botz
+Copyright (c) 2025 @Goku_Stark
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,14 +22,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Telegram Link : https://t.me/Digital_Botz 
-Repo Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot
-License Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot/blob/main/LICENSE
+Telegram Link : https://t.me/Goku_Stark
+Repo Link : https://t.me/Goku_Stark
+License Link : https://t.me/Goku_Stark
 """
 
 # extra imports
 from config import Config
-from helper.database import digital_botz
+from helper.database import goku_stark
 from helper.utils import get_seconds, humanbytes
 import os, sys, time, asyncio, logging, datetime, pytz, traceback
 
@@ -44,9 +44,9 @@ logger.setLevel(logging.INFO)
  
 @Client.on_message(filters.command(["stats", "status"]) & filters.user(Config.ADMIN))
 async def get_stats(bot, message):
-    total_users = await digital_botz.total_users_count()
+    total_users = await goku_stark.total_users_count()
     if bot.premium:
-        total_premium_users = await digital_botz.total_premium_users_count()
+        total_premium_users = await goku_stark.total_premium_users_count()
     else:
         total_premium_users = "Disabled ✅"
     uptime = time.strftime("%Hh%Mm%Ss", time.gmtime(time.time() - bot.uptime))    
@@ -73,8 +73,8 @@ async def restart_bot(b, m):
     deactivated = 0
     blocked = 0
     start_time = time.time()
-    total_users = await digital_botz.total_users_count()
-    all_users = await digital_botz.get_all_users()
+    total_users = await goku_stark.total_users_count()
+    all_users = await goku_stark.get_all_users()
     async for user in all_users:
         try:
             restart_msg = f"ʜᴇʏ, {(await b.get_users(user['_id'])).mention}\n\n**🔄 ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ. ʙᴏᴛ ɪs ʀᴇsᴛᴀʀᴛɪɴɢ.....\n\n✅️ ʙᴏᴛ ɪs ʀᴇsᴛᴀʀᴛᴇᴅ. ɴᴏᴡ ʏᴏᴜ ᴄᴀɴ ᴜsᴇ ᴍᴇ.**"
@@ -82,13 +82,13 @@ async def restart_bot(b, m):
             success += 1
         except InputUserDeactivated:
             deactivated +=1
-            await digital_botz.delete_user(user['_id'])
+            await goku_stark.delete_user(user['_id'])
         except UserIsBlocked:
             blocked +=1
-            await digital_botz.delete_user(user['_id'])
+            await goku_stark.delete_user(user['_id'])
         except Exception as e:
             failed += 1
-            await digital_botz.delete_user(user['_id'])
+            await goku_stark.delete_user(user['_id'])
             print(e)
             pass
         try:
@@ -127,7 +127,7 @@ async def ban(c: Client, m: Message):
             traceback.print_exc()
             ban_log_text += f"\n\nUser notification failed! \n\n`{traceback.format_exc()}`"
 
-        await digital_botz.ban_user(user_id, ban_duration, ban_reason)
+        await goku_stark.ban_user(user_id, ban_duration, ban_reason)
         await m.reply_text(ban_log_text, quote=True)
     except:
         traceback.print_exc()
@@ -157,7 +157,7 @@ async def unban(c: Client, m: Message):
         except:
             traceback.print_exc()
             unban_log_text += f"\n\nUser notification failed! \n\n`{traceback.format_exc()}`"
-        await digital_botz.remove_ban(user_id)
+        await goku_stark.remove_ban(user_id)
         await m.reply_text(unban_log_text, quote=True)
     except:
         traceback.print_exc()
@@ -169,7 +169,7 @@ async def unban(c: Client, m: Message):
 
 @Client.on_message(filters.private & filters.command("banned_users") & filters.user(Config.ADMIN))
 async def _banned_users(_, m: Message):
-    all_banned_users = await digital_botz.get_all_banned_users()
+    all_banned_users = await goku_stark.get_all_banned_users()
     banned_usr_count = 0
     text = ''
     async for banned_user in all_banned_users:
@@ -193,14 +193,14 @@ async def _banned_users(_, m: Message):
 @Client.on_message(filters.command("broadcast") & filters.user(Config.ADMIN) & filters.reply)
 async def broadcast_handler(bot: Client, m: Message):
     await bot.send_message(Config.LOG_CHANNEL, f"{m.from_user.mention} or {m.from_user.id} Iꜱ ꜱᴛᴀʀᴛᴇᴅ ᴛʜᴇ Bʀᴏᴀᴅᴄᴀꜱᴛ......")
-    all_users = await digital_botz.get_all_users()
+    all_users = await goku_stark.get_all_users()
     broadcast_msg = m.reply_to_message
     sts_msg = await m.reply_text("Bʀᴏᴀᴅᴄᴀꜱᴛ Sᴛᴀʀᴛᴇᴅ..!") 
     done = 0
     failed = 0
     success = 0
     start_time = time.time()
-    total_users = await digital_botz.total_users_count()
+    total_users = await goku_stark.total_users_count()
     async for user in all_users:
         sts = await send_msg(user['_id'], broadcast_msg)
         if sts == 200:
@@ -208,7 +208,7 @@ async def broadcast_handler(bot: Client, m: Message):
         else:
            failed += 1
         if sts == 400:
-           await digital_botz.delete_user(user['_id'])
+           await goku_stark.delete_user(user['_id'])
         done += 1
         if not done % 20:
            await sts_msg.edit(f"Bʀᴏᴀᴅᴄᴀꜱᴛ Iɴ Pʀᴏɢʀᴇꜱꜱ: \nTᴏᴛᴀʟ Uꜱᴇʀꜱ {total_users} \nCᴏᴍᴩʟᴇᴛᴇᴅ: {done} / {total_users}\nSᴜᴄᴄᴇꜱꜱ: {success}\nFᴀɪʟᴇᴅ: {failed}")
@@ -235,8 +235,3 @@ async def send_msg(user_id, message):
         logger.error(f"{user_id} : {e}")
         return 500
  
-
-# Rkn Developer 
-# Don't Remove Credit 😔
-# Telegram Channel @RknDeveloper & @Rkn_Botz
-# Developer @RknDeveloperr
