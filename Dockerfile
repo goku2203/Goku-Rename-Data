@@ -4,10 +4,6 @@ FROM python:3.11-slim-bookworm
 RUN apt-get update -qq && apt-get -y install ffmpeg
 
 # Set the working directory in the container
-
-RUN apt-get update -qq && apt-get -y install ffmpeg
-
-# Set the working directory in the container
 WORKDIR /app
 
 # Copy the dependencies file to the working directory
