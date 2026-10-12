@@ -1,9 +1,9 @@
 #  Telegram MTProto API Client Library for Pyrogram
-#  Copyright (C) 2025-present DigitalBotz <https://github.com/DigitalBotz>
+#  Copyright (C) 2025-present
 #  I am a telegram bot, I created it using pyrogram library. https://github.com/pyrogram
 """
 Apache License 2.0
-Copyright (c) 2025 @Digital_Botz
+Copyright (c) 2025
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,22 +20,22 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-Telegram Link : https://t.me/Digital_Botz 
-Repo Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot
-License Link : https://github.com/DigitalBotz/Digital-Auto-Rename-Bot/blob/main/LICENSE
+Telegram Link : https://t.me/Goku_Stark
+Repo Link : https://t.me/Goku_Stark
+License Link : https://t.me/Goku_Stark
 """
 
 
-__name__ = "Digital-Auto-Rename-Bot"
+__name__ = "Goku-Stark-Auto-Rename-Bot"
 __version__ = "0.0.1"
 __license__ = " Apache License, Version 2.0"
-__copyright__ = "Copyright (C) 2025-present Digital Botz <https://github.com/DigitalBotz>"
-__programer__ = "<a href=https://github.com/DigitalBotz/Digital-Auto-Rename-Bot>Digital-Auto-Rename-Bot</a>"
+__copyright__ = "Copyright (C) 2025-present"
+__programer__ = "<a href=https://t.me/Goku_Stark>Goku-Stark-Auto-Rename-Bot</a>"
 __library__ = "<a href=https://github.com/pyrogram>Pyʀᴏɢʀᴀᴍ</a>"
 __language__ = "<a href=https://www.python.org/>Pyᴛʜᴏɴ 3</a>"
 __database__ = "<a href=https://cloud.mongodb.com/>Mᴏɴɢᴏ DB</a>"
-__developer__ = "<a href=https://t.me/Digital_Botz>Digital Botz</a>"
-__maindeveloper__ = "<a href=https://t.me/RknDeveloper>RknDeveloper</a>"
+__developer__ = "<a href=https://t.me/Goku_Stark>Digital Botz</a>"
+__maindeveloper__ = "<a href=https://t.me/Goku_Stark>Goku_Stark</a>"
 
 # main copyright herders (©️)
 # I have been working on this repo since 2025
