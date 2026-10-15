@@ -1,59 +1,31 @@
-# (c) @Goku_Stark
-# Don't Remove Credit 😔
-# Telegram Channel @Goku_Stark
-# Developer @Goku_Stark
-"""
-Apache License 2.0
-Copyright (c) 2025 @Goku_Stark
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Telegram Link : https://t.me/Goku_Stark
-Repo Link : https://t.me/Goku_Stark
-License Link : https://t.me/Goku_Stark
-"""
-
-# extra imports
+import os, sys, time, asyncio, logging, datetime, pytz, traceback
 from config import Config
 from helper.database import goku_stark
 from helper.utils import get_seconds, humanbytes
-import os, sys, time, asyncio, logging, datetime, pytz, traceback
-
-# pyrogram imports
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from plugins.start_and_cb import generate_status_text
 from pyrogram.types import Message
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, InputUserDeactivated, UserIsBlocked, PeerIdInvalid
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
- 
+
 @Client.on_message(filters.command(["stats", "status"]) & filters.user(Config.ADMIN))
 async def get_stats(bot, message):
-    total_users = await goku_stark.total_users_count()
-    if bot.premium:
-        total_premium_users = await goku_stark.total_premium_users_count()
-    else:
-        total_premium_users = "Disabled ✅"
-    uptime = time.strftime("%Hh%Mm%Ss", time.gmtime(time.time() - bot.uptime))    
-    start_t = time.time()
-    rkn = await message.reply('**ᴘʀᴏᴄᴇssɪɴɢ.....**')    
-    end_t = time.time()
-    time_taken_s = (end_t - start_t) * 1000
-    await rkn.edit(text=f"**--Bᴏᴛ Sᴛᴀᴛᴜꜱ--** \n\n**⌚️ Bᴏᴛ Uᴩᴛɪᴍᴇ:** {uptime} \n**🐌 Cᴜʀʀᴇɴᴛ Pɪɴɢ:** `{time_taken_s:.3f} ᴍꜱ` \n**👭 Tᴏᴛᴀʟ Uꜱᴇʀꜱ:** `{total_users}`\n**💸 ᴛᴏᴛᴀʟ ᴘʀᴇᴍɪᴜᴍ ᴜsᴇʀs:** `{total_premium_users}`")
+    rkn = await message.reply("<blockquote><b><i>⚡ Fetching Live Render & System Status...</i></b></blockquote>")
+    status_text = await generate_status_text(bot)
+    buttons = [
+        [
+            InlineKeyboardButton("🔄 Refresh", callback_data="status_refresh"),
+            InlineKeyboardButton("❌ Close", callback_data="close")
+        ]
+    ]
+    await rkn.edit(
+        text=status_text,
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
 
 # bot logs process 
 @Client.on_message(filters.command('logs') & filters.user(Config.ADMIN))
