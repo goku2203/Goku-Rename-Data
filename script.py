@@ -44,29 +44,29 @@ Exᴀᴍᴩʟᴇ:-/n
 ⏰ Dᴜʀᴀᴛɪᴏɴ: {duration}`
 """
 
-    BOT_STATUS = """
-⚡️ ʙᴏᴛ sᴛᴀᴛᴜs ⚡️
+    STATUS_TXT = """<b>⚡ <u>𝐁𝐎𝐓 & 𝐑𝐄𝐍𝐃𝐄𝐑 𝐒𝐘𝐒𝐓𝐄𝐌 𝐒𝐓𝐀𝐓𝐔𝐒</u> ⚡</b>
 
-⌚️ ʙᴏᴛ ᴜᴩᴛɪᴍᴇ: `{}`
-👭 ᴛᴏᴛᴀʟ ᴜsᴇʀꜱ: `{}`
-💸 ᴛᴏᴛᴀʟ ᴘʀᴇᴍɪᴜᴍ ᴜsᴇʀs: `{}`
-֍ ᴜᴘʟᴏᴀᴅ: `{}`
-⊙ ᴅᴏᴡɴʟᴏᴀᴅ: `{}`
-"""
+<blockquote><b>🌐 <i>Render Free Plan Info:</i></b>
+• <b>Render Status:</b> <code>Online [STABLE] 🟢</code>
+• <b>Web Port:</b> <code>{port}</code> | <b>Ping:</b> <code>{ping} ms</code>
+• <b>Bot Uptime:</b> <code>{uptime}</code>
+• <b>Task Queue:</b> <code>{queue_status}</code></blockquote>
 
-    LIVE_STATUS = """
-⚡ ʟɪᴠᴇ sᴇʀᴠᴇʀ sᴛᴀᴛᴜs ⚡
+<blockquote><b>🧠 <i>Container RAM & CPU (Render):</i></b>
+• <b>Container RAM:</b> <code>{ram_used} / {ram_total} ({ram_usage}%)</code>
+• <b>Bot + FFmpeg RAM:</b> <code>{bot_ram}</code>
+• <b>CPU Load:</b> <code>{cpu_usage}%</code></blockquote>
 
-ᴜᴘᴛɪᴍᴇ: `{}`
-ᴄᴘᴜ: `{}%`
-ʀᴀᴍ: `{}%` 
-ᴛᴏᴛᴀʟ ᴅɪsᴋ: `{}`
-ᴜsᴇᴅ sᴘᴀᴄᴇ: `{} {}%`
-ғʀᴇᴇ sᴘᴀᴄᴇ: `{}`
-ᴜᴘʟᴏᴀᴅ: `{}`
-ᴅᴏᴡɴʟᴏᴀᴅ: `{}`
-V𝟹.𝟶.𝟶 [STABLE]
-"""
+<blockquote><b>💾 <i>Storage & Temp Files:</i></b>
+• <b>Temp Folder (Renames):</b> <code>{temp_size} ({temp_files} Files)</code>
+• <b>Server Disk Used:</b> <code>{used_disk} / {total_disk} ({disk_usage}%)</code>
+• <b>Server Disk Free:</b> <code>{free_disk}</code></blockquote>
+
+<blockquote><b>📡 <i>Network & Database:</i></b>
+• <b>Upload (Sent):</b> <code>{sent}</code> ⬆️ | <b>Download:</b> <code>{recv}</code> ⬇️
+• <b>Total Users:</b> <code>{total_users}</code> | <b>Banned:</b> <code>{banned_users}</code></blockquote>
+
+<blockquote><i>👑 Powered By: <b>@Goku_Stark</b></i></blockquote>"""
     
     DEV_TXT = """<b><u>Dᴇᴠᴇʟᴏᴩᴇʀꜱ</b></u>
     
@@ -85,3 +85,4 @@ V𝟹.𝟶.𝟶 [STABLE]
     FILE_INFO_TXT = """**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{}`\n◈ ᴅᴄ ɪᴅ: `{}`....__**"""
 
     MANUAL_RENAME_TXT = """**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{}`\n◈ ᴅᴄ ɪᴅ: `{}`....__**"""
+
