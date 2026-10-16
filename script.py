@@ -86,3 +86,5 @@ Exᴀᴍᴩʟᴇ:-/n
 
     MANUAL_RENAME_TXT = """**Sᴇʟᴇᴄᴛ Tʜᴇ Oᴜᴛᴩᴜᴛ Fɪʟᴇ Tyᴩᴇ**\n\n**__ᴍᴇᴅɪᴀ ɪɴꜰᴏ:\n\n◈ ᴏʟᴅ ꜰɪʟᴇ ɴᴀᴍᴇ: `{}`\n\n◈ ᴇxᴛᴇɴꜱɪᴏɴ: `{}`\n◈ ꜰɪʟᴇ ꜱɪᴢᴇ: `{}`\n◈ ᴍɪᴍᴇ ᴛʏᴇᴩ: `{}`\n◈ ᴅᴄ ɪᴅ: `{}`....__**"""
 
+    DUMP_SENT_TXT = "<b>✅ File sent to your Dump Channel!</b>"
+    UPLOAD_SUCCESS_TXT = "**Uploaded Successfully!...✅**"
