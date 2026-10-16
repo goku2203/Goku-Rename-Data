@@ -254,38 +254,41 @@ async def url_uploader_handler(client, message):
         ph_path = await client.download_media(c_thumb)
         
     await rkn_processing.edit("`📤 Starting Upload...`")
+    
+    dump_id = await goku_stark.get_dump(user_id)
+    dump_status = await goku_stark.get_dump_status(user_id)
+    target_chat = int(dump_id) if (dump_id and dump_status) else message.chat.id
 
-    # 5. Upload the file
+    # 5. Upload the file to target chat directly
     filw, error = await upload_files(
-        client, message.chat.id, actual_upload_type, new_local_path, 
+        client, target_chat, actual_upload_type, new_local_path, 
         ph_path, caption, 0, rkn_processing
     )
     
     if error:
         try:
-            await rkn_processing.edit(f"❌ Upload Error: {error}")
+            await rkn_processing.edit(f"  Upload Error: {error}")
         except:
             pass
     else:
-        # Handle Dump Channel Forwarding
-        dump_id = await goku_stark.get_dump(user_id)
-        dump_status = await goku_stark.get_dump_status(user_id)
         if dump_id and dump_status and filw:
             try:
-                await filw.copy(int(dump_id))
                 await client.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
             except Exception:
                 pass
                 
-        # --- Upload success aanadhum user anuppuna URL message-a udane delete ---
+        # Delete user URL message
         try:
             await message.delete()
         except Exception:
             pass
-
-        # --- Success message kaattitu 5 second-la delete ---
+            
+        # Success message with 5 seconds auto delete
         try:
-            await rkn_processing.edit("**Uploaded Successfully!...**")
+            if dump_id and dump_status:
+                await rkn_processing.edit(script.DUMP_SENT_TXT)
+            else:
+                await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT)
             await asyncio.sleep(5)
             await rkn_processing.delete()
         except Exception:
