@@ -22,8 +22,8 @@ except ImportError:
         glass_panel, paste_rgba, telegram_icon, text_shadow, rounded_mask
     )
 
-# Enter your TMDB API Key here
-TMDB_API_KEY = ""
+# TMDB API Key -> Render Environment Variable "TMDB_API_KEY"-la set pannunga
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "").strip()
 
 DEFAULT_WM = "@Goku_Stark"      # Default watermark if user hasn't set one
 SCALE_MIN = 0.4
@@ -48,9 +48,15 @@ SEARCH_CACHE = {}     # Cache for user search query
 # ======================= BASIC HELPERS =======================
 
 async def get_json(url, params=None):
+    if not TMDB_API_KEY:
+        raise RuntimeError("TMDB_API_KEY not set! Render > Environment-la add pannunga.")
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=params) as resp:
-            return await resp.json()
+            data = await resp.json(content_type=None)
+            # TMDB error (invalid key etc.) -> {"success": false, "status_message": ...}
+            if isinstance(data, dict) and data.get("success") is False:
+                raise RuntimeError(f"TMDB: {data.get('status_message', 'Unknown error')}")
+            return data
 
 async def get_bytes(url):
     if url in IMG_CACHE:
