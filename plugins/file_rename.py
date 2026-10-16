@@ -426,6 +426,9 @@ async def upload_doc(bot, update):
 
     upload_type = update.data.split("#")[1]
     
+    dump_id = await goku_stark.get_dump(user_id)
+    dump_status = await goku_stark.get_dump_status(user_id)
+
     if media.file_size > 2000 * 1024 * 1024:
         filw, error = await upload_files(
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
@@ -439,12 +442,22 @@ async def upload_doc(bot, update):
         from_chat = filw.chat.id
         mg_id = filw.id
         await asyncio.sleep(2)
-        success_msg = await bot.copy_message(update.from_user.id, from_chat, mg_id)
-        await bot.delete_messages(from_chat, mg_id)
+        
+        if dump_id and dump_status:
+            success_msg = await bot.copy_message(int(dump_id), from_chat, mg_id)
+            try:
+                await bot.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
+            except:
+                pass
+        else:
+            success_msg = await bot.copy_message(update.from_user.id, from_chat, mg_id)
             
+        await bot.delete_messages(from_chat, mg_id)
+        
     else:
+        target_chat = int(dump_id) if (dump_id and dump_status) else update.message.chat.id
         filw, error = await upload_files(
-            bot, update.message.chat.id, upload_type, final_file_path, 
+            bot, target_chat, upload_type, final_file_path, 
             ph_path, caption, duration, rkn_processing
         )
         if error:
@@ -452,22 +465,20 @@ async def upload_doc(bot, update):
             await rkn_processing.edit(f"Upload Error: {error}")
             return False
         success_msg = filw
-
-    # --- PUDHU DUMP LOGIC ---
-    dump_id = await goku_stark.get_dump(user_id)
-    dump_status = await goku_stark.get_dump_status(user_id)
-    if dump_id and dump_status and success_msg:
-        try:
-            # 1. First file-ai dump channel-kku forward pannum
-            await success_msg.copy(int(dump_id))
-            # 2. File-kku kezha sticker-ai dump channel-kku mattum anuppum
-            await bot.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
-        except Exception as e:
-            print(f"❌ Failed to Send to Dump Channel.: {e}")
+        if dump_id and dump_status:
+            try:
+                await bot.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
+            except:
+                pass
 
     await remove_path(ph_path, final_file_path, dl_path)
-    await rkn_processing.edit("Uploaded Successfully....")
     
+    # Message update with 5 seconds auto-delete
+    if dump_id and dump_status:
+        await rkn_processing.edit(script.DUMP_SENT_TXT)
+    else:
+        await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT)
+        
     await asyncio.sleep(5)
     try:
         await rkn_processing.delete()
