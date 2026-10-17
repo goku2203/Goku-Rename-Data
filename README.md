@@ -74,7 +74,7 @@ It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 desig
 |---|---|
 | 🎬 **TMDB Powered** | Search any movie or TV show with `/poster` (or `/p`) |
 | 🖼️ **Backdrop Browser** | Flip through backdrops with **◀️ Prev / Next ▶️** |
-| 🎨 **18 Premium Designs** | Cyber Glow, Cinematic Prime, Vision Glass, Tokyo Action, Aurora Horizon, Royale Gold, Cyber Logo, Crimson Phantom, Synthwave Neon, Glacial Frost, Comic Pop, Inferno Blaze, Sakura Dream, Shonen Burst, Midnight Moon, Mecha HUD, Manga Panel, Spirit Breeze |
+| 🎨 **18 Premium Designs** | Cyber Glow, Cinematic Prime, Vision Glass, Tokyo Action, Aurora Horizon, Royale Gold, Cyber Logo, Blade Slash, Synthwave Sunset, Liquid Glass, Comic Pop, Neon Tokyo, Sakura Dream, Mega Score, Letterbox Cinema, Sticker Pop, Manga Panel, Clean Minimal |
 | 💧 **Custom Watermark** | Your own name + adjustable size (`/set_watermark`) |
 | ⚡ **One-Tap Generate** | Plain image or fully styled design in a single click |
 | 🧹 **Auto Delete** | Poster messages clean themselves after 1 hour |
@@ -253,7 +253,7 @@ Goku-Rename-Data/
 │   ├── auto_rename.py        # Smart name parser
 │   ├── url_uploader.py       # Direct link uploader
 │   ├── poster.py             # TMDB poster generator
-│   ├── thumbnail_designs.py  # 18 poster designs
+│   ├── thumbnail_designs.py  # 18 poster designs (fonts/ folder-la bundled Google Fonts use pannum)
 │   ├── settings.py           # Settings panel
 │   ├── thumb_and_cap.py      # Thumbnail & caption
 │   ├── dump.py               # Dump channel
