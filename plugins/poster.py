@@ -233,7 +233,7 @@ async def render(user_id, tmdb_id, media_type, idx, st=0):
     
     # If title logo design is chosen (Design 7), fetch TMDB logo bytes
     if (st == 7) and info and not info.get("logo_bytes"):
-        logo_bytes = await get_logo(media_type, tmdb_id)
+        logo_bytes = await get_logo(media_type, tmdb_id, "original")   # big logo kaga original size
         if logo_bytes:
             info["logo_bytes"] = logo_bytes
 

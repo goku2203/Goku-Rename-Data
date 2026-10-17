@@ -40,6 +40,33 @@ FONT_FILES = {
     "audiowide": ("Audiowide-Regular.ttf", None),
     "orbitron": ("Orbitron-Variable.ttf", 800),
     "cinzel": ("Cinzel-Variable.ttf", 700),
+    "luckiest": ("LuckiestGuy-Regular.ttf", None),
+    "lilita": ("LilitaOne-Regular.ttf", None),
+    "chakra-b": ("ChakraPetch-Bold.ttf", None),
+    "chakra-sb": ("ChakraPetch-SemiBold.ttf", None),
+    "chakra-md": ("ChakraPetch-Medium.ttf", None),
+    "titan": ("TitanOne-Regular.ttf", None),
+    "zenmaru-b": ("ZenMaruGothic-Bold.ttf", None),
+    "zenmaru-md": ("ZenMaruGothic-Medium.ttf", None),
+    "bungee": ("Bungee-Regular.ttf", None),
+    "dela": ("DelaGothicOne-Regular.ttf", None),
+    "montserrat-md": ("Montserrat-Variable.ttf", 500),
+    "montserrat-sb": ("Montserrat-Variable.ttf", 600),
+    "montserrat-b": ("Montserrat-Variable.ttf", 700),
+}
+
+# ---------------------------------------------------------------------------
+# FONT MAATHA - ippadi pannunga:
+# Oru design-oda font-a maathanum-na keezha DESIGN_FONTS-la oru line add pannunga:
+#     "d_sticker_pop": ("bangers", "poppins-xb"),      # (TITLE font, SMALL-text font)
+# Function name = design function (e.g. d_neon_tokyo, d_clean_minimal, d_comic_pop ...)
+# Use panna koodiya font keys (fonts/ folder-la irukku):
+#   poppins-lt poppins-md poppins-sb poppins-b poppins-xb poppins-blk
+#   bebas anton rajdhani-sb rajdhani-b bangers righteous russo audiowide
+#   orbitron cinzel luckiest lilita chakra-b chakra-sb chakra-md titan
+#   zenmaru-b zenmaru-md bungee dela montserrat-md montserrat-sb montserrat-b
+# ---------------------------------------------------------------------------
+DESIGN_FONTS = {
 }
 
 FALLBACK_PATHS = [
@@ -109,7 +136,7 @@ def fonts(title, ui, upper=False):
         def wrap(img, layer, info, b):
             c = _cur()
             old = dict(c)
-            c["title"], c["ui"] = title, ui
+            c["title"], c["ui"] = DESIGN_FONTS.get(fn.__name__, (title, ui))
             try:
                 if upper and info.get("title"):
                     info = dict(info, title=info["title"].upper())
@@ -148,7 +175,7 @@ def block_h(font, n):
 
 ICON_CHARS = {
     "★": "star", "⭐": "star", "⚡": "bolt", "🔥": "flame", "🌋": "flame",
-    "👑": "crown", "💥": "burst", "🩸": "drop", "🌸": "flower",
+    "👑": "crown", "💥": "burst", "🩸": "drop", "🌸": "flower", "✦": "sparkle", "✨": "sparkle",
 }
 ICON_COLORS = {
     "star": (255, 204, 0, 255), "flame": (255, 140, 20, 255), "crown": (255, 205, 60, 255),
@@ -196,6 +223,8 @@ def draw_icon(layer, name, cx, cy, size, color):
         d.polygon(P([(50, 0), (80, 56), (20, 56)]), fill=color)
         if name == "flame":
             d.ellipse([o + 36 * k, o + 60 * k, o + 64 * k, o + 98 * k], fill=(255, 235, 150, 255))
+    elif name == "sparkle":
+        d.polygon(P([(50, 0), (61, 39), (100, 50), (61, 61), (50, 100), (39, 61), (0, 50), (39, 39)]), fill=color)
     elif name == "crown":
         d.polygon(P([(4, 88), (4, 28), (28, 52), (50, 10), (72, 52), (96, 28), (96, 88)]), fill=color)
     elif name == "burst":
@@ -574,9 +603,162 @@ def meta_join(items, sep="  •  "):
     return sep.join([i for i in items if i])
 
 
+# ---------------- round-2 helpers ----------------
+
+def flow_rows(items, font, max_w, pad_x, pad_y, gap):
+    """items = [(text, bg, border, text_color)] -> rows that fit max_w (wrap pannum, box-ku veliya varaadhu)"""
+    rows, cur, cw = [], [], 0
+    for it in items:
+        w = pill_size(it[0], font, pad_x, pad_y)[0]
+        if cur and cw + gap + w > max_w:
+            rows.append(cur)
+            cur, cw = [], 0
+        cur.append((it, w))
+        cw += (gap if len(cur) > 1 else 0) + w
+    if cur:
+        rows.append(cur)
+    return rows, pill_size("X", font, pad_x, pad_y)[1]
+
+
+def flow_height(items, font, max_w, pad_x, pad_y, gap, row_gap):
+    if not items:
+        return 0
+    rows, h = flow_rows(items, font, max_w, pad_x, pad_y, gap)
+    return int(len(rows) * h + (len(rows) - 1) * row_gap)
+
+
+def draw_flow(layer, x, y, items, font, max_w, pad_x, pad_y, gap, row_gap):
+    """Draws pill rows with wrapping, returns total height"""
+    if not items:
+        return 0
+    rows, h = flow_rows(items, font, max_w, pad_x, pad_y, gap)
+    cy = y
+    for row in rows:
+        cx = x
+        for (t, bg, bd, tc), w in row:
+            draw_pill_badge(layer, cx, cy, t, font, bg, bd, tc, pad_x, pad_y)
+            cx += w + gap
+        cy += h + row_gap
+    return int(len(rows) * h + (len(rows) - 1) * row_gap)
+
+
+def fit_meta(make_text, genres, font, max_w):
+    """Genres-a oru oru-vaa kuraichu text max_w-kulla fit aagura varaikkum"""
+    gs = list(genres)
+    while True:
+        txt = make_text(gs)
+        if text_w(txt, font) <= max_w or not gs:
+            return txt
+        gs = gs[:-1]
+
+
+def prep_logo(raw_bytes, max_w, max_h, max_up=2.6):
+    """TMDB logo -> crop transparent edges, scale BIG (upscale allowed), dark logo-na white-a maathum"""
+    try:
+        raw = Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
+    except Exception:
+        return None
+    box = raw.getchannel("A").getbbox()
+    if box:
+        raw = raw.crop(box)
+    r = min(max_w / raw.width, max_h / raw.height, max_up)
+    logo = raw.resize((max(10, int(raw.width * r)), max(10, int(raw.height * r))), Image.LANCZOS)
+    try:
+        from PIL import ImageStat
+        a = logo.getchannel("A")
+        stat = ImageStat.Stat(logo.convert("L"), mask=a.point(lambda p: 255 if p > 128 else 0))
+        if stat.mean[0] < 85:                       # black/dark logo -> dark gradient-la theriyaadhu
+            white = Image.new("RGBA", logo.size, (255, 255, 255, 255))
+            white.putalpha(a)
+            logo = white
+    except Exception:
+        pass
+    return logo
+
+
+def glow_text(layer, x, baseline, text, font, fill, glow, radius, strength=2):
+    """Soft glowing text (golden hour / dreamy look)"""
+    size = getattr(font, "size", 40)
+    pad = int(radius * 3) + 4
+    bb = _PROBE.textbbox((0, 0), text, font=font, anchor="ls")
+    w, h = bb[2] - bb[0] + pad * 2, bb[3] - bb[1] + pad * 2
+    ox, oy = pad - bb[0], pad - bb[1]
+    m = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(m).text((ox, oy), text, font=font, fill=255, anchor="ls")
+    tile = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    g = Image.new("RGBA", (w, h), tuple(glow[:3]) + (255,))
+    g.putalpha(m.filter(ImageFilter.GaussianBlur(radius)).point(lambda p: min(255, int(p * 1.6))))
+    for _ in range(strength):
+        tile.alpha_composite(g)
+    off = max(2, int(size * 0.04))
+    sh = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sh.paste((0, 0, 0, 120), (0, off), m)
+    tile.alpha_composite(sh.filter(ImageFilter.GaussianBlur(off)))
+    t = Image.new("RGBA", (w, h), tuple(fill))
+    t.putalpha(m)
+    tile.alpha_composite(t)
+    paste_rgba(layer, tile, x - ox, baseline - oy)
+
+
+def para(layer, x, y, w, h, skew, fill, outline=None, ow=3):
+    """Slanted parallelogram label (anime tag style)"""
+    S = 3
+    W_, H_ = int((w + skew + 8) * S), int((h + 8) * S)
+    tile = Image.new("RGBA", (W_, H_), (0, 0, 0, 0))
+    d = ImageDraw.Draw(tile)
+    pts = [(4 * S + skew * S, 4 * S), (4 * S + (w + skew) * S, 4 * S), (4 * S + w * S, 4 * S + h * S), (4 * S, 4 * S + h * S)]
+    d.polygon(pts, fill=fill)
+    if outline:
+        d.line(pts + [pts[0]], fill=outline, width=max(1, int(ow * S)), joint="curve")
+    paste_rgba(layer, tile.resize((W_ // S, H_ // S), Image.LANCZOS), x - 4, y - 4)
+
+
+def burst(layer, cx, cy, R, fill, outline=None, spikes=22, inner=0.78, ow=5):
+    """Comic/anime starburst badge"""
+    S = 3
+    N = int(2 * R + ow * 2 + 8)
+    tile = Image.new("RGBA", (N * S, N * S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(tile)
+    c = N * S / 2.0
+
+    def pts(rad):
+        out = []
+        for i in range(spikes * 2):
+            a = -math.pi / 2 + i * math.pi / spikes
+            r = rad * S * (1 if i % 2 == 0 else inner)
+            out.append((c + r * math.cos(a), c + r * math.sin(a)))
+        return out
+    if outline:
+        d.polygon(pts(R), fill=outline)
+        d.polygon(pts(R - ow), fill=fill)
+    else:
+        d.polygon(pts(R), fill=fill)
+    paste_rgba(layer, tile.resize((N, N), Image.LANCZOS), cx - N / 2.0, cy - N / 2.0)
+
+
+def brush_stroke(layer, x, y, w, h, color, seed=1):
+    """Rough japanese brush stroke bar (tapered, slightly uneven)"""
+    rnd = random.Random(seed)
+    S = 3
+    tw, th_ = int((w + 20) * S), int((h + 20) * S)
+    tile = Image.new("RGBA", (tw, th_), (0, 0, 0, 0))
+    d = ImageDraw.Draw(tile)
+    n = 40
+    top, bot = [], []
+    for i in range(n + 1):
+        t = i / float(n)
+        px = 10 * S + t * w * S
+        taper = min(1.0, t / 0.05, (1 - t) / 0.2) ** 0.6
+        hh = h * S * (0.5 + 0.5 * taper)
+        top.append((px, 10 * S + (h * S - hh) / 2 + rnd.uniform(-0.10, 0.10) * h * S))
+        bot.append((px, 10 * S + (h * S + hh) / 2 + rnd.uniform(-0.10, 0.10) * h * S))
+    d.polygon(top + bot[::-1], fill=color)
+    paste_rgba(layer, tile.resize((tw // S, th_ // S), Image.LANCZOS), x - 10, y - 10)
+
+
 # ======================= 18 THUMBNAIL DESIGNS =======================
 
-@fonts("orbitron", "rajdhani-b")
+@fonts("chakra-b", "chakra-sb")
 def d_cyber_neon(img, layer, info, b):
     """1. 🌟 Cyber Glow: Tokyo Cyberpunk / Anime Neon with Cyan-Violet Aura"""
     W, H = img.size
@@ -662,52 +844,6 @@ def d_cinematic_prime(img, layer, info, b):
     
     meta_str = "   |   ".join(parts)
     draw_lines(layer, [meta_str], mfont, m + bar_w + int(24 * b), y, fill=(255, 255, 255, 220))
-
-
-@fonts("poppins-b", "poppins-md")
-def d_vision_glass(img, layer, info, b):
-    """3. 💎 Vision Glass: Modern Floating Frosted Glass Dock with Specular Shine"""
-    W, H = img.size
-    pad, m = int(45 * b), int(60 * b)
-    tfont, lines = fit_lines(info["title"], 84 * b, 44 * b, W * 0.50, 2)
-    sfont, gfont = load_font(28 * b), load_font(24 * b)
-    
-    row_w = 0
-    if info.get("type"):
-        row_w += pill_size(info["type"].upper(), sfont, 14 * b, 4 * b)[0] + 10 * b
-    if info.get("year"):
-        row_w += pill_size(info["year"], sfont, 12 * b, 4 * b)[0] + 10 * b
-    if info.get("rating"):
-        row_w += pill_size(f"★ {info['rating']}", sfont, 14 * b, 4 * b)[0] + 24 * b
-    cw = max([text_w(l, tfont) for l in lines] + [int(320 * b), int(row_w)])
-    pw = int(cw + pad * 2)
-    ph = int(pad + 36 * b + 16 * b + block_h(tfont, len(lines)) + 16 * b + 36 * b + pad)
-    
-    x0, y0 = m, H - m - ph
-    glass_panel(img, layer, (x0, y0, x0 + pw, y0 + ph), 36 * b, 26 * b, white=55)
-    
-    # Top row inside card: Type + Year & Rating
-    y = y0 + pad
-    cur_x = x0 + pad
-    if info.get("type"):
-        tw, _ = draw_pill_badge(layer, cur_x, y, info["type"].upper(), sfont, (255, 255, 255, 35), border_color=(255, 255, 255, 90), text_color=(255, 255, 255, 240), pad_x=14 * b, pad_y=4 * b)
-        cur_x += tw + 10 * b
-    if info.get("year"):
-        yw, _ = draw_pill_badge(layer, cur_x, y, info["year"], sfont, (255, 255, 255, 20), border_color=(255, 255, 255, 60), text_color=(255, 255, 255, 210), pad_x=12 * b, pad_y=4 * b)
-        cur_x += yw + 10 * b
-    
-    if info.get("rating"):
-        draw_pill_badge(layer, x0 + pw - pad - pill_size(f"★ {info['rating']}", sfont, 14 * b, 4 * b)[0], y, f"★ {info['rating']}", sfont, (255, 204, 0, 40), border_color=(255, 204, 0, 200), text_color=(255, 215, 0, 255), pad_x=14 * b, pad_y=4 * b)
-    
-    y += 36 * b + 16 * b
-    # Title
-    y += draw_lines(layer, lines, tfont, x0 + pad, y) + 16 * b
-    
-    # Genre capsules
-    cur_x = x0 + pad
-    for g in info.get("genres", [])[:3]:
-        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (255, 255, 255, 20), border_color=(255, 255, 255, 60), text_color=(240, 240, 245, 215), pad_x=14 * b, pad_y=4 * b)
-        cur_x += gw + 10 * b
 
 
 @fonts("anton", "rajdhani-b", upper=True)
@@ -799,128 +935,7 @@ def d_aurora_horizon(img, layer, info, b):
         draw_pill_badge(layer, rx, ry, f"★ {info['rating']}", load_font(32 * b), (255, 204, 0, 35), border_color=(255, 204, 0, 220), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
 
 
-@fonts("cinzel", "poppins-sb", upper=True)
-def d_royale_gold(img, layer, info, b):
-    """6. 🏆 Royale Gold: Luxury Premiere with Metallic Gold Framing & Crown Badge"""
-    W, H = img.size
-    m = int(75 * b)
-    add_smooth_gradient_bottom(img, H * 0.56, 230)
-    
-    tfont, lines = fit_lines(info["title"], 106 * b, 50 * b, W * 0.72, 2)
-    sfont, mfont = load_font(26 * b), load_font(28 * b)
-    
-    badge_h = int(36 * b)
-    bar_h, bar_w = max(2, int(4 * b)), int(180 * b)
-    th_total = block_h(tfont, len(lines))
-    meta_h = text_h(mfont)
-    
-    total_h = badge_h + 16 * b + th_total + 14 * b + bar_h + 16 * b + meta_h
-    y = H - m - total_h
-    
-    # Gold Prestige Badge
-    badge_txt = f"👑 PREMIERE • {info['rating']} ★" if info.get("rating") else "👑 OFFICIAL PREMIERE"
-    draw_pill_badge(layer, m, y, badge_txt, sfont, (245, 158, 11, 40), border_color=(245, 158, 11, 230), text_color=(255, 215, 0, 255), pad_x=18 * b, pad_y=6 * b)
-    y += badge_h + 16 * b
-    
-    # Title
-    y += draw_lines(layer, lines, tfont, m, y) + 14 * b
-    
-    # Gold Hairline Bar
-    ImageDraw.Draw(layer).rounded_rectangle((m, y, m + bar_w, y + bar_h), radius=bar_h // 2, fill=(245, 158, 11, 230))
-    y += bar_h + 16 * b
-    
-    # Meta
-    parts = []
-    if info.get("type"):
-        parts.append(info["type"].upper())
-    if info.get("year"):
-        parts.append(info["year"])
-    if info.get("genres"):
-        parts.extend([g.upper() for g in info["genres"][:3]])
-    draw_lines(layer, ["   //   ".join(parts)], mfont, m, y, fill=(255, 240, 220, 215))
-
-
-@fonts("orbitron", "rajdhani-b")
-def d_cyber_logo(img, layer, info, b):
-    """7. 🔥 Cyber Logo: Tokyo Cyberpunk with Official TMDB Title Logo (Fallback to styled text)"""
-    W, H = img.size
-    m = int(70 * b)
-    add_smooth_gradient_bottom(img, H * 0.58, 230)
-    
-    sfont, gfont = load_font(26 * b), load_font(24 * b)
-    badge_h = int(36 * b)
-    bar_h, bar_w = max(3, int(5 * b)), int(160 * b)
-    meta_h = int(36 * b)
-    
-    logo_img = None
-    if info.get("logo_bytes"):
-        try:
-            raw_logo = Image.open(io.BytesIO(info["logo_bytes"])).convert("RGBA")
-            max_lw = int(W * 0.46)
-            max_lh = int(140 * b)
-            scale_ratio = min(max_lw / raw_logo.width, max_lh / raw_logo.height, 1.0)
-            lw = max(10, int(raw_logo.width * scale_ratio))
-            lh = max(10, int(raw_logo.height * scale_ratio))
-            logo_img = raw_logo.resize((lw, lh), Image.LANCZOS)
-        except Exception:
-            logo_img = None
-
-    if logo_img:
-        logo_h = logo_img.height
-        total_h = badge_h + 16 * b + logo_h + 16 * b + bar_h + 16 * b + meta_h
-        y = H - m - total_h
-        
-        # Category tag
-        cat_text = f"⚡ {info['type'].upper()}" if info.get("type") else "⚡ ANIME"
-        w1, _ = draw_pill_badge(layer, m, y, cat_text, sfont, (0, 240, 255, 30), border_color=(0, 240, 255, 200), text_color=(0, 240, 255, 255), pad_x=16 * b, pad_y=6 * b)
-        if info.get("year"):
-            draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (255, 255, 255, 25), border_color=(255, 255, 255, 80), text_color=(255, 255, 255, 230), pad_x=14 * b, pad_y=6 * b)
-        
-        y += badge_h + 16 * b
-        
-        # Soft cyan neon aura glow behind logo
-        sh_blur = max(2, int(6 * b))
-        sh_mask = Image.new("RGBA", (logo_img.width + sh_blur * 4, logo_img.height + sh_blur * 4), (0, 0, 0, 0))
-        sh_mask.paste((0, 240, 255, 120), (sh_blur * 2, sh_blur * 2), logo_img.split()[3])
-        sh_mask = sh_mask.filter(ImageFilter.GaussianBlur(sh_blur))
-        paste_rgba(layer, sh_mask, m - sh_blur * 2, int(y) - sh_blur * 2)
-        paste_rgba(layer, logo_img, m, int(y))
-        y += logo_h + 16 * b
-    else:
-        # Fallback to Cyber Glow styled text title if no logo
-        tfont, lines = fit_lines(info["title"], 108 * b, 50 * b, W * 0.72, 2)
-        th_total = block_h(tfont, len(lines))
-        total_h = badge_h + 16 * b + th_total + 16 * b + bar_h + 16 * b + meta_h
-        y = H - m - total_h
-        
-        cat_text = f"⚡ {info['type'].upper()}" if info.get("type") else "⚡ ANIME"
-        w1, _ = draw_pill_badge(layer, m, y, cat_text, sfont, (0, 240, 255, 30), border_color=(0, 240, 255, 200), text_color=(0, 240, 255, 255), pad_x=16 * b, pad_y=6 * b)
-        if info.get("year"):
-            draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (255, 255, 255, 25), border_color=(255, 255, 255, 80), text_color=(255, 255, 255, 230), pad_x=14 * b, pad_y=6 * b)
-        y += badge_h + 16 * b
-        y += draw_lines(layer, lines, tfont, m, y) + 16 * b
-
-    # Gradient accent bar (Cyan to Violet)
-    for i in range(bar_w):
-        t = i / bar_w
-        r = int(0 * (1 - t) + 168 * t)
-        g = int(240 * (1 - t) + 85 * t)
-        bl_c = int(255 * (1 - t) + 247 * t)
-        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(r, g, bl_c, 255))
-    y += bar_h + 16 * b
-
-    # Rating badge + Genres
-    cur_x = m
-    if info.get("rating"):
-        rw, _ = draw_pill_badge(layer, cur_x, y, f"★ {info['rating']}", sfont, (255, 204, 0, 35), border_color=(255, 204, 0, 220), text_color=(255, 215, 0, 255), pad_x=16 * b, pad_y=6 * b)
-        cur_x += rw + 14 * b
-
-    for g in info.get("genres", [])[:3]:
-        gw, _ = draw_pill_badge(layer, cur_x, y, g, gfont, (0, 240, 255, 20), border_color=(0, 240, 255, 100), text_color=(220, 245, 255, 220), pad_x=14 * b, pad_y=6 * b)
-        cur_x += gw + 10 * b
-
-
-@fonts("bangers", "poppins-b", upper=True)
+@fonts("titan", "poppins-b", upper=True)
 def d_comic_pop(img, layer, info, b):
     """11. ⚡ Comic Pop: Anime Manga Cover with Bold Yellow Halftone Contrast"""
     W, H = img.size
@@ -960,7 +975,7 @@ def d_comic_pop(img, layer, info, b):
         cur_x += gw + 10 * b
 
 
-@fonts("righteous", "poppins-md")
+@fonts("zenmaru-b", "zenmaru-md")
 def d_sakura_dream(img, layer, info, b):
     """13. 🌸 Sakura Dream: Romantic anime, falling cherry petals, centered pink title"""
     W, H = img.size
@@ -995,207 +1010,7 @@ def d_sakura_dream(img, layer, info, b):
     pill_row_center(layer, W, y, gen, gfont, 14 * b, 6 * b, 10 * b)
 
 
-@fonts("russo", "rajdhani-b", upper=True)
-def d_manga_panel(img, layer, info, b):
-    """17. 📖 Manga Panel: White comic frame + solid white title box with hard black shadow"""
-    W, H = img.size
-    d = ImageDraw.Draw(layer)
-    fi = int(22 * b)
-    d.rectangle((fi, fi, W - fi, H - fi), outline=(255, 255, 255, 255), width=max(4, int(10 * b)))
-
-    tfont, lines = fit_lines(info["title"], 100 * b, 48 * b, W * 0.58, 2)
-    sfont, mfont = load_font(26 * b), load_font(26 * b)
-    padx, pady = int(34 * b), int(24 * b)
-    cw = max([text_w(l, tfont) for l in lines] + [int(300 * b)])
-    bw = int(cw + padx * 2)
-    bh = int(pady * 2 + block_h(tfont, len(lines)) + 12 * b + text_h(mfont))
-    x0 = int(70 * b)
-    y0 = H - int(80 * b) - bh
-    off = int(12 * b)
-
-    d.rectangle((x0 + off, y0 + off, x0 + bw + off, y0 + bh + off), fill=(0, 0, 0, 255))   # hard shadow
-    d.rectangle((x0, y0, x0 + bw, y0 + bh), fill=(255, 255, 255, 255))
-    d.rectangle((x0, y0, x0 + bw, y0 + bh), outline=(0, 0, 0, 255), width=max(3, int(5 * b)))
-
-    # red tag
-    tag = (info.get("type") or "NEW SERIES").upper()
-    tgw = int(text_w(tag, sfont) + 30 * b)
-    tgh = int(text_h(sfont) + 14 * b)
-    d.rectangle((x0, y0 - tgh, x0 + tgw, y0), fill=(220, 20, 30, 255))
-    draw_rich(layer, x0 + 15 * b, y0 - tgh + (tgh - cap_h(sfont)) / 2, tag, sfont, (255, 255, 255, 255), shadow=False)
-
-    y = y0 + pady
-    step = line_step(tfont)
-    for i, ln in enumerate(lines):
-        draw_rich(layer, x0 + padx, y + i * step, ln, tfont, (12, 12, 14, 255), shadow=False)
-    y += block_h(tfont, len(lines)) + 12 * b
-    parts = [p for p in [info.get("year"), f"★ {info['rating']}" if info.get("rating") else None] + info.get("genres", [])[:2] if p]
-    draw_rich(layer, x0 + padx, y, "  /  ".join(parts), mfont, (70, 70, 78, 255), shadow=False)
-
-
 # ======================= 8 NEW DESIGNS (slots 8, 9, 10, 12, 14, 15, 16, 18) =======================
-
-@fonts("anton", "rajdhani-b", upper=True)
-def d_blade_slash(img, layer, info, b):
-    """8. ⚔️ Blade Slash: dark diagonal panel cut by a glowing crimson blade edge"""
-    W, H = img.size
-    m = int(72 * b)
-    top_x, bot_x = int(W * 0.64), int(W * 0.47)
-
-    # --- diagonal dark panel (strong on the left, lighter near the blade) ---
-    S = 2
-    mask = Image.new("L", (W * S, H * S), 0)
-    ImageDraw.Draw(mask).polygon([(0, 0), (top_x * S, 0), (bot_x * S, H * S), (0, H * S)], fill=255)
-    mask = mask.resize((W, H), Image.LANCZOS)
-    grad = Image.linear_gradient("L").transpose(Image.ROTATE_270).resize((W, H))
-    grad = grad.point(lambda p: int(105 + (p / 255.0) * 75))
-    panel = Image.new("RGBA", (W, H), (6, 4, 10, 255))
-    panel.putalpha(ImageChops.multiply(grad, mask))
-    img.alpha_composite(panel)
-    add_smooth_gradient_bottom(img, H * 0.35, 120)
-
-    # --- glowing blade edge ---
-    def slash(offset, width, color, glow, alpha):
-        t = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        ImageDraw.Draw(t).line([(top_x + offset, -10), (bot_x + offset, H + 10)], fill=color[:3] + (alpha,), width=width)
-        if glow:
-            g = t.filter(ImageFilter.GaussianBlur(width * 1.6))
-            img.alpha_composite(g)
-            img.alpha_composite(g)
-        img.alpha_composite(t)
-    slash(0, max(4, int(9 * b)), (255, 30, 70), True, 255)
-    slash(0, max(2, int(3 * b)), (255, 235, 240), False, 255)
-    slash(int(30 * b), max(2, int(4 * b)), (255, 30, 70), True, 170)
-
-    # --- text block ---
-    tfont, lines = fit_lines(info["title"], 150 * b, 62 * b, W * 0.40, 3)
-    sfont, mfont = load_font(27 * b), load_font(31 * b)
-    th = block_h(tfont, len(lines))
-    ph = pill_size("X", sfont, 18 * b, 6 * b)[1]
-    bar_h, bar_w, skew = max(4, int(8 * b)), int(190 * b), int(16 * b)
-    mh = text_h(mfont)
-    total = ph + 20 * b + th + 20 * b + bar_h + 18 * b + mh
-    y = H - m - total
-
-    cur = m
-    if info.get("type"):
-        w1, _ = draw_pill_badge(layer, cur, y, info["type"].upper(), sfont, (225, 20, 55, 255), None, (255, 255, 255, 255), 18 * b, 6 * b)
-        cur += w1 + 12 * b
-    if info.get("year"):
-        draw_pill_badge(layer, cur, y, info["year"], sfont, (0, 0, 0, 110), (255, 255, 255, 140), (255, 255, 255, 240), 16 * b, 6 * b)
-    y += ph + 20 * b
-    y += draw_lines(layer, lines, tfont, m, y) + 20 * b
-
-    ImageDraw.Draw(layer).polygon(
-        [(m + skew, y), (m + bar_w + skew, y), (m + bar_w, y + bar_h), (m, y + bar_h)], fill=(255, 35, 70, 255))
-    y += bar_h + 18 * b
-
-    meta = []
-    if info.get("rating"):
-        meta.append(f"★ {info['rating']}")
-    if info.get("genres"):
-        meta.append("  •  ".join(info["genres"][:3]))
-    draw_rich(layer, m, y, "   |   ".join(meta), mfont, (255, 232, 238, 240))
-
-
-@fonts("audiowide", "rajdhani-b")
-def d_synthwave_sunset(img, layer, info, b):
-    """9. 🌆 Synthwave Sunset: striped retro sun + neon perspective grid + chrome gradient title"""
-    W, H = img.size
-    horizon = int(H * 0.80)
-    cx = W // 2
-
-    # dusk tint (transparent at top -> deep purple at horizon)
-    gy0 = int(H * 0.28)
-    gh = H - gy0
-    g = Image.linear_gradient("L").resize((W, gh)).point(lambda p: int((p / 255.0) ** 1.15 * 215))
-    dusk = Image.new("RGBA", (W, gh), (34, 4, 66, 255))
-    dusk.putalpha(g)
-    img.alpha_composite(dusk, dest=(0, gy0))
-
-    # sun glow + sun
-    R = int(H * 0.21)
-    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).ellipse((cx - R * 1.35, horizon - R * 1.35, cx + R * 1.35, horizon + R * 1.35), fill=(255, 40, 150, 150))
-    img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(int(48 * b))))
-
-    S = 2
-    sm = Image.new("L", (2 * R * S, 2 * R * S), 0)
-    ImageDraw.Draw(sm).ellipse((0, 0, 2 * R * S - 1, 2 * R * S - 1), fill=255)
-    sd = ImageDraw.Draw(sm)
-    for j in range(7):          # stripes get thicker towards the horizon
-        yy = R * S - int(R * S * 0.62) + int(j * R * S * 0.088)
-        th_ = int((2 + j * 1.7) * b * S)
-        sd.rectangle((0, yy, 2 * R * S, yy + th_), fill=0)
-    sm = sm.resize((2 * R, 2 * R), Image.LANCZOS)
-    sun = Image.new("RGBA", (2 * R, 2 * R))
-    col = Image.new("RGBA", (1, 2 * R))
-    for yy in range(2 * R):
-        col.putpixel((0, yy), multi_lerp([(0, (255, 232, 90, 255)), (0.5, (255, 95, 150, 255)), (1, (190, 40, 210, 255))], yy / (2 * R)) + ())
-    sun = col.resize((2 * R, 2 * R))
-    sun.putalpha(sm.point(lambda p: int(p * 0.95)))
-    img.alpha_composite(sun, dest=(cx - R, horizon - R))
-
-    # floor (dark) + neon grid
-    fh = H - horizon
-    floor = Image.new("RGBA", (W, fh), (14, 0, 34, 255))
-    fa = Image.linear_gradient("L").resize((W, fh)).point(lambda p: int(215 + p * 0.1))
-    floor.putalpha(fa)
-    img.alpha_composite(floor, dest=(0, horizon))
-
-    grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    gd = ImageDraw.Draw(grid)
-    lw = max(2, int(3 * b))
-    for i in range(-14, 15):
-        gd.line([(cx, horizon), (cx + i * W * 0.13, H)], fill=(255, 50, 200, 210), width=lw)
-    for k in range(1, 9):
-        yy = horizon + fh * ((k / 9.0) ** 2)
-        gd.line([(0, yy), (W, yy)], fill=(255, 50, 200, 210), width=lw)
-    # grid sirusa irukka - horizon-ku close-la fade
-    fade = Image.linear_gradient("L").resize((W, fh)).point(lambda p: int(60 + p * 0.75))
-    fade_full = Image.new("L", (W, H), 0)
-    fade_full.paste(fade, (0, horizon))
-    grid.putalpha(ImageChops.multiply(grid.split()[3], fade_full))
-    img.alpha_composite(grid.filter(ImageFilter.GaussianBlur(int(5 * b))))
-    img.alpha_composite(grid)
-    hl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(hl).line([(0, horizon), (W, horizon)], fill=(0, 238, 255, 255), width=max(2, int(4 * b)))
-    img.alpha_composite(hl.filter(ImageFilter.GaussianBlur(int(7 * b))))
-    img.alpha_composite(hl)
-
-    # --- text (centered above the horizon) ---
-    tfont, lines = fit_lines(info["title"], 150 * b, 56 * b, W * 0.82, 2)
-    sfont, gfont = load_font(29 * b), load_font(32 * b)
-    step = line_step(tfont)
-    cap = cap_h(tfont)
-    th = block_h(tfont, len(lines))
-    ph = pill_size("X", sfont, 16 * b, 6 * b)[1]
-    gh_ = text_h(gfont)
-
-    y_gen = horizon - int(26 * b) - gh_
-    y_title = y_gen - int(18 * b) - th
-    y_pills = y_title - int(20 * b) - ph
-
-    tags = []
-    if info.get("type"):
-        tags.append((info["type"].upper(), (255, 0, 150, 70), (255, 60, 190, 255), (255, 215, 245, 255)))
-    if info.get("year"):
-        tags.append((info["year"], (0, 0, 0, 120), (0, 238, 255, 230), (200, 250, 255, 255)))
-    if info.get("rating"):
-        tags.append((f"★ {info['rating']}", (255, 204, 0, 40), (255, 204, 0, 240), (255, 220, 60, 255)))
-    pill_row_center(layer, W, y_pills, tags, sfont, 16 * b, 6 * b, 12 * b)
-
-    stops = [(0, (225, 250, 255)), (0.48, (255, 255, 255)), (0.52, (255, 190, 235)), (1, (255, 60, 170))]
-    for i, ln in enumerate(lines):
-        tw = _PROBE.textlength(ln, font=tfont)
-        gradient_text(layer, (W - tw) / 2, y_title + i * step + cap, ln, tfont, stops,
-                      stroke=max(3, int(5 * b)), stroke_fill=(38, 0, 70, 255))
-
-    if info.get("genres"):
-        gtxt = "  •  ".join(info["genres"][:3]).upper()
-        gw = text_w(gtxt, gfont)
-        draw_rich(layer, (W - gw) / 2, y_gen, gtxt, gfont, (120, 240, 255, 255))
-
 
 @fonts("poppins-xb", "poppins-sb")
 def d_liquid_glass(img, layer, info, b):
@@ -1278,7 +1093,7 @@ def d_liquid_glass(img, layer, info, b):
         text_shadow(layer, (rcx - nw / 2, rcy + cap_h(nfont) / 2), txt, nfont, (255, 255, 255, 255), anchor="ls")
 
 
-@fonts("righteous", "rajdhani-b")
+@fonts("bungee", "rajdhani-b")
 def d_neon_tokyo(img, layer, info, b):
     """12. 🌃 Neon Tokyo: real neon-tube glowing title (magenta) + cyan neon underline on night tint"""
     W, H = img.size
@@ -1396,50 +1211,7 @@ def d_mega_score(img, layer, info, b):
         draw_rich(layer, m, y + 18 * b, gtxt, gfont, (255, 240, 205, 235))
 
 
-@fonts("cinzel", "poppins-md", upper=True)
-def d_letterbox(img, layer, info, b):
-    """15. 🎥 Letterbox Cinema: black widescreen bars + gold hairlines + elegant serif title in the bottom bar"""
-    W, H = img.size
-    gold = (212, 175, 95, 255)
-    top_h = int(H * 0.075)
-
-    tfont, lines = fit_lines(info["title"], 80 * b, 38 * b, W * 0.80, 2)
-    mfont = load_font(27 * b)
-    th = block_h(tfont, len(lines))
-    pad_t, pad_b = int(30 * b), int(34 * b)
-    bot_h = max(int(H * 0.22), int(pad_t + th + 18 * b + text_h(mfont) + pad_b))
-
-    d = ImageDraw.Draw(img)
-    d.rectangle((0, 0, W, top_h), fill=(0, 0, 0, 255))
-    d.rectangle((0, H - bot_h, W, H), fill=(0, 0, 0, 255))
-    hl = max(2, int(2.5 * b))
-    d.rectangle((0, top_h, W, top_h + hl), fill=gold)
-    d.rectangle((0, H - bot_h - hl, W, H - bot_h), fill=gold)
-
-    # top bar label
-    lfont = load_font(21 * b, family="poppins-md")
-    parts = [p for p in [(info.get("type") or "").upper(), info.get("year") or ""] if p]
-    label = "   •   ".join(parts)
-    if label:
-        sp = 4 * b
-        lw = spaced_width(label, lfont, sp)
-        draw_spaced(layer, (W - lw) / 2, (top_h - cap_h(lfont)) / 2, label, lfont, sp, gold)
-
-    # title + meta in bottom bar
-    y = H - bot_h + pad_t
-    y += draw_lines(layer, lines, tfont, 0, y, fill=(250, 242, 225, 255), align="center", box_w=W) + 18 * b
-    meta = []
-    if info.get("rating"):
-        meta.append(f"★ {info['rating']}")
-    if info.get("genres"):
-        meta.append("  •  ".join(info["genres"][:3]))
-    mt = "     |     ".join(meta)
-    if mt:
-        mw = text_w(mt, mfont)
-        draw_rich(layer, (W - mw) / 2, y, mt, mfont, (222, 196, 140, 255), shadow=False)
-
-
-@fonts("bangers", "poppins-xb", upper=True)
+@fonts("luckiest", "lilita", upper=True)
 def d_sticker_pop(img, layer, info, b):
     """16. 🍭 Sticker Pop: tilted cartoon sticker - yellow title, thick white + black outline, colorful pills"""
     W, H = img.size
@@ -1521,7 +1293,7 @@ def d_sticker_pop(img, layer, info, b):
     paste_rgba(layer, grp, px, py)
 
 
-@fonts("poppins-md", "poppins-sb")
+@fonts("montserrat-sb", "montserrat-md")
 def d_clean_minimal(img, layer, info, b):
     """18. 🤍 Clean Minimal: no boxes, no pills - thin line, light title, quiet rating | genres row"""
     W, H = img.size
@@ -1556,9 +1328,491 @@ def d_clean_minimal(img, layer, info, b):
 
 
 
+# ======================= ROUND 2: FIXED + NEW DESIGNS =======================
+
+@fonts("chakra-b", "chakra-sb")
+def d_cyber_logo(img, layer, info, b):
+    """7. 🔥 Cyber Logo: BIG official TMDB title logo + cyan neon aura + HUD brackets (logo illana neon text title)"""
+    W, H = img.size
+    m = int(72 * b)
+    add_smooth_gradient_bottom(img, H * 0.68, 238)
+    add_angled_gradient_left(img, W * 0.50, 120)
+
+    sfont, gfont = load_font(27 * b), load_font(25 * b)
+    ph = pill_size("X", sfont, 18 * b, 6 * b)[1]
+    bar_h, bar_w = max(3, int(5 * b)), int(210 * b)
+    max_row = int(W * 0.60)
+
+    logo = prep_logo(info["logo_bytes"], W * 0.58, H * 0.36) if info.get("logo_bytes") else None
+
+    items = []
+    if info.get("rating"):
+        items.append((f"★ {info['rating']}", (255, 204, 0, 35), (255, 204, 0, 220), (255, 215, 0, 255)))
+    for g in info.get("genres", [])[:3]:
+        items.append((g, (0, 240, 255, 22), (0, 240, 255, 120), (220, 245, 255, 235)))
+    flow_h = flow_height(items, gfont, max_row, 16 * b, 6 * b, 10 * b, 10 * b)
+
+    if logo is not None:
+        main_h = logo.height
+    else:
+        tfont, lines = fit_lines(info["title"], 150 * b, 60 * b, W * 0.62, 2)
+        main_h = block_h(tfont, len(lines))
+
+    total = ph + 20 * b + main_h + 20 * b + bar_h + 18 * b + flow_h
+    y = H - m - total
+
+    # category + year
+    cat = info["type"].upper() if info.get("type") else "ANIME"
+    w1, _ = draw_pill_badge(layer, m, y, f"⚡ {cat}", sfont, (0, 240, 255, 30), (0, 240, 255, 210), (0, 240, 255, 255), 18 * b, 6 * b)
+    if info.get("year"):
+        draw_pill_badge(layer, m + w1 + 12 * b, y, info["year"], sfont, (255, 255, 255, 25), (255, 255, 255, 90), (255, 255, 255, 235), 16 * b, 6 * b)
+    y += ph + 20 * b
+
+    if logo is not None:
+        lx, ly = m, int(y)
+        a = logo.getchannel("A")
+        sh = Image.new("RGBA", (logo.width + 160, logo.height + 160), (0, 0, 0, 0))     # dark base shadow
+        sh.paste((0, 0, 0, 210), (80, 80 + int(8 * b)), a)
+        paste_rgba(layer, sh.filter(ImageFilter.GaussianBlur(int(14 * b))), lx - 80, ly - 80)
+        aura = Image.new("RGBA", (logo.width + 200, logo.height + 200), (0, 0, 0, 0))   # neon aura
+        aura.paste((0, 240, 255, 190), (100, 100), a)
+        aura = aura.filter(ImageFilter.GaussianBlur(int(16 * b)))
+        paste_rgba(layer, aura, lx - 100, ly - 100)
+        paste_rgba(layer, aura.filter(ImageFilter.GaussianBlur(int(4 * b))), lx - 100, ly - 100)
+        paste_rgba(layer, logo, lx, ly)
+        # HUD corner brackets
+        d = ImageDraw.Draw(layer)
+        cb, cw_, cs = (0, 240, 255, 230), max(3, int(4 * b)), int(40 * b)
+        g = int(24 * b)
+        corner_bracket(d, lx - g, ly - g, cs, cw_, 1, 1, cb)
+        corner_bracket(d, lx + logo.width + g, ly + logo.height + g, cs, cw_, -1, -1, cb)
+    else:
+        step, cap = line_step(tfont), cap_h(tfont)
+        for i, ln in enumerate(lines):
+            neon_text(layer, m, y + i * step + cap, ln, tfont, (0, 225, 255))
+    y += main_h + 20 * b
+
+    for i in range(bar_w):          # cyan -> violet bar
+        t = i / float(bar_w)
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + bar_h)], fill=(int(168 * t), int(240 - 155 * t), int(255 - 8 * t), 255))
+    y += bar_h + 18 * b
+
+    draw_flow(layer, m, y, items, gfont, max_row, 16 * b, 6 * b, 10 * b, 10 * b)
+
+
+@fonts("poppins-b", "poppins-md")
+def d_vision_glass(img, layer, info, b):
+    """3. 💎 Vision Glass: Modern Floating Frosted Glass Dock with Specular Shine"""
+    W, H = img.size
+    pad, m = int(45 * b), int(60 * b)
+    tfont, lines = fit_lines(info["title"], 84 * b, 44 * b, W * 0.50, 2)
+    sfont, gfont = load_font(28 * b), load_font(24 * b)
+
+    row_w = 0
+    if info.get("type"):
+        row_w += pill_size(info["type"].upper(), sfont, 14 * b, 4 * b)[0] + 10 * b
+    if info.get("year"):
+        row_w += pill_size(info["year"], sfont, 12 * b, 4 * b)[0] + 10 * b
+    if info.get("rating"):
+        row_w += pill_size(f"★ {info['rating']}", sfont, 14 * b, 4 * b)[0] + 24 * b
+
+    gitems = [(g, (255, 255, 255, 20), (255, 255, 255, 60), (240, 240, 245, 215)) for g in info.get("genres", [])[:3]]
+    gen_nat = sum(pill_size(t[0], gfont, 14 * b, 4 * b)[0] for t in gitems) + 10 * b * max(0, len(gitems) - 1)
+    cw = int(max([text_w(l, tfont) for l in lines] + [int(320 * b), row_w, min(gen_nat, W * 0.50)]))
+    pw = int(cw + pad * 2)
+    gen_h = flow_height(gitems, gfont, cw, 14 * b, 4 * b, 10 * b, 8 * b)       # genres wrap -> box-ku ulla thaan irukkum
+    ph = int(pad + 36 * b + 16 * b + block_h(tfont, len(lines)) + (16 * b + gen_h if gitems else 0) + pad)
+
+    x0, y0 = m, H - m - ph
+    glass_panel(img, layer, (x0, y0, x0 + pw, y0 + ph), 36 * b, 26 * b, white=55)
+
+    y = y0 + pad
+    cur_x = x0 + pad
+    if info.get("type"):
+        tw, _ = draw_pill_badge(layer, cur_x, y, info["type"].upper(), sfont, (255, 255, 255, 35), (255, 255, 255, 90), (255, 255, 255, 240), 14 * b, 4 * b)
+        cur_x += tw + 10 * b
+    if info.get("year"):
+        yw, _ = draw_pill_badge(layer, cur_x, y, info["year"], sfont, (255, 255, 255, 20), (255, 255, 255, 60), (255, 255, 255, 210), 12 * b, 4 * b)
+        cur_x += yw + 10 * b
+    if info.get("rating"):
+        rt = f"★ {info['rating']}"
+        draw_pill_badge(layer, x0 + pw - pad - pill_size(rt, sfont, 14 * b, 4 * b)[0], y, rt, sfont, (255, 204, 0, 40), (255, 204, 0, 200), (255, 215, 0, 255), 14 * b, 4 * b)
+
+    y += 36 * b + 16 * b
+    y += draw_lines(layer, lines, tfont, x0 + pad, y) + 16 * b
+    draw_flow(layer, x0 + pad, y, gitems, gfont, cw, 14 * b, 4 * b, 10 * b, 8 * b)
+
+
+@fonts("russo", "rajdhani-b", upper=True)
+def d_manga_panel(img, layer, info, b):
+    """17. 📖 Manga Panel: White comic frame + solid white title box with hard black shadow"""
+    W, H = img.size
+    d = ImageDraw.Draw(layer)
+    fi = int(22 * b)
+    d.rectangle((fi, fi, W - fi, H - fi), outline=(255, 255, 255, 255), width=max(4, int(10 * b)))
+
+    tfont, lines = fit_lines(info["title"], 100 * b, 48 * b, W * 0.58, 2)
+    sfont, mfont = load_font(26 * b), load_font(26 * b)
+    padx, pady = int(34 * b), int(24 * b)
+
+    def make(gs):
+        parts = [p for p in [info.get("year"), f"★ {info['rating']}" if info.get("rating") else None] + gs if p]
+        return "  /  ".join(parts)
+    meta = fit_meta(make, info.get("genres", [])[:2], mfont, W * 0.60)       # meta text box-ku ulla fit aagum
+
+    cw = max([text_w(l, tfont) for l in lines] + [text_w(meta, mfont), int(300 * b)])
+    bw = int(cw + padx * 2)
+    bh = int(pady * 2 + block_h(tfont, len(lines)) + 12 * b + text_h(mfont))
+    x0 = int(70 * b)
+    y0 = H - int(80 * b) - bh
+    off = int(12 * b)
+
+    d.rectangle((x0 + off, y0 + off, x0 + bw + off, y0 + bh + off), fill=(0, 0, 0, 255))   # hard shadow
+    d.rectangle((x0, y0, x0 + bw, y0 + bh), fill=(255, 255, 255, 255))
+    d.rectangle((x0, y0, x0 + bw, y0 + bh), outline=(0, 0, 0, 255), width=max(3, int(5 * b)))
+
+    tag = (info.get("type") or "NEW SERIES").upper()
+    tgw = int(text_w(tag, sfont) + 30 * b)
+    tgh = int(text_h(sfont) + 14 * b)
+    d.rectangle((x0, y0 - tgh, x0 + tgw, y0), fill=(220, 20, 30, 255))
+    draw_rich(layer, x0 + 15 * b, y0 - tgh + (tgh - cap_h(sfont)) / 2, tag, sfont, (255, 255, 255, 255), shadow=False)
+
+    y = y0 + pady
+    step = line_step(tfont)
+    for i, ln in enumerate(lines):
+        draw_rich(layer, x0 + padx, y + i * step, ln, tfont, (12, 12, 14, 255), shadow=False)
+    y += block_h(tfont, len(lines)) + 12 * b
+    draw_rich(layer, x0 + padx, y, meta, mfont, (70, 70, 78, 255), shadow=False)
+
+
+@fonts("anton", "rajdhani-b", upper=True)
+def d_blade_slash(img, layer, info, b):
+    """8. ⚔️ Blade Slash: small soft black shadow behind text + glowing crimson tapered blade slash"""
+    W, H = img.size
+    m = int(72 * b)
+
+    tfont, lines = fit_lines(info["title"], 150 * b, 62 * b, W * 0.42, 3)
+    sfont, mfont = load_font(27 * b), load_font(31 * b)
+    th = block_h(tfont, len(lines))
+    ph = pill_size("X", sfont, 18 * b, 6 * b)[1]
+    bar_h, bar_w, skew = max(4, int(8 * b)), int(190 * b), int(16 * b)
+
+    def make(gs):
+        parts = []
+        if info.get("rating"):
+            parts.append(f"★ {info['rating']}")
+        if gs:
+            parts.append("  •  ".join(gs))
+        return "   |   ".join(parts)
+    meta = fit_meta(make, info.get("genres", [])[:3], mfont, W * 0.42)
+
+    total = ph + 20 * b + th + 20 * b + bar_h + 18 * b + text_h(mfont)
+    y = H - m - total
+    pills_w = (pill_size(info["type"].upper(), sfont, 18 * b, 6 * b)[0] + 12 * b if info.get("type") else 0) + \
+              (pill_size(info["year"], sfont, 16 * b, 6 * b)[0] if info.get("year") else 0)
+    block_w = int(max([text_w(l, tfont) for l in lines] + [text_w(meta, mfont), bar_w, pills_w]))
+
+    # --- small soft black shadow just behind the text (half-image panel illa) ---
+    ps = int(48 * b)
+    sh = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle((m - ps, y - ps, m + block_w + ps, H - m + ps), radius=int(44 * b), fill=(0, 0, 0, 190))
+    img.alpha_composite(sh.filter(ImageFilter.GaussianBlur(int(52 * b))))
+    add_smooth_gradient_bottom(img, H * 0.25, 90)
+
+    # --- glowing tapered blade slash beside the text ---
+    bx = m + block_w + int(150 * b)
+    bot_y, tip_y = H + int(10 * b), int(H * 0.50)
+    tip_x = bx + int(W * 0.075)
+    bw = int(22 * b)
+    poly = [(bx - bw, bot_y), (tip_x, tip_y), (bx + int(bw * 0.3), bot_y)]
+    blade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(blade).polygon(poly, fill=(255, 30, 70, 235))
+    glow = blade.filter(ImageFilter.GaussianBlur(int(16 * b)))
+    img.alpha_composite(glow)
+    img.alpha_composite(glow)
+    img.alpha_composite(blade)
+    core = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(core).line([(bx - int(bw * 0.15), bot_y), (tip_x, tip_y)], fill=(255, 240, 244, 255), width=max(2, int(4 * b)))
+    img.alpha_composite(core)
+    thin = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(thin).line([(bx + int(60 * b), bot_y), (tip_x + int(34 * b), int(H * 0.68))], fill=(255, 30, 70, 190), width=max(2, int(4 * b)))
+    img.alpha_composite(thin.filter(ImageFilter.GaussianBlur(int(5 * b))))
+    img.alpha_composite(thin)
+
+    # --- text block ---
+    cur = m
+    if info.get("type"):
+        w1, _ = draw_pill_badge(layer, cur, y, info["type"].upper(), sfont, (225, 20, 55, 255), None, (255, 255, 255, 255), 18 * b, 6 * b)
+        cur += w1 + 12 * b
+    if info.get("year"):
+        draw_pill_badge(layer, cur, y, info["year"], sfont, (0, 0, 0, 110), (255, 255, 255, 140), (255, 255, 255, 240), 16 * b, 6 * b)
+    y += ph + 20 * b
+    y += draw_lines(layer, lines, tfont, m, y) + 20 * b
+    ImageDraw.Draw(layer).polygon(
+        [(m + skew, y), (m + bar_w + skew, y), (m + bar_w, y + bar_h), (m, y + bar_h)], fill=(255, 35, 70, 255))
+    y += bar_h + 18 * b
+    draw_rich(layer, m, y, meta, mfont, (255, 232, 238, 240))
+
+
+@fonts("dela", "rajdhani-b", upper=True)
+def d_anime_opening(img, layer, info, b):
+    """6. ⛩️ Anime Opening: TV anime OP title card - slanted outlined logo, speed lines, red tag, score burst"""
+    W, H = img.size
+    m = int(72 * b)
+    add_smooth_gradient_bottom(img, H * 0.56, 190)
+
+    # speed (focus) lines behind the title
+    rnd = random.Random(sum(map(ord, info["title"])))
+    fx, fy = m + W * 0.24, H - m - H * 0.17
+    sl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sl)
+    for _ in range(130):
+        a = rnd.uniform(0, 2 * math.pi)
+        r0 = rnd.uniform(0.20, 0.34) * H
+        r1 = r0 + rnd.uniform(0.25, 0.75) * H
+        sd.line([(fx + math.cos(a) * r0, fy + math.sin(a) * r0), (fx + math.cos(a) * r1, fy + math.sin(a) * r1)],
+                fill=(255, 255, 255, rnd.randint(30, 85)), width=max(1, int(rnd.uniform(1, 4.5) * b)))
+    fade = Image.linear_gradient("L").transpose(Image.ROTATE_270).resize((W, H)).point(lambda p: int(p * 0.9))
+    sl.putalpha(ImageChops.multiply(sl.split()[3], fade))
+    img.alpha_composite(sl)
+
+    # --- slanted title logo: white fill + dark outline + red offset shadow ---
+    tfont, lines = fit_lines(info["title"], 142 * b, 54 * b, W * 0.50, 3)
+    sfont, mfont = load_font(27 * b), load_font(28 * b)
+    cap, step = cap_h(tfont), line_step(tfont)
+    so, off = max(6, int(13 * b)), int(10 * b)
+    pad = so + off + 6
+    tw = int(max(_PROBE.textlength(l, font=tfont) for l in lines))
+    th = block_h(tfont, len(lines))
+    gw, gh = tw + pad * 2, th + pad * 2
+    tile = Image.new("RGBA", (gw, gh), (0, 0, 0, 0))
+    td = ImageDraw.Draw(tile)
+    for i, ln in enumerate(lines):
+        td.text((pad + off, pad + cap + i * step + off), ln, font=tfont, fill=(255, 35, 60, 255), anchor="ls",
+                stroke_width=so, stroke_fill=(255, 35, 60, 255))
+    for i, ln in enumerate(lines):
+        td.text((pad, pad + cap + i * step), ln, font=tfont, fill=(255, 255, 255, 255), anchor="ls",
+                stroke_width=so, stroke_fill=(14, 10, 22, 255))
+    k = 0.18
+    nw = gw + int(k * gh)
+    tile = tile.transform((nw, gh), Image.AFFINE, (1, k, -k * gh, 0, 1, 0), resample=Image.BICUBIC)
+
+    # --- meta bar text (fits) ---
+    def make(gs):
+        parts = []
+        if info.get("rating"):
+            parts.append(f"★ {info['rating']}")
+        if gs:
+            parts.append("  •  ".join(gs))
+        return "   |   ".join(parts)
+    meta = fit_meta(make, info.get("genres", [])[:3], mfont, W * 0.46)
+
+    ph = pill_size("X", sfont, 20 * b, 6 * b)[1]
+    bar_h = int(mfont.size * 0.95 + 16 * b)
+    total = ph + 12 * b + gh + 4 * b + bar_h
+    y = H - m - total
+
+    # tag row (slanted labels)
+    sk = int(12 * b)
+    tx = m
+    if info.get("type"):
+        tt = info["type"].upper()
+        wt = int(text_w(tt, sfont) + 34 * b)
+        para(layer, tx, y, wt, ph, sk, (230, 25, 50, 255))
+        draw_rich(layer, tx + sk / 2 + 17 * b, y + (ph - cap_h(sfont)) / 2, tt, sfont, (255, 255, 255, 255), shadow=False)
+        tx += wt + sk + 12 * b
+    if info.get("year"):
+        wy = int(text_w(info["year"], sfont) + 30 * b)
+        para(layer, tx, y, wy, ph, sk, (10, 8, 16, 230), (255, 255, 255, 235), 2)
+        draw_rich(layer, tx + sk / 2 + 15 * b, y + (ph - cap_h(sfont)) / 2, info["year"], sfont, (255, 255, 255, 255), shadow=False)
+    y += ph + 12 * b
+
+    paste_rgba(layer, tile, m - pad, y)
+
+    # score burst at the title's top-right
+    if info.get("rating"):
+        R = int(78 * b)
+        bcx = min(m + tw + k * gh * 0.50 + R + 14 * b, W * 0.72)
+        bcy = y + pad + cap * 0.30
+        burst(layer, bcx, bcy, R, (255, 226, 0, 255), (14, 10, 22, 255), 22, 0.78, max(4, int(6 * b)))
+        nf = load_font(44 * b)
+        rt = str(info["rating"])
+        nw_ = _PROBE.textlength(rt, font=nf)
+        ImageDraw.Draw(layer).text((bcx - nw_ / 2, bcy + cap_h(nf) / 2), rt, font=nf, fill=(14, 10, 22, 255), anchor="ls")
+    y += gh + 4 * b
+
+    # meta bar
+    bw_ = int(text_w(meta, mfont) + 40 * b)
+    para(layer, m, y, bw_, bar_h, sk, (8, 6, 14, 225), (255, 255, 255, 220), 2)
+    draw_rich(layer, m + sk / 2 + 20 * b, y + (bar_h - cap_h(mfont)) / 2, meta, mfont, (255, 255, 255, 245), shadow=False)
+
+
+@fonts("montserrat-sb", "montserrat-md")
+def d_golden_hour(img, layer, info, b):
+    """9. 🌅 Golden Hour: Shinkai-style warm sunset grade, sun flare, floating light particles, glowing title"""
+    W, H = img.size
+    m = int(80 * b)
+    rnd = random.Random(sum(map(ord, info["title"])))
+
+    img.alpha_composite(Image.new("RGBA", img.size, (255, 150, 90, 40)))           # warm grade
+
+    sx, sy = int(W * 0.84), int(H * 0.15)                                         # sun glow
+    R = int(H * 0.42)
+    rg = Image.radial_gradient("L").resize((2 * R, 2 * R), Image.BICUBIC)
+    sun = Image.new("RGBA", (2 * R, 2 * R), (255, 226, 170, 255))
+    sun.putalpha(rg.point(lambda p: int(((255 - p) / 255.0) ** 2.2 * 235)))
+    paste_rgba(img, sun, sx - R, sy - R)
+    st = Image.new("RGBA", (W, H), (0, 0, 0, 0))                                  # anamorphic streak
+    ImageDraw.Draw(st).ellipse((sx - W * 0.34, sy - int(4 * b), sx + W * 0.34, sy + int(4 * b)), fill=(255, 236, 200, 85))
+    img.alpha_composite(st.filter(ImageFilter.GaussianBlur(int(6 * b))))
+
+    fl = Image.new("RGBA", (W, H), (0, 0, 0, 0))                                  # lens flare discs
+    fd = ImageDraw.Draw(fl)
+    for t, rad, col in [(0.38, 34, (255, 196, 140, 70)), (0.62, 22, (150, 210, 255, 60)), (0.80, 48, (255, 140, 190, 46)),
+                        (1.02, 28, (255, 220, 160, 64)), (1.30, 70, (180, 160, 255, 34))]:
+        px, py = sx + (W / 2 - sx) * t, sy + (H / 2 - sy) * t
+        r = rad * b
+        fd.ellipse((px - r, py - r, px + r, py + r), fill=col)
+        fd.ellipse((px - r, py - r, px + r, py + r), outline=col[:3] + (min(255, col[3] + 60),), width=max(1, int(2 * b)))
+    img.alpha_composite(fl.filter(ImageFilter.GaussianBlur(max(1, int(1.5 * b)))))
+
+    bk = Image.new("RGBA", (W, H), (0, 0, 0, 0))                                  # floating light particles
+    bd = ImageDraw.Draw(bk)
+    for _ in range(46):
+        x, yy, r = rnd.randint(0, W), rnd.randint(0, int(H * 0.78)), rnd.uniform(3, 15) * b
+        col = rnd.choice([(255, 236, 200), (255, 210, 160), (255, 255, 255), (255, 190, 200)])
+        bd.ellipse((x - r, yy - r, x + r, yy + r), fill=col + (rnd.randint(45, 140),))
+    img.alpha_composite(bk.filter(ImageFilter.GaussianBlur(max(1, int(1.3 * b)))))
+    add_smooth_gradient_bottom(img, H * 0.55, 205, color=(34, 10, 48))
+
+    # --- text ---
+    tfont, lines = fit_lines(info["title"], 112 * b, 54 * b, W * 0.62, 2)
+    lfont, mfont = load_font(24 * b, family="montserrat-md"), load_font(29 * b, family="montserrat-md")
+    step, cap = line_step(tfont), cap_h(tfont)
+    th = block_h(tfont, len(lines))
+    ph = pill_size("X", mfont, 18 * b, 6 * b)[1]
+    label = "   ·   ".join([p for p in [(info.get("type") or "").upper(), info.get("year") or ""] if p])
+    line_h = max(2, int(3 * b))
+    total = cap_h(lfont) + 26 * b + th + 20 * b + line_h + 22 * b + ph
+    y = H - m - total
+
+    draw_icon(layer, "sparkle", m + 11 * b, y + cap_h(lfont) / 2, 22 * b, (255, 224, 170, 255))
+    if label:
+        draw_spaced(layer, m + 34 * b, y, label, lfont, 3.4 * b, (255, 224, 180, 255))
+    y += cap_h(lfont) + 26 * b
+
+    for i, ln in enumerate(lines):
+        glow_text(layer, m, y + i * step + cap, ln, tfont, (255, 255, 255, 255), (255, 170, 120, 255), int(14 * b))
+    y += th + 20 * b
+
+    lw_ = int(320 * b)
+    for i in range(lw_):                                                          # fading peach line
+        ImageDraw.Draw(layer).line([(m + i, y), (m + i, y + line_h)], fill=(255, 205, 160, int(230 * (1 - i / float(lw_)))))
+    y += line_h + 22 * b
+
+    x = m
+    if info.get("rating"):
+        rt = f"★ {info['rating']}"
+        pw_, _ = draw_pill_badge(layer, x, y, rt, mfont, (255, 255, 255, 40), (255, 255, 255, 140), (255, 255, 255, 255), 18 * b, 6 * b)
+        x += pw_ + 22 * b
+
+    def make(gs):
+        return "  •  ".join(gs)
+    gtxt = fit_meta(make, info.get("genres", [])[:3], mfont, W * 0.62 - (x - m))
+    if gtxt:
+        draw_rich(layer, x, y + (ph - cap_h(mfont)) / 2, gtxt, mfont, (255, 244, 232, 245))
+
+
+@fonts("dela", "rajdhani-b", upper=True)
+def d_rising_sun(img, layer, info, b):
+    """15. 🔴 Rising Sun: big red sun disc, japanese brush-stroke underline, red hanko score seal, vertical katakana"""
+    W, H = img.size
+    m = int(72 * b)
+    add_smooth_gradient_bottom(img, H * 0.55, 195)
+
+    # --- red sun disc (soft radial fade + glow + ring) ---
+    R = int(H * 0.31)
+    scx, scy = int(m + W * 0.15), int(H * 0.50)
+    pad_s = int(90 * b)
+    n = 2 * R + pad_s * 2
+    glow = Image.new("RGBA", (n, n), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((pad_s - 8 * b, pad_s - 8 * b, pad_s + 2 * R + 8 * b, pad_s + 2 * R + 8 * b), fill=(255, 40, 60, 105))
+    paste_rgba(layer, glow.filter(ImageFilter.GaussianBlur(int(34 * b))), scx - n // 2, scy - n // 2)
+    S = 2
+    cm = Image.new("L", (2 * R * S, 2 * R * S), 0)
+    ImageDraw.Draw(cm).ellipse((0, 0, 2 * R * S - 1, 2 * R * S - 1), fill=255)
+    cm = cm.resize((2 * R, 2 * R), Image.LANCZOS)
+    rg = Image.radial_gradient("L").resize((2 * R, 2 * R), Image.BICUBIC).point(lambda p: int(138 - min(p, 255) * 0.28))
+    disc = Image.new("RGBA", (2 * R, 2 * R), (228, 26, 46, 255))
+    disc.putalpha(ImageChops.multiply(rg, cm))
+    paste_rgba(layer, disc, scx - R, scy - R)
+    ring = Image.new("RGBA", (n * S, n * S), (0, 0, 0, 0))
+    rr = R + int(20 * b)
+    ImageDraw.Draw(ring).ellipse(((pad_s + R - rr) * S, (pad_s + R - rr) * S, (pad_s + R + rr) * S, (pad_s + R + rr) * S),
+                                 outline=(255, 255, 255, 125), width=max(2, int(3 * b)) * S)
+    paste_rgba(layer, ring.resize((n, n), Image.LANCZOS), scx - n // 2, scy - n // 2)
+
+    # --- hanko score seal + vertical katakana (top-left) ---
+    ky = m
+    cx_col = m + int(56 * b)
+    if info.get("rating"):
+        sz = int(112 * b)
+        seal = Image.new("RGBA", (sz * 3, sz * 3), (0, 0, 0, 0))
+        sdr = ImageDraw.Draw(seal)
+        sdr.rounded_rectangle((0, 0, sz * 3 - 1, sz * 3 - 1), radius=int(16 * b) * 3, fill=(220, 20, 38, 255))
+        ins = int(8 * b) * 3
+        sdr.rounded_rectangle((ins, ins, sz * 3 - 1 - ins, sz * 3 - 1 - ins), radius=int(10 * b) * 3, outline=(255, 255, 255, 235), width=max(2, int(3 * b)) * 3)
+        paste_rgba(layer, seal.resize((sz, sz), Image.LANCZOS), m, ky)
+        nf, lf = load_font(46 * b), load_font(17 * b)
+        rt = str(info["rating"])
+        nw_ = _PROBE.textlength(rt, font=nf)
+        d_ = ImageDraw.Draw(layer)
+        d_.text((m + sz / 2 - nw_ / 2, ky + sz * 0.70), rt, font=nf, fill=(255, 255, 255, 255), anchor="ls")
+        lw2 = _PROBE.textlength("SCORE", font=lf)
+        d_.text((m + sz / 2 - lw2 / 2, ky + sz * 0.27 + cap_h(lf)), "SCORE", font=lf, fill=(255, 235, 235, 255), anchor="ls")
+        ky += sz + int(26 * b)
+        cx_col = m + sz // 2
+    kf = load_font(60 * b, family="dela")
+    for ch in "アニメ":
+        text_shadow(layer, (cx_col, ky + 34 * b), ch, kf, (255, 255, 255, 240), anchor="mm")
+        ky += int(76 * b)
+
+    # --- bottom-left text ---
+    tfont, lines = fit_lines(info["title"], 132 * b, 52 * b, W * 0.60, 3)
+    sfont, mfont = load_font(27 * b), load_font(29 * b)
+    step, cap = line_step(tfont), cap_h(tfont)
+    th = block_h(tfont, len(lines))
+    ph = pill_size("X", sfont, 18 * b, 6 * b)[1]
+    brush_h = int(20 * b)
+
+    def make(gs):
+        return "  •  ".join(gs)
+    gtxt = fit_meta(make, info.get("genres", [])[:3], mfont, W * 0.58)
+    total = ph + 18 * b + th + 14 * b + brush_h + 16 * b + (text_h(mfont) if gtxt else 0)
+    y = H - m - total
+    x0 = m + int(10 * b)
+
+    cur = x0
+    if info.get("type"):
+        w1, _ = draw_pill_badge(layer, cur, y, info["type"].upper(), sfont, (255, 255, 255, 245), None, (14, 10, 22, 255), 18 * b, 6 * b)
+        cur += w1 + 12 * b
+    if info.get("year"):
+        draw_pill_badge(layer, cur, y, info["year"], sfont, (0, 0, 0, 90), (255, 255, 255, 220), (255, 255, 255, 255), 16 * b, 6 * b)
+    y += ph + 18 * b
+    y += draw_lines(layer, lines, tfont, x0, y) + 14 * b
+
+    bw_ = int(max(max(text_w(l, tfont) for l in lines) * 0.92, 280 * b))
+    brush_stroke(layer, x0, y, bw_, brush_h, (230, 25, 45, 255), seed=sum(map(ord, info["title"])))
+    brush_stroke(layer, x0 + int(bw_ * 0.08), y + int(brush_h * 0.30), int(bw_ * 0.45), max(2, int(brush_h * 0.22)), (255, 255, 255, 150), seed=7)
+    y += brush_h + 16 * b
+    if gtxt:
+        draw_rich(layer, x0, y, gtxt, mfont, (255, 240, 240, 240))
+
+
+
 # ======================= DESIGNS REGISTRY =======================
 # Slot numbers (1-18) maaralai - so users-oda saved style selection break aagaadhu.
-# 8, 9, 10, 12, 14, 15, 16, 18 -> pudhu "super" designs.
+# 6, 8, 9, 10, 12, 14, 15, 16, 18 -> pudhu "super" designs.
 
 DESIGNS = {
     1: ("🌟 Cyber Glow", d_cyber_neon),
@@ -1566,16 +1820,16 @@ DESIGNS = {
     3: ("💎 Vision Glass", d_vision_glass),
     4: ("🎌 Tokyo Action", d_tokyo_action),
     5: ("🌌 Aurora Horizon", d_aurora_horizon),
-    6: ("🏆 Royale Gold", d_royale_gold),
+    6: ("⛩️ Anime Opening", d_anime_opening),
     7: ("🔥 Cyber Logo", d_cyber_logo),
     8: ("⚔️ Blade Slash", d_blade_slash),
-    9: ("🌆 Synthwave Sunset", d_synthwave_sunset),
+    9: ("🌅 Golden Hour", d_golden_hour),
     10: ("🫧 Liquid Glass", d_liquid_glass),
     11: ("⚡ Comic Pop", d_comic_pop),
     12: ("🌃 Neon Tokyo", d_neon_tokyo),
     13: ("🌸 Sakura Dream", d_sakura_dream),
     14: ("🏅 Mega Score", d_mega_score),
-    15: ("🎥 Letterbox Cinema", d_letterbox),
+    15: ("🔴 Rising Sun", d_rising_sun),
     16: ("🍭 Sticker Pop", d_sticker_pop),
     17: ("📖 Manga Panel", d_manga_panel),
     18: ("🤍 Clean Minimal", d_clean_minimal),
