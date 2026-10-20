@@ -10,7 +10,24 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 async def progress_for_pyrogram(current, total, ud_type, message, start, file_name=None):
     now = time.time()
     diff = now - start
-    if round(diff % 5.00) == 0 or current == total:        
+    cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
+
+    # Total size theriyala (content-length illa) na downloaded size mattum kaattum
+    if not total:
+        if diff > 0 and round(diff % 5.00) == 0:
+            try:
+                await message.edit(
+                    text=f"{ud_type}\n\n**Downloaded:** {humanbytes(current)}\n{file_name or ''}",
+                    reply_markup=cancel_markup
+                )
+            except:
+                pass
+        return
+
+    if diff <= 0 or current <= 0:
+        return
+
+    if round(diff % 5.00) == 0 or current == total:
         percentage = current * 100 / total
         speed = current / diff
         elapsed_time = round(diff) * 1000
@@ -23,7 +40,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start, file_na
         progress = "{0}{1}".format(
             ''.join(["▣" for i in range(math.floor(percentage / 5))]),
             ''.join(["▢" for i in range(20 - math.floor(percentage / 5))])
-        )            
+        )
         tmp = progress + script.RKN_PROGRESS.format(
             round(percentage, 2),
             humanbytes(current),
@@ -35,7 +52,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start, file_na
         try:
             await message.edit(
                 text=f"{ud_type}\n\n{tmp}",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="close")]])
+                reply_markup=cancel_markup
             )
         except:
             pass
@@ -154,3 +171,52 @@ async def metadata_text(metadata_text):
         if "change-subtitle-title" in f:
             subtitle_title = f[len("change-subtitle-title"):].strip()
     return author, title, video_title, audio_title, subtitle_title
+
+
+# =====================================================================
+#  CANCEL SUPPORT  (Cancel button click -> running task nijamave stop)
+# =====================================================================
+# key = (chat_id, progress_message_id)  ->  running asyncio task
+ACTIVE_TASKS = {}
+
+
+def task_key(msg):
+    return (msg.chat.id, msg.id)
+
+
+async def run_cancellable(progress_msg, coro):
+    """
+    coro-va oru task-a run pannum. Cancel button click pannina task.cancel() aagum.
+    Return: (result, cancelled_flag)
+    """
+    key = task_key(progress_msg)
+    task = asyncio.ensure_future(coro)
+    ACTIVE_TASKS[key] = task
+    try:
+        return await task, False
+    except asyncio.CancelledError:
+        if task.cancelled():
+            return None, True      # user Cancel click pannitaaru
+        raise                      # bot shutdown maathiri veli cancel
+    finally:
+        ACTIVE_TASKS.pop(key, None)
+
+
+async def safe_delete(*msgs):
+    """Oru message delete fail aanaalum adutha message delete aagum."""
+    for m in msgs:
+        if m:
+            try:
+                await m.delete()
+            except Exception:
+                pass
+
+
+def cleanup_files(*paths):
+    """Temp / partial files ellathaiyum safe-a remove pannum."""
+    for p in paths:
+        try:
+            if p and os.path.lexists(p):
+                os.remove(p)
+        except Exception:
+            pass

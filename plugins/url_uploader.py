@@ -2,7 +2,7 @@ import os, re, time, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from helper.database import goku_stark
-from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram
+from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
 
@@ -94,7 +94,17 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL
         )
-        await proc.communicate()
+        try:
+            await proc.communicate()
+        except asyncio.CancelledError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            if os.path.exists(meta_path):
+                try: os.remove(meta_path)
+                except Exception: pass
+            raise
         if proc.returncode == 0 and os.path.exists(meta_path) and os.path.getsize(meta_path) > 0:
             os.remove(file_path)
             os.rename(meta_path, file_path)
@@ -108,43 +118,38 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
     return file_path
 
 
-@Client.on_message(filters.private & filters.regex(r"^https?://"))
-async def url_uploader_handler(client, message):
-    user_id = message.from_user.id
-    url = message.text.strip()
-    
-    user_data = await goku_stark.get_user_data(user_id)
+
+async def _process_url(client, message, msg, url, user_data, files):
+    """
+    Full URL -> download -> rename -> metadata -> upload flow.
+    Final-a user-ku kaattura status text return pannum.
+    Cancel aana CancelledError veliya pogum (run_cancellable handle pannum).
+    """
     upload_type = user_data.get('upload_type', 'video')
-    
     if not upload_type:
-        return await message.reply_text("⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video.")
-        
+        return "⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video."
     actual_upload_type = "document" if upload_type == "doc" else "video"
-        
-    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`")
-    
+
     async with file_queue_lock:
-        await rkn_processing.edit("`🔗 URL Detected... Starting Download...`")
-    
+        await msg.edit("`🔗 URL Detected... Starting Download...`")
+
     original_filename = "Downloaded_video.mkv"
     local_path = ""
-    
-    # 1 & 2. Extract Name from Header & Download the file
+
+    # ---------- 1 & 2. Download ----------
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url) as response:
+        # Default timeout (5 min) perusa file download-a kolludhu -> total=None
+        timeout = aiohttp.ClientTimeout(total=None, sock_connect=30, sock_read=120)
+        async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
+            async with session.get(url, allow_redirects=True) as response:
                 if response.status != 200:
-                        await rkn_processing.edit("❌ Failed to download from the provided URL. Ensure it is a direct link.")
-                        await asyncio.sleep(5)
-                        try:
-                            await message.delete()
-                            await rkn_processing.delete()
-                        except:
-                            pass
-                        return
-                
-                # File name extract panra puthiya logic
+                    return "❌ Failed to download from the provided URL. Ensure it is a direct link."
+
+                ctype = (response.headers.get('Content-Type') or "").lower()
+                if ctype.startswith("text/html"):
+                    return "❌ This is a web page, not a direct file link."
+
                 cd = response.headers.get('Content-Disposition')
                 extracted_name = None
                 if cd:
@@ -152,54 +157,51 @@ async def url_uploader_handler(client, message):
                         extracted_name = cd.split('filename="')[1].split('"')[0]
                     elif 'filename=' in cd:
                         extracted_name = cd.split('filename=')[1].split(';')[0].strip()
-                
+
                 if not extracted_name:
                     parsed_url = urlparse(str(response.url))
                     extracted_name = unquote(os.path.basename(parsed_url.path))
-                
+
+                if extracted_name:
+                    extracted_name = os.path.basename(unquote(extracted_name))   # path traversal safe
                 if extracted_name and "." in extracted_name:
                     original_filename = extracted_name
-                    
+
                 os.makedirs("Renames", exist_ok=True)
                 local_path = f"Renames/{original_filename}"
-                
-                total_size = int(response.headers.get('content-length', 0))
-                
+                files.append(local_path)
+
+                total_size = int(response.headers.get('content-length', 0) or 0)
+
                 with open(local_path, 'wb') as f:
-                            downloaded = 0
-                            start_time = time.time()
+                    downloaded = 0
+                    start_time = time.time()
+                    last_update = time.time()
+                    async for chunk in response.content.iter_chunked(1024 * 1024):
+                        f.write(chunk)
+                        downloaded += len(chunk)
+
+                        if time.time() - last_update > 3:
+                            try:
+                                await progress_for_pyrogram(
+                                    downloaded, total_size,
+                                    "**  Download Started...**",
+                                    msg, start_time, original_filename
+                                )
+                            except Exception:
+                                pass
                             last_update = time.time()
-                            async for chunk in response.content.iter_chunked(1024 * 1024):
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                
-                                # Update progress every 3 seconds
-                                if time.time() - last_update > 3:
-                                    try:
-                                        await progress_for_pyrogram(
-                                            downloaded,
-                                            total_size,
-                                            "**  Download Started...**",
-                                            rkn_processing,
-                                            start_time,
-                                            original_filename
-                                        )
-                                        last_update = time.time()
-                                    except:
-                                         pass
+    except asyncio.TimeoutError:
+        return "❌ Download timed out. Server response kodukkala."
     except Exception as e:
-        await rkn_processing.edit(f"❌ Error during download: {e}")
-        await asyncio.sleep(5)
-        try:
-            await message.delete()
-            await rkn_processing.delete()
-        except:
-            pass
-        return
-        
-    await rkn_processing.edit("`📝 Applying Auto-Rename Format...`")
-    
-    # 3. Apply Auto-Rename logic
+        return f"❌ Error during download: {e}"
+
+    if not os.path.exists(local_path) or os.path.getsize(local_path) == 0:
+        return "❌ Downloaded file is empty. Link-a check pannunga."
+
+    await msg.edit("`📝 Applying Auto-Rename Format...`")
+
+    # ---------- 3. Auto-Rename ----------
     parse_name = normalize_season_episode(original_filename)
     info = renamer.extract_all_info(parse_name)
     format_template = user_data.get('format_template', "{filename}")
@@ -207,41 +209,40 @@ async def url_uploader_handler(client, message):
         format_template = "{filename}"
     prefix = user_data.get('prefix', None)
     suffix = user_data.get('suffix', None)
-    
+
     ext_str = (info.get('extension') or original_filename.rsplit('.', 1)[-1]).lstrip('.').strip()
     if not ext_str:
         ext_str = "mkv"
     info['extension'] = ext_str
-    
-    # --- CAPTION: autorename format padi (maarala) ---
+
     full_caption_name = renamer.apply_format_template(info, format_template)
     if not full_caption_name.endswith(f".{ext_str}"):
         full_caption_name += f".{ext_str}"
-        
+
     cap_base = full_caption_name.rsplit('.', 1)[0]
-    if prefix: 
+    if prefix:
         cap_base = f"{prefix} {cap_base}"
-    if suffix: 
+    if suffix:
         cap_base = f"{cap_base} {suffix}"
-    
+
     final_caption_name = f"{cap_base}.{ext_str}".strip()
 
-    # --- FILENAME: file renamer maathiri (title + SxxExx + quality, 60 limit, underscore illa) ---
     new_filename = build_clean_filename(info, prefix, suffix, ext_str)
     new_local_path = f"Renames/{new_filename}"
     print(f"[URL-RENAME-DEBUG] raw={original_filename!r} -> new={new_filename!r}", flush=True)
-    
+
+    files.append(new_local_path)
     os.rename(local_path, new_local_path)
 
-    # --- METADATA: file renamer maathiri (script.py la METADATA_TITLE) ---
+    # ---------- Metadata ----------
     try:
-        await rkn_processing.edit("`🏷️ Adding Metadata...`")
+        await msg.edit("`🏷️ Adding Metadata...`")
     except Exception:
         pass
     audio_lang = user_data.get('audio_lang', None)
     await add_metadata(new_local_path, audio_lang)
-    
-    # 4. Prepare Thumbnail and Caption
+
+    # ---------- 4. Thumbnail & Caption ----------
     c_caption = user_data.get('caption', None)
     if c_caption:
         caption = c_caption.format(filename=final_caption_name, filesize=humanbytes(os.path.getsize(new_local_path)), duration="00:00:00")
@@ -252,44 +253,63 @@ async def url_uploader_handler(client, message):
     ph_path = None
     if c_thumb:
         ph_path = await client.download_media(c_thumb)
-        
-    await rkn_processing.edit("`📤 Starting Upload...`")
-    
+        if ph_path:
+            files.append(ph_path)
+
+    await msg.edit("`📤 Starting Upload...`")
+
+    user_id = message.from_user.id
     dump_id = await goku_stark.get_dump(user_id)
     dump_status = await goku_stark.get_dump_status(user_id)
     target_chat = int(dump_id) if (dump_id and dump_status) else message.chat.id
 
-    # 5. Upload the file to target chat directly
+    # ---------- 5. Upload ----------
     filw, error = await upload_files(
-        client, target_chat, actual_upload_type, new_local_path, 
-        ph_path, caption, 0, rkn_processing
+        client, target_chat, actual_upload_type, new_local_path,
+        ph_path, caption, 0, msg
     )
-    
+
     if error:
+        return f"❌ Upload Error: {error}"
+
+    if dump_id and dump_status and filw:
         try:
-            await rkn_processing.edit(f"  Upload Error: {error}")
-        except:
-            pass
-    else:
-        if dump_id and dump_status and filw:
-            try:
-                await client.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
-            except Exception:
-                pass
-                
-        # Delete user URL message
-        try:
-            await message.delete()
+            await client.send_sticker(chat_id=int(dump_id), sticker=DUMP_STICKER_ID)
         except Exception:
             pass
-            
-        # Success message with 5 seconds auto delete
+
+    return script.DUMP_SENT_TXT if (dump_id and dump_status) else script.UPLOAD_SUCCESS_TXT
+
+
+@Client.on_message(filters.private & filters.regex(r"^https?://"))
+async def url_uploader_handler(client, message):
+    user_id = message.from_user.id
+    url = message.text.strip()
+
+    user_data = await goku_stark.get_user_data(user_id)
+
+    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`")
+
+    files = []        # temp / partial files (cleanup-ku)
+    status = None     # user-ku kaattura final message
+
+    try:
+        status, cancelled = await run_cancellable(
+            rkn_processing,
+            _process_url(client, message, rkn_processing, url, user_data, files)
+        )
+        if cancelled:
+            status = "❌ **Process Cancelled.**"
+    except Exception as e:
+        status = f"❌ Error: {e}"
+    finally:
+        cleanup_files(*files)          # success / error / cancel - ellathulayum temp files delete
+        await safe_delete(message)     # user anuppina URL message - ELLA case-layum delete
+
+    if status:
         try:
-            if dump_id and dump_status:
-                await rkn_processing.edit(script.DUMP_SENT_TXT)
-            else:
-                await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT)
+            await rkn_processing.edit(status)
             await asyncio.sleep(5)
-            await rkn_processing.delete()
         except Exception:
             pass
+    await safe_delete(rkn_processing)

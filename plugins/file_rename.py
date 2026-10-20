@@ -11,7 +11,7 @@ from hachoir.parser import createParser
 from PIL import Image
 
 # bots imports
-from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, file_queue_lock
+from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, file_queue_lock, run_cancellable, safe_delete, cleanup_files
 from helper.database import goku_stark
 from config import Config
 from script import script
@@ -176,7 +176,7 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
 
 renamer = EnhancedAutoRenamer()
 
-async def upload_doc(bot, update):
+async def _upload_doc_impl(bot, update, files):
     rkn_processing = await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
     
     async with file_queue_lock:
@@ -324,6 +324,7 @@ async def upload_doc(bot, update):
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
     file_path = f"Renames/{new_filename}"
+    files.append(file_path)
     
     await rkn_processing.edit("`Try To Download....`")
     try:
@@ -340,6 +341,7 @@ async def upload_doc(bot, update):
     
     await rkn_processing.edit("`Adding Metadata...`")
     out_path = f"Renames/meta_{new_filename}"
+    files.append(out_path)
     
     custom_metadata_title = script.METADATA_TITLE
     audio_lang = user_data.get('audio_lang', None)
@@ -373,12 +375,21 @@ async def upload_doc(bot, update):
     cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 {audio_cmd}-metadata title="{custom_metadata_title}" -metadata author="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:v encoder="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:a encoder="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" -metadata:s:s encoder="{custom_metadata_title}" "{out_path}"'
     
     proc = await asyncio.create_subprocess_shell(cmd)
-    await proc.communicate()
+    try:
+        await proc.communicate()
+    except asyncio.CancelledError:
+        # Cancel pannina ffmpeg-um nikkanum
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        raise
     
     final_file_path = file_path
     if os.path.exists(out_path):
         os.remove(file_path)
         final_clean_path = f"Renames/{new_filename}"
+        files.append(final_clean_path)
         os.rename(out_path, final_clean_path)
         final_file_path = final_clean_path
 
@@ -423,6 +434,9 @@ async def upload_doc(bot, update):
         except Exception as e:
             print(f"Error processing thumbnail: {e}")
             ph_path = None
+
+    if ph_path:
+        files.append(ph_path)
 
     upload_type = update.data.split("#")[1]
     
@@ -486,6 +500,28 @@ async def upload_doc(bot, update):
         pass
         
     return True
+
+async def upload_doc(bot, update):
+    """Cancel-support wrapper: Cancel click -> download/upload stop, temp files delete, message close."""
+    msg = update.message
+    original = msg.reply_to_message
+    files = []
+    cancelled = False
+    result = None
+    try:
+        result, cancelled = await run_cancellable(msg, _upload_doc_impl(bot, update, files))
+    finally:
+        cleanup_files(*files)
+
+    if cancelled:
+        try:
+            await msg.edit("❌ **Process Cancelled.**")
+            await asyncio.sleep(3)
+        except Exception:
+            pass
+        await safe_delete(msg, original)
+        return False
+    return result
 
 @Client.on_message(filters.private & filters.command("set_type"))
 async def set_media_cmd(client, message):
