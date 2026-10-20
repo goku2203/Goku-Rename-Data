@@ -53,6 +53,7 @@ FONT_FILES = {
     "montserrat-md": ("Montserrat-Variable.ttf", 500),
     "montserrat-sb": ("Montserrat-Variable.ttf", 600),
     "montserrat-b": ("Montserrat-Variable.ttf", 700),
+    "croih-b": ("Croih-Bold.ttf", None),
 }
 
 # ---------------------------------------------------------------------------
@@ -758,7 +759,7 @@ def brush_stroke(layer, x, y, w, h, color, seed=1):
 
 # ======================= 18 THUMBNAIL DESIGNS =======================
 
-@fonts("chakra-b", "chakra-sb")
+@fonts("croih-b", "chakra-sb")
 def d_cyber_neon(img, layer, info, b):
     """1. 🌟 Cyber Glow: Tokyo Cyberpunk / Anime Neon with Cyan-Violet Aura"""
     W, H = img.size
