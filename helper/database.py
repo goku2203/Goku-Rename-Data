@@ -24,6 +24,7 @@ class Database:
             upload_type=None,
             rename_mode="auto",
             audio_lang=None,
+            autopost=True,
             ban_status=dict(
                 is_banned=False,
                 ban_duration=0,
@@ -175,5 +176,13 @@ class Database:
     async def get_audio_lang(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return user.get('audio_lang', None) if user else None
+
+    async def set_autopost(self, id, status: bool):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'autopost': bool(status)}})
+
+    async def get_autopost(self, id):
+        # field illana (pazhaya users) -> default ON
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('autopost', True) if user else True
     
 goku_stark = Database(Config.DB_URL, Config.DB_NAME)
