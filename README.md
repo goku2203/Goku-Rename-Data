@@ -3,7 +3,7 @@
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f0c29,50:302b63,100:24243e&height=230&section=header&text=GOKU%20RENAME%20BOT&fontSize=58&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Rename%20%E2%80%A2%20Thumbnail%20%E2%80%A2%20Poster%20%E2%80%A2%20Upload%20%E2%80%A2%20Automate&descAlignY=60&descSize=18" width="100%"/>
 
 <a href="https://git.io/typing-svg">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=3000&pause=900&color=00D9FF&center=true&vCenter=true&width=700&lines=%E2%9A%A1+Lightning-fast+Telegram+File+Renamer;%F0%9F%A4%96+Smart+Auto+Rename+%2B+Manual+Rename;%F0%9F%8E%A8+18+Poster+%26+Thumbnail+Designs;%F0%9F%94%97+Direct+URL+Uploader;%F0%9F%91%91+Crafted+by+Goku+Stark" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=3000&pause=900&color=00D9FF&center=true&vCenter=true&width=700&lines=%E2%9A%A1+Lightning-fast+Telegram+File+Renamer;%F0%9F%A4%96+Smart+Auto+Rename+%2B+Manual+Rename;%F0%9F%8E%A8+18+Poster+%26+Thumbnail+Designs;%F0%9F%94%97+Direct+URL+Uploader;%F0%9F%93%A2+Auto+Post%3A+Poster+%E2%86%92+Dump+%E2%86%92+File;%F0%9F%91%91+Crafted+by+Goku+Stark" alt="Typing SVG" />
 </a>
 
 <br/>
@@ -37,6 +37,8 @@ Send a file or a direct link, and the bot cleans the name, applies your prefix /
 
 It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 designs + custom watermark) and a beautiful **live web status dashboard**.
 
+📢 **New:** **Auto Post** finds the matching *image + caption* post of your title in your own channel and drops it in your dump channel **right before the file** — fully automatic.
+
 ---
 
 ## ✨ Features
@@ -62,6 +64,48 @@ It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 desig
 | 🗂️ **Dump Channel** | Auto-forward every finished file to your own channel with `/dump` |
 | 🐘 **Big File Support** | Up to **4 GB** with a Premium `STRING_SESSION` |
 | ⏳ **Smart Queue + Progress Bar** | One file at a time, live speed / ETA / percentage |
+
+### 📢 Auto Post (Poster → Dump → File)
+
+<div align="center">
+  <img src="assets/autopost-flow.svg" alt="Auto Post animated flow" width="100%"/>
+</div>
+
+<br/>
+
+Send a file or a link. When the **upload starts** (after the download is finished), the bot reads the **title** from the file name — the name between your prefix and `S01` (any season) — finds that title's **image + caption post** in your **Post Channel**, and puts it in your **dump channel first**. The finished file follows right after it.
+
+| Feature | Description |
+|---|---|
+| 🔎 **Smart Title Match** | Uses the same cleaning as Auto Rename, so the output name you see on the download progress message is exactly what gets searched. Exact match first, then "starts with", then "contains". If two posts match, the **oldest** one is used |
+| 🖼️ **Poster Before File** | The post is copied (no "Forwarded from" tag) to your dump channel, and only then the file is uploaded there |
+| ⛔ **Cancel-Safe** | Cancel while **downloading** → nothing is sent. Cancel or fail while **uploading** → the post is removed from dump automatically |
+| ♻️ **No Duplicate Posts** | Cancel and resend the same name with a different link → still only **one** post. A leftover post (failed delete / restart) is cleaned on the next upload of that title |
+| 🔁 **Post Mode** | **Every File** = a post before each file · **Once per Series** = one post per title; episodes uploading at the same time share it |
+| 📡 **Post Channel From The Bot** | Set or change it anytime with `/post_channel -100xxxxxxxxxx` — saved permanently in MongoDB, no redeploy, no code edit |
+| 🎚️ **ON / OFF Switch** | Toggle in `/settings` or with `/autopost on` · `/autopost off` |
+| 🧹 **Auto Delete** | Command replies (success / failed) clean themselves after 10 seconds. Posts in your channel are **never** deleted |
+| 🆓 **Render Free-Friendly** | Posts are indexed in MongoDB (survives restarts), new posts are picked up live, and no `STRING_SESSION` is needed |
+
+<details>
+<summary>⚙️ <b>Auto Post setup (one time)</b></summary>
+
+<br/>
+
+1. Create a channel and post your **image + caption** for each title (the title should be in the caption, e.g. the first line).
+2. Add the bot to that channel as **Admin**.
+3. Send the channel ID to the bot (admin only):
+
+```text
+/post_channel -1001234567890
+```
+
+4. Make sure your **Dump Channel** is set and ON (`/dump`, `/settings`).
+5. Send a file or a link — the post goes first, then the file. ✅
+
+If no matching post is found, the upload is **not** blocked — it continues and the final message shows a small warning.
+
+</details>
 
 ### 🎵 Media Tools (FFmpeg)
 | Feature | Description |
@@ -94,7 +138,7 @@ It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 desig
 A stylish **Ultra Status** page served by the bot itself — live bot status, users, uptime, CPU, RAM, disk and network usage. Also keeps **Render / Koyeb** web services awake.
 
 ### ⚙️ Settings Panel
-Everything in one inline menu with `/settings`: **Prefix · Suffix · Caption · Audio Language · Dump Channel** (admin).
+Everything in one inline menu with `/settings`: **Prefix · Suffix · Caption · Audio Language · Auto Post · Post Mode · Dump Channel** (admin) **· Post Channel** (admin).
 
 ---
 
@@ -175,6 +219,7 @@ python3 bot.py
 | `RKN_PIC` | ➖ | Image URL shown on `/start` |
 | `PORT` | ➖ | Web server port (default `8080`) |
 | `STRING_SESSION` | ➖ | Telegram **Premium** account string session — needed for **4 GB** files |
+| `POST_CHANNEL_ID` | ➖ | Optional backup for the Auto Post channel — normally you set it from the bot with `/post_channel` |
 
 > 🎬 **Poster generator:** add your free [TMDB API key](https://www.themoviedb.org/settings/api) in `plugins/poster.py` → `TMDB_API_KEY`.
 
@@ -206,6 +251,8 @@ see_dump      - View your dump channel
 del_dump      - Remove your dump channel
 poster        - Generate a movie / series poster
 set_watermark - Set your poster watermark
+autopost      - Auto Post ON / OFF
+postmode      - Every File / Once per Series
 ```
 
 </details>
@@ -221,6 +268,8 @@ ban           - Ban a user
 unban         - Unban a user
 banned_users  - List banned users
 broadcast     - Message all users (reply to a message)
+post_channel  - Set / view the Auto Post channel
+del_post_channel - Remove the Auto Post channel
 ```
 
 </details>
@@ -233,6 +282,7 @@ broadcast     - Message all users (reply to a message)
 2. In **Auto** mode it renames instantly. In **Manual** mode, reply with the new name.
 3. Pick **Document / Video / Audio** (or let your default `/set_type` decide).
 4. Your thumbnail, caption, prefix & suffix are applied — done! ✅
+5. With **Auto Post** ON, the matching poster post lands in your dump channel right before the file. 📢
 
 ---
 
@@ -245,6 +295,8 @@ Goku-Rename-Data/
 ├── script.py                 # All bot texts
 ├── app.json                  # Heroku template
 ├── Dockerfile · Procfile     # Deployment files
+├── assets/
+│   └── autopost-flow.svg     # Animated Auto Post flow
 ├── helper/
 │   ├── database.py           # MongoDB user settings
 │   └── utils.py              # Progress bar, helpers
@@ -252,6 +304,7 @@ Goku-Rename-Data/
 │   ├── file_rename.py        # Core renamer + FFmpeg
 │   ├── auto_rename.py        # Smart name parser
 │   ├── url_uploader.py       # Direct link uploader
+│   ├── post_forward.py       # Auto Post (title post → dump)
 │   ├── poster.py             # TMDB poster generator
 │   ├── thumbnail_designs.py  # 18 poster designs (fonts/ folder-la bundled Google Fonts use pannum)
 │   ├── settings.py           # Settings panel
@@ -282,7 +335,7 @@ Goku-Rename-Data/
 
 <div align="center">
 
-### 🕒 Last Updated: `12-10-2026`
+### 🕒 Last Updated: `26-10-2026`
 
 **Made with ❤️ by [Goku Stark](https://t.me/Goku_Stark)**
 
