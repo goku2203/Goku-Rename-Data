@@ -2,7 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from helper.database import goku_stark
 from config import Config
-from plugins.post_forward import get_post_channel, set_post_channel
+from plugins.post_forward import get_post_channel, set_post_channel, auto_delete
 
 @Client.on_message(filters.private & filters.command("settings"))
 async def settings_command(client, message):
@@ -19,10 +19,12 @@ async def send_settings_menu(user_id, message, is_query=False):
 
     autopost_on = await goku_stark.get_autopost(user_id)
     autopost_txt = "ON 🟢" if autopost_on else "OFF 🔴"
+    mode_txt = "Once per Series" if await goku_stark.get_post_mode(user_id) == "once" else "Every File"
 
     buttons = [
         [InlineKeyboardButton("⚙️ Audio Settings", callback_data="audio_settings_menu")],
         [InlineKeyboardButton(f"📢 Auto Post: {autopost_txt}", callback_data="toggle_autopost")],
+        [InlineKeyboardButton(f"🔁 Post Mode: {mode_txt}", callback_data="toggle_postmode")],
         [
             InlineKeyboardButton("📝 Prefix", callback_data="prefix_menu"),
             InlineKeyboardButton("📝 Suffix", callback_data="suffix_menu")
@@ -40,7 +42,7 @@ async def send_settings_menu(user_id, message, is_query=False):
 
     buttons.append([InlineKeyboardButton("✖️ Close", callback_data="close")])
 
-    text = f"**⚙️ Settings Menu**\n\n**Audio Status:** `{audio_status}`\n**Auto Post:** `{autopost_txt}`{admin_text}\n\nClick the buttons below to manage your settings."
+    text = f"**⚙️ Settings Menu**\n\n**Audio Status:** `{audio_status}`\n**Auto Post:** `{autopost_txt}` ({mode_txt}){admin_text}\n\nClick the buttons below to manage your settings."
 
     if is_query:
         await message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons))
@@ -67,11 +69,12 @@ async def autopost_command(client, message):
     state = await goku_stark.get_autopost(user_id)
     cur = await get_post_channel()
     chan = f"`{cur}`" if cur else "⚠️ Not set"
-    await message.reply_text(
+    reply = await message.reply_text(
         f"**📢 Auto Post:** `{'ON 🟢' if state else 'OFF 🔴'}`\n**Post Channel:** {chan}\n\n"
         "Use: `/autopost on` or `/autopost off`",
         reply_to_message_id=message.id
     )
+    auto_delete(message, reply)
 
 
 @Client.on_callback_query(filters.regex(r"^post_channel_menu$") & filters.user(Config.ADMIN), group=2)
@@ -93,6 +96,29 @@ async def del_post_channel_cb(client, query: CallbackQuery):
     await set_post_channel(None)
     await query.answer("Post channel removed!")
     await post_channel_menu_cb(client, query)
+
+
+@Client.on_callback_query(filters.regex(r"^toggle_postmode$"), group=2)
+async def toggle_postmode_cb(client, query: CallbackQuery):
+    user_id = query.from_user.id
+    new_mode = "each" if await goku_stark.get_post_mode(user_id) == "once" else "once"
+    await goku_stark.set_post_mode(user_id, new_mode)
+    await query.answer("Once per Series: series-ku oru post mattum" if new_mode == "once" else "Every File: ovvoru file-kum post", show_alert=False)
+    await send_settings_menu(user_id, query.message, is_query=True)
+
+@Client.on_message(filters.private & filters.command("postmode"))
+async def postmode_command(client, message):
+    user_id = message.from_user.id
+    arg = message.command[1].lower() if len(message.command) > 1 else ""
+    if arg in ("each", "once"):
+        await goku_stark.set_post_mode(user_id, arg)
+    mode = await goku_stark.get_post_mode(user_id)
+    reply = await message.reply_text(
+        f"**🔁 Post Mode:** `{'Once per Series' if mode == 'once' else 'Every File'}`\n\n"
+        "`/postmode each` - ovvoru file-kum post\n`/postmode once` - series-ku oru thadava mattum",
+        reply_to_message_id=message.id
+    )
+    auto_delete(message, reply)
 
 
 # =============== PREFIX MENU ===============

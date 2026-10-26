@@ -16,7 +16,7 @@ from helper.database import goku_stark
 from config import Config
 from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
-from plugins.post_forward import send_post_for_title, discard_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post
 
 # extra imports
 from asyncio import sleep
@@ -526,8 +526,11 @@ async def upload_doc(bot, update):
     finally:
         cleanup_files(*files)
         # Upload cancel / fail aana forward pannina post-a dump-la irunthu eduthidum
-        if state.get('post') and (cancelled or not result):
-            await discard_post(bot, state['post'])
+        if state.get('post'):
+            if cancelled or not result:
+                await discard_post(bot, state['post'])
+            else:
+                await confirm_post(state['post'])
 
     if cancelled:
         try:

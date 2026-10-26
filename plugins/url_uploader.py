@@ -5,7 +5,7 @@ from helper.database import goku_stark
 from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
-from plugins.post_forward import send_post_for_title, discard_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
@@ -323,8 +323,11 @@ async def url_uploader_handler(client, message):
         status = f"❌ Error: {e}"
     finally:
         cleanup_files(*files)          # success / error / cancel - ellathulayum temp files delete
-        if state.get('post') and not state.get('done'):
-            await discard_post(client, state['post'])   # upload cancel/fail -> post-um dump-la irunthu delete
+        if state.get('post'):
+            if state.get('done'):
+                await confirm_post(state['post'])
+            else:
+                await discard_post(client, state['post'])   # upload cancel/fail -> post-um dump-la irunthu delete
         await safe_delete(message)     # user anuppina URL message - ELLA case-layum delete
 
     if status:
