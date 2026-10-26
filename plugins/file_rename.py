@@ -16,6 +16,7 @@ from helper.database import goku_stark
 from config import Config
 from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
+from plugins.post_forward import send_post_for_title, discard_post
 
 # extra imports
 from asyncio import sleep
@@ -176,7 +177,9 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
 
 renamer = EnhancedAutoRenamer()
 
-async def _upload_doc_impl(bot, update, files):
+async def _upload_doc_impl(bot, update, files, state=None):
+    if state is None:
+        state = {}
     rkn_processing = await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
     
     async with file_queue_lock:
@@ -208,6 +211,7 @@ async def _upload_doc_impl(bot, update, files):
             
         final_caption_name = new_name
         new_filename = new_name
+        post_title = renamer.extract_all_info(new_name).get('title')
     else:
         # --- NEW FEATURE: Filename la underlines irunthu box illana, Caption a check panra logic ---
         source_name = media.file_name
@@ -235,6 +239,8 @@ async def _upload_doc_impl(bot, update, files):
                 if key not in ["title", "original_name", "extension"] and not info.get(key) and value:
                     info[key] = value
                     
+        post_title = info.get('title')   # prefix & S01 naduvula irukkura name (post thedurathukku)
+
         format_template = user_data.get('format_template', "{filename}")
         if format_template is None:
             format_template = "{filename}"
@@ -443,6 +449,11 @@ async def _upload_doc_impl(bot, update, files):
     dump_id = await goku_stark.get_dump(user_id)
     dump_status = await goku_stark.get_dump_status(user_id)
 
+    # --- POST FORWARD: upload start aagum pothu, file-ku MUNNADI title post-a dump-ku anuppum ---
+    post_target = int(dump_id) if (dump_id and dump_status) else update.message.chat.id
+    posted, post_note = await send_post_for_title(bot, post_title, post_target, user_id)
+    state['post'] = posted
+
     if media.file_size > 2000 * 1024 * 1024:
         filw, error = await upload_files(
             app, Config.LOG_CHANNEL, upload_type, final_file_path, 
@@ -488,12 +499,13 @@ async def _upload_doc_impl(bot, update, files):
     await remove_path(ph_path, final_file_path, dl_path)
     
     # Message update with 5 seconds auto-delete
+    note = f"\n\n{post_note}" if post_note else ""
     if dump_id and dump_status:
-        await rkn_processing.edit(script.DUMP_SENT_TXT)
+        await rkn_processing.edit(script.DUMP_SENT_TXT + note)
     else:
-        await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT)
+        await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT + note)
         
-    await asyncio.sleep(5)
+    await asyncio.sleep(5 if not note else 10)
     try:
         await rkn_processing.delete()
     except:
@@ -508,10 +520,14 @@ async def upload_doc(bot, update):
     files = []
     cancelled = False
     result = None
+    state = {}
     try:
-        result, cancelled = await run_cancellable(msg, _upload_doc_impl(bot, update, files))
+        result, cancelled = await run_cancellable(msg, _upload_doc_impl(bot, update, files, state))
     finally:
         cleanup_files(*files)
+        # Upload cancel / fail aana forward pannina post-a dump-la irunthu eduthidum
+        if state.get('post') and (cancelled or not result):
+            await discard_post(bot, state['post'])
 
     if cancelled:
         try:

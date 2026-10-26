@@ -5,6 +5,7 @@ from helper.database import goku_stark
 from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
+from plugins.post_forward import send_post_for_title, discard_post
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
@@ -119,7 +120,38 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
 
 
 
-async def _process_url(client, message, msg, url, user_data, files):
+def plan_names(original_filename, user_data):
+    """Original filename-la irunthu (info, caption name, output filename) kandupidikkum.
+    Download START-aaga munnadiye call aagum -> progress-la OUTPUT name theriyum."""
+    parse_name = normalize_season_episode(original_filename)
+    info = renamer.extract_all_info(parse_name)
+    format_template = user_data.get('format_template', "{filename}")
+    if format_template is None:
+        format_template = "{filename}"
+    prefix = user_data.get('prefix', None)
+    suffix = user_data.get('suffix', None)
+
+    ext_str = (info.get('extension') or original_filename.rsplit('.', 1)[-1]).lstrip('.').strip()
+    if not ext_str:
+        ext_str = "mkv"
+    info['extension'] = ext_str
+
+    full_caption_name = renamer.apply_format_template(info, format_template)
+    if not full_caption_name.endswith(f".{ext_str}"):
+        full_caption_name += f".{ext_str}"
+
+    cap_base = full_caption_name.rsplit('.', 1)[0]
+    if prefix:
+        cap_base = f"{prefix} {cap_base}"
+    if suffix:
+        cap_base = f"{cap_base} {suffix}"
+
+    final_caption_name = f"{cap_base}.{ext_str}".strip()
+    new_filename = build_clean_filename(info, prefix, suffix, ext_str)
+    return info, final_caption_name, new_filename
+
+
+async def _process_url(client, message, msg, url, user_data, files, state=None):
     """
     Full URL -> download -> rename -> metadata -> upload flow.
     Final-a user-ku kaattura status text return pannum.
@@ -133,8 +165,11 @@ async def _process_url(client, message, msg, url, user_data, files):
     async with file_queue_lock:
         await msg.edit("`🔗 URL Detected... Starting Download...`")
 
+    if state is None:
+        state = {}
     original_filename = "Downloaded_video.mkv"
     local_path = ""
+    info = final_caption_name = new_filename = None
 
     # ---------- 1 & 2. Download ----------
     try:
@@ -167,6 +202,9 @@ async def _process_url(client, message, msg, url, user_data, files):
                 if extracted_name and "." in extracted_name:
                     original_filename = extracted_name
 
+                # Output name-a download-ku MUNNADIYE kandupidichu progress-la kaattrom
+                info, final_caption_name, new_filename = plan_names(original_filename, user_data)
+
                 os.makedirs("Renames", exist_ok=True)
                 local_path = f"Renames/{original_filename}"
                 files.append(local_path)
@@ -186,7 +224,7 @@ async def _process_url(client, message, msg, url, user_data, files):
                                 await progress_for_pyrogram(
                                     downloaded, total_size,
                                     "**  Download Started...**",
-                                    msg, start_time, original_filename
+                                    msg, start_time, new_filename
                                 )
                             except Exception:
                                 pass
@@ -201,33 +239,7 @@ async def _process_url(client, message, msg, url, user_data, files):
 
     await msg.edit("`📝 Applying Auto-Rename Format...`")
 
-    # ---------- 3. Auto-Rename ----------
-    parse_name = normalize_season_episode(original_filename)
-    info = renamer.extract_all_info(parse_name)
-    format_template = user_data.get('format_template', "{filename}")
-    if format_template is None:
-        format_template = "{filename}"
-    prefix = user_data.get('prefix', None)
-    suffix = user_data.get('suffix', None)
-
-    ext_str = (info.get('extension') or original_filename.rsplit('.', 1)[-1]).lstrip('.').strip()
-    if not ext_str:
-        ext_str = "mkv"
-    info['extension'] = ext_str
-
-    full_caption_name = renamer.apply_format_template(info, format_template)
-    if not full_caption_name.endswith(f".{ext_str}"):
-        full_caption_name += f".{ext_str}"
-
-    cap_base = full_caption_name.rsplit('.', 1)[0]
-    if prefix:
-        cap_base = f"{prefix} {cap_base}"
-    if suffix:
-        cap_base = f"{cap_base} {suffix}"
-
-    final_caption_name = f"{cap_base}.{ext_str}".strip()
-
-    new_filename = build_clean_filename(info, prefix, suffix, ext_str)
+    # ---------- 3. Auto-Rename (name munnadiye plan aagiduchu) ----------
     new_local_path = f"Renames/{new_filename}"
     print(f"[URL-RENAME-DEBUG] raw={original_filename!r} -> new={new_filename!r}", flush=True)
 
@@ -263,6 +275,10 @@ async def _process_url(client, message, msg, url, user_data, files):
     dump_status = await goku_stark.get_dump_status(user_id)
     target_chat = int(dump_id) if (dump_id and dump_status) else message.chat.id
 
+    # ---------- 4.5 POST FORWARD (upload start: file-ku MUNNADI post dump-ku) ----------
+    posted, post_note = await send_post_for_title(client, info.get('title'), target_chat, user_id)
+    state['post'] = posted
+
     # ---------- 5. Upload ----------
     filw, error = await upload_files(
         client, target_chat, actual_upload_type, new_local_path,
@@ -278,7 +294,9 @@ async def _process_url(client, message, msg, url, user_data, files):
         except Exception:
             pass
 
-    return script.DUMP_SENT_TXT if (dump_id and dump_status) else script.UPLOAD_SUCCESS_TXT
+    state['done'] = True
+    done_txt = script.DUMP_SENT_TXT if (dump_id and dump_status) else script.UPLOAD_SUCCESS_TXT
+    return done_txt + (f"\n\n{post_note}" if post_note else "")
 
 
 @Client.on_message(filters.private & filters.regex(r"^https?://"))
@@ -292,11 +310,12 @@ async def url_uploader_handler(client, message):
 
     files = []        # temp / partial files (cleanup-ku)
     status = None     # user-ku kaattura final message
+    state = {}        # forward pannina post track panna (cancel/fail-na delete)
 
     try:
         status, cancelled = await run_cancellable(
             rkn_processing,
-            _process_url(client, message, rkn_processing, url, user_data, files)
+            _process_url(client, message, rkn_processing, url, user_data, files, state)
         )
         if cancelled:
             status = "❌ **Process Cancelled.**"
@@ -304,6 +323,8 @@ async def url_uploader_handler(client, message):
         status = f"❌ Error: {e}"
     finally:
         cleanup_files(*files)          # success / error / cancel - ellathulayum temp files delete
+        if state.get('post') and not state.get('done'):
+            await discard_post(client, state['post'])   # upload cancel/fail -> post-um dump-la irunthu delete
         await safe_delete(message)     # user anuppina URL message - ELLA case-layum delete
 
     if status:

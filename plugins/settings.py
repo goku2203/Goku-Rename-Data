@@ -2,6 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from helper.database import goku_stark
 from config import Config
+from plugins.post_forward import get_post_channel, set_post_channel
 
 @Client.on_message(filters.private & filters.command("settings"))
 async def settings_command(client, message):
@@ -16,8 +17,12 @@ async def send_settings_menu(user_id, message, is_query=False):
     lang_names = {"tam": "Tamil", "tel": "Telugu", "hin": "Hindi", "eng": "English", "mal": "Malayalam"}
     audio_status = lang_names.get(current_audio, "Default (Off)") if current_audio else "Default (Off)"
 
+    autopost_on = await goku_stark.get_autopost(user_id)
+    autopost_txt = "ON 🟢" if autopost_on else "OFF 🔴"
+
     buttons = [
         [InlineKeyboardButton("⚙️ Audio Settings", callback_data="audio_settings_menu")],
+        [InlineKeyboardButton(f"📢 Auto Post: {autopost_txt}", callback_data="toggle_autopost")],
         [
             InlineKeyboardButton("📝 Prefix", callback_data="prefix_menu"),
             InlineKeyboardButton("📝 Suffix", callback_data="suffix_menu")
@@ -31,15 +36,63 @@ async def send_settings_menu(user_id, message, is_query=False):
         dump_status = await goku_stark.get_dump_status(user_id)
         dump_txt = "ON 🟢" if dump_status else "OFF 🔴"
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
+        buttons.append([InlineKeyboardButton("📡 Post Channel", callback_data="post_channel_menu")])
 
     buttons.append([InlineKeyboardButton("✖️ Close", callback_data="close")])
 
-    text = f"**⚙️ Settings Menu**\n\n**Audio Status:** `{audio_status}`{admin_text}\n\nClick the buttons below to manage your settings."
+    text = f"**⚙️ Settings Menu**\n\n**Audio Status:** `{audio_status}`\n**Auto Post:** `{autopost_txt}`{admin_text}\n\nClick the buttons below to manage your settings."
 
     if is_query:
         await message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons))
     else:
         await message.reply_text(text, reply_markup=InlineKeyboardMarkup(buttons), reply_to_message_id=message.id)
+
+
+# =============== AUTO POST (title post -> dump, file-ku munnadi) ===============
+@Client.on_callback_query(filters.regex(r"^toggle_autopost$"), group=2)
+async def toggle_autopost_cb(client, query: CallbackQuery):
+    user_id = query.from_user.id
+    new_state = not await goku_stark.get_autopost(user_id)
+    await goku_stark.set_autopost(user_id, new_state)
+    warn = "" if await get_post_channel() else "\n⚠️ Post channel innum set pannala! (/post_channel)"
+    await query.answer(f"Auto Post {'ON' if new_state else 'OFF'}!{warn}", show_alert=bool(warn))
+    await send_settings_menu(user_id, query.message, is_query=True)
+
+@Client.on_message(filters.private & filters.command("autopost"))
+async def autopost_command(client, message):
+    user_id = message.from_user.id
+    arg = message.command[1].lower() if len(message.command) > 1 else ""
+    if arg in ("on", "off"):
+        await goku_stark.set_autopost(user_id, arg == "on")
+    state = await goku_stark.get_autopost(user_id)
+    cur = await get_post_channel()
+    chan = f"`{cur}`" if cur else "⚠️ Not set"
+    await message.reply_text(
+        f"**📢 Auto Post:** `{'ON 🟢' if state else 'OFF 🔴'}`\n**Post Channel:** {chan}\n\n"
+        "Use: `/autopost on` or `/autopost off`",
+        reply_to_message_id=message.id
+    )
+
+
+@Client.on_callback_query(filters.regex(r"^post_channel_menu$") & filters.user(Config.ADMIN), group=2)
+async def post_channel_menu_cb(client, query: CallbackQuery):
+    cur = await get_post_channel()
+    buttons = [
+        [InlineKeyboardButton("🗑️ Delete Channel", callback_data="del_post_channel_btn")],
+        [InlineKeyboardButton("🔙 Back", callback_data="back_to_settings"), InlineKeyboardButton("✖️ Close", callback_data="close")]
+    ]
+    await query.message.edit_text(
+        f"**📡 Post Channel**\n\n**Current ID:** `{cur if cur else 'Not Set'}`\n\n"
+        "Set / Change panna chat-la anuppu:\n`/post_channel -1001234567890`\n\n"
+        "(Bot antha channel-la admin-aa irukkanum)",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+@Client.on_callback_query(filters.regex(r"^del_post_channel_btn$") & filters.user(Config.ADMIN), group=2)
+async def del_post_channel_cb(client, query: CallbackQuery):
+    await set_post_channel(None)
+    await query.answer("Post channel removed!")
+    await post_channel_menu_cb(client, query)
 
 
 # =============== PREFIX MENU ===============
