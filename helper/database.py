@@ -25,6 +25,7 @@ class Database:
             rename_mode="auto",
             audio_lang=None,
             autopost=True,
+            post_mode="each",
             ban_status=dict(
                 is_banned=False,
                 ban_duration=0,
@@ -179,6 +180,14 @@ class Database:
 
     async def set_autopost(self, id, status: bool):
         await self.col.update_one({'_id': int(id)}, {'$set': {'autopost': bool(status)}})
+
+    async def set_post_mode(self, id, mode):
+        await self.col.update_one({'_id': int(id)}, {'$set': {'post_mode': mode}})
+
+    async def get_post_mode(self, id):
+        # 'each' = ovvoru file-kum post | 'once' = series-ku oru thadava
+        user = await self.col.find_one({'_id': int(id)})
+        return user.get('post_mode', 'each') if user else 'each'
 
     async def get_autopost(self, id):
         # field illana (pazhaya users) -> default ON
