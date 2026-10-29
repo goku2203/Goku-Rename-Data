@@ -230,13 +230,13 @@ def auto_delete(*msgs, delay=None):
 async def announce_post(bot, chat_id, title, handle, note=""):
     """
     Auto Post result-a bot chat-la ORE SHORT LINE-aa kaattum, AUTO_DELETE_SECS (10s) kazhichu auto delete.
-      Success -> "✅ Dump poster sent"
-      Fail    -> "⚠️ Dump poster missing" (name illa / poster kedaikkala / channel / error / timeout - ellaathukum ithe)
+      Success -> "✅ <b>Dump poster sent</b>"
+      Fail    -> "⚠️ <b>Dump poster missing</b>" (name illa / poster kedaikkala / channel / error / timeout - ellaathukum ithe)
     Auto Post OFF-na edhuvum anuppaadhu. Exception veliya vidaadhu -> upload break aagaadhu.
     """
     try:
         if handle:
-            text = "✅ Dump poster sent"
+            text = "<b>✅ Dump poster sent</b>"
         elif note:
             text = note
         else:
@@ -348,7 +348,7 @@ async def _send(bot, chan, title, target_chat):
         if sent:
             await _mark_pending(sent, title)
             return sent, ""
-    return None, "⚠️ Dump poster missing"
+    return None, "⚠️ <b>Dump poster missing</b>"
 
 
 class PostHandle:
@@ -416,10 +416,10 @@ async def send_post_for_title(bot, title, target_chat, user_id=None):
         return None, ""          # Settings-la Auto Post OFF
     chan = await get_post_channel()
     if not chan:
-        return None, "⚠️ Dump poster missing"
+        return None, "⚠️ <b>Dump poster missing</b>"
     title = (title or "").strip()
     if not title:
-        return None, "⚠️ Dump poster missing"
+        return None, "⚠️ <b>Dump poster missing</b>"
     once = user_id is not None and await goku_stark.get_post_mode(user_id) == "once"
     try:
         if once:
@@ -427,10 +427,10 @@ async def send_post_for_title(bot, title, target_chat, user_id=None):
         sent, note = await asyncio.wait_for(_send(bot, chan, title, target_chat), LOOKUP_TIMEOUT)
         return (PostHandle(sent.chat.id, sent.id) if sent else None), note
     except asyncio.TimeoutError:
-        return None, "⚠️ Dump poster missing"
+        return None, "⚠️ <b>Dump poster missing</b>"
     except Exception as e:
         print(f"[POST-FORWARD] error: {e}", flush=True)
-        return None, "⚠️ Dump poster missing"
+        return None, "⚠️ <b>Dump poster missing</b>"
 
 
 async def _delete_post(bot, handle):
