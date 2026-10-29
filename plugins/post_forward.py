@@ -34,7 +34,7 @@ AUTO_DELETE_SECS = 10        # /post_channel success/failed message ethana secon
 
 # ---- BOT CHAT-LA VARRA MESSAGES (inga maathina podhum, vera edhuvum maatha vendaam) ----
 POSTER_SENT_TXT = "<b>✅ Dump poster sent</b>"        # poster dump-ku poiduchu
-POSTER_MISSING_TXT = "⚠️ Dump poster missing"  # name illa / poster kedaikkala / error / timeout - ellaathukum ithe
+POSTER_MISSING_TXT = "<b>⚠️ Dump poster missing</b>"  # name illa / poster kedaikkala / error / timeout - ellaathukum ithe
 NOTICE_DELETE_SECS = 10                         # ippo antha message ethana second-la auto delete aagum
 # =====================================================================
 
