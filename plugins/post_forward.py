@@ -31,6 +31,11 @@ LOOKUP_TIMEOUT = 30          # seconds - post thedura time limit (upload stuck a
 SCAN_BATCH = 200             # oru thadava ethana message id check pannum
 SCAN_MAX_BATCHES = 100       # safety limit (100 x 200 = 20,000 messages)
 AUTO_DELETE_SECS = 10        # /post_channel success/failed message ethana second-la auto delete aagum
+
+# ---- BOT CHAT-LA VARRA MESSAGES (inga maathina podhum, vera edhuvum maatha vendaam) ----
+POSTER_SENT_TXT = "<b>✅ Dump poster sent</b>"        # poster dump-ku poiduchu
+POSTER_MISSING_TXT = "⚠️ Dump poster missing"  # name illa / poster kedaikkala / error / timeout - ellaathukum ithe
+NOTICE_DELETE_SECS = 10                         # ippo antha message ethana second-la auto delete aagum
 # =====================================================================
 
 DEFAULT_POST_CHANNEL_ID = int(os.environ.get("POST_CHANNEL_ID", DEFAULT_POST_CHANNEL_ID))
@@ -230,19 +235,19 @@ def auto_delete(*msgs, delay=None):
 async def announce_post(bot, chat_id, title, handle, note=""):
     """
     Auto Post result-a bot chat-la ORE SHORT LINE-aa kaattum, AUTO_DELETE_SECS (10s) kazhichu auto delete.
-      Success -> "✅ <b>Dump poster sent</b>"
-      Fail    -> "⚠️ <b>Dump poster missing</b>" (name illa / poster kedaikkala / channel / error / timeout - ellaathukum ithe)
+      Success -> "✅ Dump poster sent"
+      Fail    -> POSTER_MISSING_TXT (name illa / poster kedaikkala / channel / error / timeout - ellaathukum ithe)
     Auto Post OFF-na edhuvum anuppaadhu. Exception veliya vidaadhu -> upload break aagaadhu.
     """
     try:
         if handle:
-            text = "<b>✅ Dump poster sent</b>"
+            text = POSTER_SENT_TXT
         elif note:
             text = note
         else:
             return
         msg = await bot.send_message(chat_id, text)
-        auto_delete(msg)
+        auto_delete(msg, delay=NOTICE_DELETE_SECS)
     except Exception as e:
         print(f"[POST-FORWARD] announce failed: {e}", flush=True)
 
@@ -348,7 +353,7 @@ async def _send(bot, chan, title, target_chat):
         if sent:
             await _mark_pending(sent, title)
             return sent, ""
-    return None, "⚠️ <b>Dump poster missing</b>"
+    return None, POSTER_MISSING_TXT
 
 
 class PostHandle:
@@ -416,10 +421,10 @@ async def send_post_for_title(bot, title, target_chat, user_id=None):
         return None, ""          # Settings-la Auto Post OFF
     chan = await get_post_channel()
     if not chan:
-        return None, "⚠️ <b>Dump poster missing</b>"
+        return None, POSTER_MISSING_TXT
     title = (title or "").strip()
     if not title:
-        return None, "⚠️ <b>Dump poster missing</b>"
+        return None, POSTER_MISSING_TXT
     once = user_id is not None and await goku_stark.get_post_mode(user_id) == "once"
     try:
         if once:
@@ -427,10 +432,10 @@ async def send_post_for_title(bot, title, target_chat, user_id=None):
         sent, note = await asyncio.wait_for(_send(bot, chan, title, target_chat), LOOKUP_TIMEOUT)
         return (PostHandle(sent.chat.id, sent.id) if sent else None), note
     except asyncio.TimeoutError:
-        return None, "⚠️ <b>Dump poster missing</b>"
+        return None, POSTER_MISSING_TXT
     except Exception as e:
         print(f"[POST-FORWARD] error: {e}", flush=True)
-        return None, "⚠️ <b>Dump poster missing</b>"
+        return None, POSTER_MISSING_TXT
 
 
 async def _delete_post(bot, handle):
