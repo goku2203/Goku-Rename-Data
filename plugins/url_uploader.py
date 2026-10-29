@@ -5,7 +5,7 @@ from helper.database import goku_stark
 from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
-from plugins.post_forward import send_post_for_title, discard_post, confirm_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
@@ -278,6 +278,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
     # ---------- 4.5 POST FORWARD (upload start: file-ku MUNNADI post dump-ku) ----------
     posted, post_note = await send_post_for_title(client, info.get('title'), target_chat, user_id)
     state['post'] = posted
+    await announce_post(client, message.chat.id, info.get('title'), posted, post_note)   # bot chat-la 10s notice
 
     # ---------- 5. Upload ----------
     filw, error = await upload_files(
@@ -296,7 +297,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
 
     state['done'] = True
     done_txt = script.DUMP_SENT_TXT if (dump_id and dump_status) else script.UPLOAD_SUCCESS_TXT
-    return done_txt + (f"\n\n{post_note}" if post_note else "")
+    return done_txt
 
 
 @Client.on_message(filters.private & filters.regex(r"^https?://"))

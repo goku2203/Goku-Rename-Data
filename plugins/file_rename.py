@@ -16,7 +16,7 @@ from helper.database import goku_stark
 from config import Config
 from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
-from plugins.post_forward import send_post_for_title, discard_post, confirm_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post
 
 # extra imports
 from asyncio import sleep
@@ -453,6 +453,7 @@ async def _upload_doc_impl(bot, update, files, state=None):
     post_target = int(dump_id) if (dump_id and dump_status) else update.message.chat.id
     posted, post_note = await send_post_for_title(bot, post_title, post_target, user_id)
     state['post'] = posted
+    await announce_post(bot, update.message.chat.id, post_title, posted, post_note)   # bot chat-la 10s notice
 
     if media.file_size > 2000 * 1024 * 1024:
         filw, error = await upload_files(
@@ -499,13 +500,12 @@ async def _upload_doc_impl(bot, update, files, state=None):
     await remove_path(ph_path, final_file_path, dl_path)
     
     # Message update with 5 seconds auto-delete
-    note = f"\n\n{post_note}" if post_note else ""
     if dump_id and dump_status:
-        await rkn_processing.edit(script.DUMP_SENT_TXT + note)
+        await rkn_processing.edit(script.DUMP_SENT_TXT)
     else:
-        await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT + note)
+        await rkn_processing.edit(script.UPLOAD_SUCCESS_TXT)
         
-    await asyncio.sleep(5 if not note else 10)
+    await asyncio.sleep(5)
     try:
         await rkn_processing.delete()
     except:
