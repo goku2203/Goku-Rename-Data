@@ -13,6 +13,7 @@ from pyrogram import idle
 
 # bots imports
 from config import Config
+from helper.database import goku_stark
 from plugins.web_support import web_server
 from plugins.file_rename import app
 
@@ -25,7 +26,57 @@ logging.basicConfig(
 logging.getLogger("pyrofork").setLevel(logging.WARNING)
 
 
-# ---------------- KEEP ALIVE (Render free plan sleep aagama) ----------------
+# ---------------- KEEP ALIVE + RENDER HOURS ALERT ----------------
+# RENDER_HOURS_ALERT  : intha hours-ku mela pona LOG_CHANNEL + admin-ku alert (default 700)
+# RENDER_HOURS_LIMIT  : Render free limit (default 750)
+# RENDER_OTHER_SERVICES : same Render account-la 24/7 odura vera free service count (default 0)
+#                         (750 hours ellaa free service-kum serthu thaan, adhunaala adhaiyum count pannanum)
+PING_EVERY = 240  # seconds
+
+async def _send_hours_alert(used_hours, alert_at, limit):
+    left = max(limit - used_hours, 0)
+    text = (
+        "**\u26a0\ufe0f Render Free Hours Alert**\n\n"
+        f"Intha month use aana hours: **{used_hours:.1f} / {limit:.0f}**\n"
+        f"Meedham iruppadhu: **{left:.1f} hrs** (approx)\n\n"
+        "Limit mudinja Render ella free service-um suspend pannidum. "
+        "Munnadiye vera Render account-la deploy panna ready aagu, illa paid plan-ku maaru.\n\n"
+        "__Note: ithu bot-oda own counter (approx). Exact value Render dashboard > Billing-la paaru.__"
+    )
+    targets = [Config.LOG_CHANNEL] + [a for a in Config.ADMIN if isinstance(a, int)]
+    for chat in targets:
+        try:
+            await Config.BOT.send_message(chat, text)
+        except Exception as e:
+            logging.error(f"Hours alert send failed for {chat}: {e}")
+
+async def _track_hours():
+    """Ovvoru ping-kum 240s add pannum, threshold thaandina oru thadava alert anuppum."""
+    alert_at = float(os.environ.get("RENDER_HOURS_ALERT", "700"))
+    limit = float(os.environ.get("RENDER_HOURS_LIMIT", "750"))
+    others = int(os.environ.get("RENDER_OTHER_SERVICES", "0"))
+    month = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m")
+    meta = goku_stark.db.meta
+
+    doc = await meta.find_one_and_update(
+        {"_id": "render_hours", "month": month},
+        {"$inc": {"seconds": PING_EVERY * (1 + others)}},
+        return_document=True,
+    )
+    if doc is None:  # puthu month (illa first time) -> reset
+        await meta.replace_one(
+            {"_id": "render_hours"},
+            {"_id": "render_hours", "month": month,
+             "seconds": PING_EVERY * (1 + others), "alerted": False},
+            upsert=True,
+        )
+        doc = await meta.find_one({"_id": "render_hours"})
+
+    used_hours = doc["seconds"] / 3600
+    if used_hours >= alert_at and not doc.get("alerted"):
+        await _send_hours_alert(used_hours, alert_at, limit)
+        await meta.update_one({"_id": "render_hours"}, {"$set": {"alerted": True}})
+
 async def keep_alive():
     url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
     if not url:
@@ -37,7 +88,11 @@ async def keep_alive():
                     await r.read()
             except Exception as e:
                 logging.error(f"Keep-alive failed: {e}")
-            await asyncio.sleep(240)  # 4 min-ku oru thadava ping
+            try:
+                await _track_hours()
+            except Exception as e:
+                logging.error(f"Hours tracking failed: {e}")
+            await asyncio.sleep(PING_EVERY)
 
 class DigitalAutoRenameBot(Client):
     def __init__(self):
