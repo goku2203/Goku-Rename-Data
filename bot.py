@@ -1,5 +1,5 @@
 
-import aiohttp, asyncio, warnings, pytz, datetime
+import aiohttp, asyncio, warnings, pytz, datetime, os
 import logging
 import logging.config
 import glob, sys
@@ -23,6 +23,21 @@ logging.basicConfig(
              logging.StreamHandler()]
 )
 logging.getLogger("pyrofork").setLevel(logging.WARNING)
+
+
+# ---------------- KEEP ALIVE (Render free plan sleep aagama) ----------------
+async def keep_alive():
+    url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not url:
+        return
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.get(url + "/health", timeout=aiohttp.ClientTimeout(total=20)) as r:
+                    await r.read()
+            except Exception as e:
+                logging.error(f"Keep-alive failed: {e}")
+            await asyncio.sleep(240)  # 4 min-ku oru thadava ping
 
 class DigitalAutoRenameBot(Client):
     def __init__(self):
@@ -53,6 +68,7 @@ class DigitalAutoRenameBot(Client):
         await app.setup()
         bind_address = "0.0.0.0"
         await aiohttp.web.TCPSite(app, bind_address, Config.PORT).start()
+        self.keep_alive_task = asyncio.create_task(keep_alive())
         
         path = "plugins/*.py"
         files = glob.glob(path)
