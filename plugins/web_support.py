@@ -111,6 +111,10 @@ async def root_route_handler(request):
     
     return web.Response(text=html_content, content_type='text/html')
 
+@DigitalAutoRenameBot.get("/health", allow_head=True)
+async def health_route_handler(request):
+    return web.Response(text="OK")
+
 async def web_server():
     web_app = web.Application(client_max_size=30000000)
     web_app.add_routes(DigitalAutoRenameBot)
