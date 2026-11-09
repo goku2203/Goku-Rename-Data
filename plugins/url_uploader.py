@@ -5,7 +5,7 @@ from helper.database import goku_stark
 from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
-from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post, finish_post
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
@@ -162,8 +162,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
         return "⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video."
     actual_upload_type = "document" if upload_type == "doc" else "video"
 
-    async with file_queue_lock:
-        await msg.edit("`🔗 URL Detected... Starting Download...`")
+    await msg.edit("`🔗 URL Detected... Starting Download...`")
 
     if state is None:
         state = {}
@@ -300,6 +299,22 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
     return done_txt
 
 
+async def _process_url_queued(client, message, msg, url, user_data, files, state):
+    """
+    QUEUE: lock download -> poster -> upload -> confirm/discard MUZHUSA hold pannum.
+    3 link anuppinaalum: poster1 -> file1 -> poster2 -> file2 -> poster3 -> file3
+    """
+    async with file_queue_lock:
+        ok = False
+        try:
+            status = await _process_url(client, message, msg, url, user_data, files, state)
+            ok = bool(state.get('done'))
+            return status
+        finally:
+            # lock release aagura MUNNADIYE post confirm / delete
+            await finish_post(client, state, ok)
+
+
 @Client.on_message(filters.private & filters.regex(r"^https?://"))
 async def url_uploader_handler(client, message):
     user_id = message.from_user.id
@@ -316,7 +331,7 @@ async def url_uploader_handler(client, message):
     try:
         status, cancelled = await run_cancellable(
             rkn_processing,
-            _process_url(client, message, rkn_processing, url, user_data, files, state)
+            _process_url_queued(client, message, rkn_processing, url, user_data, files, state)
         )
         if cancelled:
             status = "❌ **Process Cancelled.**"

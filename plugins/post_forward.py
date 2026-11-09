@@ -72,11 +72,21 @@ async def set_post_channel(value):
 # ---------------------------------------------------------------------
 #  Text helpers
 # ---------------------------------------------------------------------
+_APOSTROPHES = "'\u2019\u2018\u02bc\u0060\u00b4"
+
+
 def _norm(text: str) -> str:
-    """lower-case, fancy fonts -> normal, symbols/emoji remove, single spaces."""
+    """lower-case, fancy fonts -> normal, apostrophe remove (JoJo's == JoJos), symbols/emoji remove, single spaces."""
     text = unicodedata.normalize("NFKC", text or "").lower()
+    for ch in _APOSTROPHES:
+        text = text.replace(ch, "")
     text = re.sub(r"[^\w\s]|_", " ", text, flags=re.UNICODE)
     return " ".join(text.split())
+
+
+def _compact(text: str) -> str:
+    """spaces ellaam remove (old index-la 'jojo s' nu save aanathum 'jojos' nu match aagum)."""
+    return (text or "").replace(" ", "")
 
 
 def _first_line(text: str) -> str:
@@ -90,14 +100,22 @@ def _first_line(text: str) -> str:
 def rank_posts(cache: dict, title: str) -> list:
     """
     Title match aagura posts-a best -> worst order-la return pannum (message ids).
+    Partial name irundhaalum match aagum:
+      4   exact first line          3   first line title-la start aagum
+      2   first line-la title irukku   1   full caption-la title irukku
+      spaces/apostrophe different (JoJo's vs JoJos)  -> compact match (0.9 - 3.9)
+      title words ellaam post-la irukku (order mukkiyam illa)  -> 0.5
     Same score-la ore title-ku rendu post irundha, FIRST (pazhaya) post munnadi varum.
     """
     t = _norm(title)
     if not t:
         return []
     padded = f" {t} "
+    ct = _compact(t)
+    t_words = set(t.split())
     scored = []
     for mid, (full, first) in cache.items():
+        cfirst, cfull = _compact(first), _compact(full)
         if first == t:
             score, gap = 4, 0
         elif first.startswith(t + " "):
@@ -106,6 +124,18 @@ def rank_posts(cache: dict, title: str) -> list:
             score, gap = 2, len(first) - len(t)
         elif padded in f" {full} ":
             score, gap = 1, len(full) - len(t)
+        elif ct and cfirst == ct:
+            score, gap = 3.9, 0
+        elif ct and cfirst.startswith(ct):
+            score, gap = 2.9, len(cfirst) - len(ct)
+        elif ct and ct in cfirst:
+            score, gap = 1.9, len(cfirst) - len(ct)
+        elif ct and ct in cfull:
+            score, gap = 0.9, len(cfull) - len(ct)
+        elif t_words and t_words <= set(first.split()):
+            score, gap = 0.5, len(first) - len(t)
+        elif len(first.split()) >= 3 and set(first.split()) <= t_words:
+            score, gap = 0.4, len(t) - len(first)      # post name chinna, file title perusa
         else:
             continue
         scored.append((-score, gap, mid))
@@ -463,6 +493,21 @@ async def discard_post(bot, handle):
                     await _delete_post(bot, handle)
             return                          # vera episode innum antha post-a nambi irukku -> delete pannaadhu
     await _delete_post(bot, handle)
+
+
+async def finish_post(bot, state, ok):
+    """
+    Upload mudinjathum (success / fail / cancel) udane, QUEUE LOCK innum irukkumbodhe call pannanum.
+    ok=True -> post permanent.  ok=False -> post dump-la irunthu delete.
+    state['post']-a clear pannidum -> double confirm / discard aagaadhu.
+    """
+    handle = state.pop("post", None)
+    if not handle:
+        return
+    if ok:
+        await confirm_post(handle)
+    else:
+        await discard_post(bot, handle)
 
 
 async def confirm_post(handle):

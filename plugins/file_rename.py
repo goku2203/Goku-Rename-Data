@@ -16,7 +16,7 @@ from helper.database import goku_stark
 from config import Config
 from script import script
 from plugins.auto_rename import EnhancedAutoRenamer
-from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post
+from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post, finish_post
 
 # extra imports
 from asyncio import sleep
@@ -178,14 +178,36 @@ async def upload_files(bot, sender_id, upload_type, file_path, ph_path, caption,
 renamer = EnhancedAutoRenamer()
 
 async def _upload_doc_impl(bot, update, files, state=None):
+    """
+    QUEUE: lock download -> poster -> upload -> confirm/discard MUZHUSA hold pannum.
+    Appo 3 file / 3 link anuppinaalum ORE NERATHULA ORU file mattum process aagum:
+        poster1 -> file1 -> poster2 -> file2 -> poster3 -> file3   (3 poster munnadi pogaadhu)
+    """
     if state is None:
         state = {}
-    rkn_processing = await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
-    
+    try:
+        await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
+    except Exception:
+        pass
+
     async with file_queue_lock:
-        await rkn_processing.edit("`🔄 Processing Started...`")
-        
-        user_id = int(update.message.chat.id)
+        try:
+            await update.message.edit("`🔄 Processing Started...`")
+        except Exception:
+            pass
+        ok = False
+        try:
+            result = await _upload_doc_inner(bot, update, files, state)
+            ok = bool(result)
+            return result
+        finally:
+            # lock release aagura MUNNADIYE post confirm / delete -> adutha file-ku correct state kidaikkum
+            await finish_post(bot, state, ok)
+
+
+async def _upload_doc_inner(bot, update, files, state):
+    rkn_processing = update.message
+    user_id = int(update.message.chat.id)
 
     file = update.message.reply_to_message
     if not file:
