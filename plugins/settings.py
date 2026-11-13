@@ -40,6 +40,10 @@ async def send_settings_menu(user_id, message, is_query=False):
         admin_text = f"\n**Dump Status:** `{dump_txt}`"
         buttons.append([InlineKeyboardButton("📡 Post Channel", callback_data="post_channel_menu")])
 
+    buttons.append([
+        InlineKeyboardButton("📤 Export Settings", callback_data="export_settings"),
+        InlineKeyboardButton("📥 Import Settings", callback_data="import_settings")
+    ])
     buttons.append([InlineKeyboardButton("✖️ Close", callback_data="close")])
 
     text = f"**⚙️ Settings Menu**\n\n**Audio Status:** `{audio_status}`\n**Auto Post:** `{autopost_txt}` ({mode_txt}){admin_text}\n\nClick the buttons below to manage your settings."

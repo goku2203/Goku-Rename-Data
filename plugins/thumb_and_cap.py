@@ -26,6 +26,7 @@ License Link : https://t.me/Goku_Stark
 # imports
 from pyrogram import Client, filters 
 from helper.database import goku_stark
+from plugins.post_forward import auto_delete
 
 @Client.on_message(filters.private & filters.command('set_caption'))
 async def add_caption(client, message):
@@ -80,4 +81,5 @@ async def addthumbs(client, message):
     rkn = await message.reply_text("__**ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ**__")
     await goku_stark.set_thumbnail(message.from_user.id, file_id=message.photo.file_id)                
     await rkn.edit("✅️ __**Tʜᴜᴍʙɴᴀɪʟ Sᴀᴠᴇᴅ**__")
+    auto_delete(message, rkn)      # user anuppina photo + "Saved" message 10s-la auto delete (post_forward.AUTO_DELETE_SECS)
 
