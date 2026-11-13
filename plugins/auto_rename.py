@@ -12,6 +12,9 @@ from script import script
 # ---------------------------------------------------------------
 KEEP_TAG = "" # Disabled to prevent duplicate prefix
 
+# Filename START-la bracket / .com illama varra site peyar-a remove panna (venumna inga serthukonga)
+SITE_TAGS = ("Toonworld4all",)
+
 _EXTS = (
     "mkv|mp4|avi|webm|mov|m4v|ts|flv|wmv|mp3|m4a|flac|aac|ogg|wav|"
     "srt|ass|ssa|vtt|zip|rar|7z|pdf|apk|jpg|jpeg|png"
@@ -29,6 +32,9 @@ RE_DOMAIN = re.compile(
     re.IGNORECASE,
 )
 RE_DOMAIN_SPACED = re.compile(rf"^\s*[A-Za-z0-9\-]+[\s_]+(?:{_SAFE_TLDS})(?=[\s_\-.|:\]\)]|$)\s*[\s_\-.|:]*\s*", re.IGNORECASE)
+RE_SITE = re.compile(
+    rf"^\s*(?:{'|'.join(re.escape(t) for t in SITE_TAGS)}){_END}{_SEP}*", re.IGNORECASE
+) if SITE_TAGS else None
 RE_USER = re.compile(r"(?i)\s*@[A-Za-z0-9_]+\s*")
 
 class EnhancedAutoRenamer:
@@ -60,6 +66,8 @@ class EnhancedAutoRenamer:
             base = cls._strip_keep_tag(base)
             base = RE_DOMAIN.sub("", base)
             base = RE_DOMAIN_SPACED.sub("", base)
+            if RE_SITE:
+                base = RE_SITE.sub("", base)
             base = RE_USER.sub(" ", base) # removes @usernames anywhere
             if base == old:
                 break
@@ -76,7 +84,8 @@ class EnhancedAutoRenamer:
 
         t = re.search(
             r"^(.+?)(?=\s+(?:S\d{1,2}(?:\s?(?:E|EP)\s?\d{1,4})?(?![A-Za-z0-9])|Season\s*\d+|"
-            r"(?:19|20)\d{2}(?!\d)|\d{3,4}p(?![A-Za-z0-9])|4K\b)|$)",
+            r"EP?\s?\d{2,4}(?![A-Za-z0-9])|Episode\s*\d+|"          # E383 / EP12 / Episode 5 (season illama)
+            r"(?:19|20)\d{2}(?!\d)|[\[(]?\d{3,4}p(?![A-Za-z0-9])|4K\b)|$)",   # [480p] bracket-kum title mudivu
             cleaned, re.IGNORECASE)
         info["title"] = re.sub(r"[\s\-–—:|]+$", "", t.group(1)).strip() if t else cleaned
 
@@ -88,7 +97,8 @@ class EnhancedAutoRenamer:
             info["season"], info["episode"] = f"S{se.group(1).zfill(2)}", f"E{se.group(2).zfill(2)}"
         else:
             s = re.search(r"\bSeason\s*(\d{1,2})\b", cleaned, re.IGNORECASE)
-            e = re.search(r"\bEp(?:isode)?\s*(\d{1,4})\b", cleaned, re.IGNORECASE)
+            e = re.search(r"\bEp(?:isode)?\s*(\d{1,4})\b", cleaned, re.IGNORECASE) \
+                or re.search(r"(?<![A-Za-z0-9])E(\d{2,4})(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
             if s: info["season"] = f"S{s.group(1).zfill(2)}"
             if e: info["episode"] = f"E{e.group(1).zfill(2)}"
 
@@ -109,6 +119,9 @@ class EnhancedAutoRenamer:
             if re.search(re.escape(src), cleaned, re.IGNORECASE):
                 info["source"] = src.replace(" ", "-")
                 break
+        if not info["source"]:
+            bd = re.search(r"(?<![A-Za-z0-9])(BDRip|BRRip|BD)(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
+            if bd: info["source"] = bd.group(1).upper() if bd.group(1).upper() == "BD" else bd.group(1)
         if re.search(r"\b10bit\b", cleaned, re.IGNORECASE): info["bit_depth"] = "10bit"
         if re.search(r"\bhdr\b", cleaned, re.IGNORECASE): info["hdr"] = "HDR"
         return info
