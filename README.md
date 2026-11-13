@@ -37,7 +37,9 @@ Send a file or a direct link, and the bot cleans the name, applies your prefix /
 
 It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 designs + custom watermark) and a beautiful **live web status dashboard**.
 
-📢 **New:** **Auto Post** finds the matching *image + caption* post of your title in your own channel and drops it in your dump channel **right before the file** — fully automatic.
+📤 **New:** **Export / Import Settings** — copy all your settings to another account in one file.
+
+📢 **Auto Post** finds the matching *image + caption* post of your title in your own channel and drops it in your dump channel **right before the file** — fully automatic.
 
 ---
 
@@ -58,8 +60,8 @@ It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 desig
 | Feature | Description |
 |---|---|
 | 🎥 **Video ↔ Document ↔ Audio** | Choose output type per file, or set a default with `/set_type` |
-| 🔗 **Direct URL Uploader** | Paste any direct `http(s)` link — the bot downloads, renames and uploads it |
-| 🖼️ **Permanent Thumbnail** | Send a photo once, it is used on every upload |
+| 🔗 **Direct URL Uploader** | Paste any direct `http(s)` link — the bot shows **URL Verified ✅**, then an animated **Downloading…** (with progress bar) and **Adding Metadata…**, renames and uploads it. Cancel button works at every step |
+| 🖼️ **Permanent Thumbnail** | Send a photo once, it is used on every upload. Your photo and the "saved" message are deleted after 10 seconds — the thumbnail stays saved |
 | 📝 **Custom Caption** | Variables supported: `{filename}`, `{filesize}`, `{duration}` |
 | 🗂️ **Dump Channel** | Auto-forward every finished file to your own channel with `/dump` |
 | 🐘 **Big File Support** | Up to **4 GB** with a Premium `STRING_SESSION` |
@@ -67,11 +69,7 @@ It also ships with a **Movie / Series Poster Generator** (TMDB powered, 18 desig
 
 ### 📢 Auto Post (Poster → Dump → File)
 
-<div align="center">
-  <img src="assets/autopost-flow.svg" alt="Auto Post animated flow" width="100%"/>
-</div>
-
-<br/>
+**Flow:** 🖼️ Poster post → 🗂️ Dump channel → 📁 File
 
 Send a file or a link. When the **upload starts** (after the download is finished), the bot reads the **title** from the file name — the name between your prefix and `S01` (any season) — finds that title's **image + caption post** in your **Post Channel**, and puts it in your **dump channel first**. The finished file follows right after it.
 
@@ -138,7 +136,19 @@ If no matching post is found, the upload is **not** blocked — it continues and
 A stylish **Ultra Status** page served by the bot itself — live bot status, users, uptime, CPU, RAM, disk and network usage. Also keeps **Render / Koyeb** web services awake.
 
 ### ⚙️ Settings Panel
-Everything in one inline menu with `/settings`: **Prefix · Suffix · Caption · Audio Language · Auto Post · Post Mode · Dump Channel** (admin) **· Post Channel** (admin).
+Everything in one inline menu with `/settings`: **Prefix · Suffix · Caption · Audio Language · Auto Post · Post Mode · Dump Channel** (admin) **· Post Channel** (admin) **· Export / Import Settings**.
+
+### 📤 Export / Import Settings
+Move your whole setup to another account in two steps.
+
+| Step | What to do |
+|---|---|
+| 📤 **Export** | `/settings` → **Export Settings** (or `/export_settings`). The bot sends a `Goku_Settings_<id>.json` file |
+| 📥 **Import** | On the other account, send that file to the bot — or use **Import Settings** / reply to the file with `/import_settings` |
+
+- **Included:** prefix, suffix, caption, auto-rename format, thumbnail, output type, rename mode, audio language, auto post, post mode, watermark & size.
+- **Dump channel** is included only for admin accounts.
+- Import changes only the settings of the account that sends the file. Don't share the file with others.
 
 ---
 
@@ -253,6 +263,8 @@ poster        - Generate a movie / series poster
 set_watermark - Set your poster watermark
 autopost      - Auto Post ON / OFF
 postmode      - Every File / Once per Series
+export_settings - Export all your settings as a file
+import_settings - Import settings from an exported file
 ```
 
 </details>
@@ -282,7 +294,8 @@ del_post_channel - Remove the Auto Post channel
 2. In **Auto** mode it renames instantly. In **Manual** mode, reply with the new name.
 3. Pick **Document / Video / Audio** (or let your default `/set_type` decide).
 4. Your thumbnail, caption, prefix & suffix are applied — done! ✅
-5. With **Auto Post** ON, the matching poster post lands in your dump channel right before the file. 📢
+5. Want the same setup on another account? **Export Settings** → send the file there. 📤
+6. With **Auto Post** ON, the matching poster post lands in your dump channel right before the file. 📢
 
 ---
 
@@ -295,8 +308,6 @@ Goku-Rename-Data/
 ├── script.py                 # All bot texts
 ├── app.json                  # Heroku template
 ├── Dockerfile · Procfile     # Deployment files
-├── assets/
-│   └── autopost-flow.svg     # Animated Auto Post flow
 ├── helper/
 │   ├── database.py           # MongoDB user settings
 │   └── utils.py              # Progress bar, helpers
@@ -308,6 +319,7 @@ Goku-Rename-Data/
 │   ├── poster.py             # TMDB poster generator
 │   ├── thumbnail_designs.py  # 18 poster designs (fonts/ folder-la bundled Google Fonts use pannum)
 │   ├── settings.py           # Settings panel
+│   ├── settings_backup.py    # Export / Import settings
 │   ├── thumb_and_cap.py      # Thumbnail & caption
 │   ├── dump.py               # Dump channel
 │   ├── force_sub.py          # Force subscribe
@@ -335,7 +347,7 @@ Goku-Rename-Data/
 
 <div align="center">
 
-### 🕒 Last Updated: `26-10-2026`
+### 🕒 Last Updated: `13-11-2026`
 
 **Made with ❤️ by [Goku Stark](https://t.me/Goku_Stark)**
 
