@@ -120,7 +120,7 @@ class EnhancedAutoRenamer:
                 info["source"] = src.replace(" ", "-")
                 break
         if not info["source"]:
-            bd = re.search(r"(?<![A-Za-z0-9])(BDRip|BRRip|BD)(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
+            bd = re.search(r"(?<![A-Za-z0-9])(BDRip|BR[-\s]?Rip|BD)(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
             if bd: info["source"] = bd.group(1).upper() if bd.group(1).upper() == "BD" else bd.group(1)
         if re.search(r"\b10bit\b", cleaned, re.IGNORECASE): info["bit_depth"] = "10bit"
         if re.search(r"\bhdr\b", cleaned, re.IGNORECASE): info["hdr"] = "HDR"
@@ -139,9 +139,44 @@ class EnhancedAutoRenamer:
             stem = f"{KEEP_TAG} {stem}".strip()
         return f"{stem}{ext}"
 
+    def build_filename(self, info: Dict, template: str, prefix, suffix, ext: str, limit: int = 60):
+        """
+        FILENAME-ah user-oda auto-rename format padi build pannum (caption maathiri, ana 60 char limit-oda).
+        Limit-ku mela pona TITLE mattum vettum - vera ethum (E-15, quality...) vettaadhu.
+        None return panna -> caller pazhaya (prefix + title + S/E + quality) method use pannum.
+        """
+        if not template or "{title}" not in template or "{filename}" in template or "{original}" in template:
+            return None
+        ext = (ext or "").lstrip(".")
+
+        def render(title: str) -> str:
+            i = dict(info)
+            i["title"] = title
+            i = {k: (v.replace("_", " ") if isinstance(v, str) and k != "extension" else v) for k, v in i.items()}
+            base = self.apply_format_template(i, template)
+            if ext and base.lower().endswith(f".{ext.lower()}"):
+                base = base[: -(len(ext) + 1)]
+            base = re.sub(r'[\\/:*?"<>|]', "", base)
+            parts = [p for p in (prefix, base, suffix) if p]
+            name = " ".join(" ".join(parts).split())
+            return f"{name}.{ext}" if ext else name
+
+        title = (info.get("title") or "").replace("_", " ")
+        out = render(title)
+        if len(out) <= limit:
+            return out
+        t = title[: max(len(title) - (len(out) - limit), 0)].strip()
+        while t:
+            out = render(t)
+            if len(out) <= limit:
+                return out
+            t = t[:-1].rstrip()
+        return None        # title vettiyum limit-ku varala -> pazhaya method
+
     def apply_format_template(self, info: Dict, template: str) -> str:
         ph = {"{title}": info["title"], "{year}": info["year"], "{season}": info["season"],
-              "{episode}": info["episode"], "{quality}": info["quality"], "{source}": info["source"],
+              "{episode}": info["episode"], "{episodes}": re.sub(r"\D", "", info.get("episode", "") or ""),
+              "{quality}": info["quality"], "{source}": info["source"],
               "{video_codec}": info["video_codec"], "{audio_codec}": info["audio_codec"],
               "{language}": info["language"], "{bit_depth}": info["bit_depth"], "{hdr}": info["hdr"],
               "{original}": info["original_name"], "{filename}": info["original_name"],
@@ -170,6 +205,7 @@ async def set_format_command(client: Client, message: Message):
             "`{year}` - Release year",
             "`{season}` - Season number (S01)",
             "`{episode}` - Episode number (E01)",
+            "`{episodes}` - Episode number only, no 'E' (01, 25) - eg: `E-{episodes}` → E-25",
             "`{quality}` - Video quality (1080p, 4K)",
             "`{source}` - Source type (BluRay, WEBRip)",
             "`{video_codec}` - Video codec (x264, x265)",

@@ -234,7 +234,8 @@ def plan_names(original_filename, user_data):
         cap_base = f"{cap_base} {suffix}"
 
     final_caption_name = f"{cap_base}.{ext_str}".strip()
-    new_filename = build_clean_filename(info, prefix, suffix, ext_str)
+    new_filename = (renamer.build_filename(info, format_template, prefix, suffix, ext_str, limit=MAX_NAME_LEN)
+                    or build_clean_filename(info, prefix, suffix, ext_str))
     return info, final_caption_name, new_filename
 
 

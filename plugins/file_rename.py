@@ -348,7 +348,12 @@ async def _upload_doc_inner(bot, update, files, state):
 
         if "." not in new_filename:
             new_filename = f"{new_filename}.{ext_str}"
-            
+
+        # User-oda auto-rename format padi filename (60 char limit-oda). Mudiyala na mela irukkura pazhaya filename use aagum.
+        tpl_filename = renamer.build_filename(info, format_template, prefix, suffix, ext_str, limit=60)
+        if tpl_filename:
+            new_filename = tpl_filename
+
     print(f"[RENAME-DEBUG] raw={media.file_name!r} -> new={new_filename!r}", flush=True)
     
     file_path = f"Renames/{new_filename}"
