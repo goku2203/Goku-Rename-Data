@@ -72,7 +72,7 @@ Exᴀᴍᴩʟᴇ:-/n
     
 » 𝗦𝗢𝗨𝗥𝗖𝗘 𝗖𝗢𝗗𝗘 : <a href=https://t.me/Goku_Stark>Goku Stark</a>"""
 
-    RKN_PROGRESS = """<b>\n\n🎬 **Output:▼**\n<blockquote><b>{5}</b></blockquote>\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n\n ────[ Pʟᴇᴀsᴇ Wᴀɪᴛ... ]────\n</b>"""
+    RKN_PROGRESS = """<b>\n\n🎬 **Output:▼**\n<blockquote><b>{5}</b></blockquote>\n\n📦 Sɪᴢᴇ: {1} / {2}\n 📊 Pʀᴏɢʀᴇss: {0}%\n ⚡ Sᴘᴇᴇᴅ: {3}/s\n ⏱️ Eᴛᴀ: {4}\n</b>"""
 
     # Custom Metadata & Tags
     METADATA_TITLE = "@Goku_Stark"
