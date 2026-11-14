@@ -246,7 +246,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
         return "⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video."
     actual_upload_type = "document" if upload_type == "doc" else "video"
 
-    await msg.edit("`🔗 Verifying URL...`", reply_markup=CANCEL_MARKUP)
+    await msg.edit("`🔗 Verifying URL...`")
 
     if state is None:
         state = {}
