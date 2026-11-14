@@ -56,16 +56,10 @@ class Animated:
         return False
 
 
-async def show_verified(msg, name, total_size):
-    """URL check OK aanathum kaattura message (bar illa - data innum varala)."""
-    size_line = f"\n📦 <b>Sɪᴢᴇ:</b> {humanbytes(total_size)}" if total_size else ""
-    text = (
-        "<b>🔗 URL Vᴇʀɪꜰɪᴇᴅ ✅</b>\n\n"
-        f"<b>🎬 Oᴜᴛᴘᴜᴛ:▼</b>\n<blockquote><b>{html.escape(name)}</b></blockquote>"
-        f"{size_line}"
-    )
+async def show_verified(msg, name=None, total_size=None):
+    """URL check OK aanathum "URL Verified ✅" mattum kaattum (bar illa, vera details illa)."""
     try:
-        await msg.edit(text, reply_markup=CANCEL_MARKUP)
+        await msg.edit("<b>🔗 URL Vᴇʀɪꜰɪᴇᴅ ✅</b>")
         await asyncio.sleep(1.5)          # user-ku paarka konjam neram
     except Exception:
         pass
