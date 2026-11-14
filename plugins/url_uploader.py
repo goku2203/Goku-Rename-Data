@@ -1,14 +1,101 @@
-import os, re, time, aiohttp, asyncio
+import os, re, time, math, html, aiohttp, asyncio
 from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from helper.database import goku_stark
-from helper.utils import humanbytes, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
+from helper.utils import humanbytes, TimeFormatter, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
 from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post, finish_post
 
 # Filename total length limit (file renamer-la irukkura same 60 limit)
 MAX_NAME_LEN = 60
+
+
+# =====================================================================
+#  ANIMATION TEXT (URL flow mattum) - Upload bar-a touch pannala
+# =====================================================================
+CANCEL_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
+ANIM_EDIT_EVERY = 2.5   # seconds (Telegram flood-ku safe)
+
+
+def dots(tick: int) -> str:
+    """tick 0,1,2,3,4.. -> '', '.', '..', '...', '' ..."""
+    return "." * (tick % 4)
+
+
+class Animated:
+    """
+    `async with Animated(msg, lambda t: "text"):` ulla irukkura work mudiyara varaikkum
+    message-a thaaney animate pannum (dots maaridhu). Work mudinjathum / cancel aanalum thaaney nikkum.
+    """
+    def __init__(self, msg, make_text, interval=ANIM_EDIT_EVERY, markup=None):
+        self.msg, self.make_text, self.interval, self.markup = msg, make_text, interval, markup
+        self._task = None
+
+    async def _run(self):
+        tick = 0
+        try:
+            while True:
+                try:
+                    await self.msg.edit(self.make_text(tick), reply_markup=self.markup)
+                except Exception:
+                    pass          # MessageNotModified / FloodWait - ignore, animation continue
+                tick += 1
+                await asyncio.sleep(self.interval)
+        except asyncio.CancelledError:
+            return
+
+    async def __aenter__(self):
+        self._task = asyncio.ensure_future(self._run())
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self._task.cancel()
+        await self._task          # _run CancelledError-a ullayae handle pannum
+        return False
+
+
+async def show_verified(msg, name, total_size):
+    """URL check OK aanathum kaattura message (bar illa - data innum varala)."""
+    size_line = f"\n📦 <b>Sɪᴢᴇ:</b> {humanbytes(total_size)}" if total_size else ""
+    text = (
+        "<b>🔗 URL Vᴇʀɪꜰɪᴇᴅ ✅</b>\n\n"
+        f"<b>🎬 Oᴜᴛᴘᴜᴛ:▼</b>\n<blockquote><b>{html.escape(name)}</b></blockquote>"
+        f"{size_line}"
+    )
+    try:
+        await msg.edit(text, reply_markup=CANCEL_MARKUP)
+        await asyncio.sleep(1.5)          # user-ku paarka konjam neram
+    except Exception:
+        pass
+
+
+async def download_progress(current, total, msg, start, file_name, tick):
+    """
+    DOWNLOAD-ku mattum: animated 'Downloading...' header + same bar/layout.
+    (Upload progress_for_pyrogram-a maathala.)
+    """
+    header = f"**📥 Downloading{dots(tick)}**"
+    diff = max(time.time() - start, 0.001)
+
+    if not total:
+        text = f"{header}\n\n**Downloaded:** {humanbytes(current)}\n{file_name or ''}"
+    else:
+        percentage = min(current * 100 / total, 100)
+        speed = current / diff
+        eta_ms = round((total - current) / speed) * 1000 if speed > 0 else 0
+        filled = math.floor(percentage / 5)
+        bar = "▣" * filled + "▢" * (20 - filled)
+        body = bar + script.RKN_PROGRESS.format(
+            round(percentage, 2), humanbytes(current), humanbytes(total),
+            humanbytes(speed), TimeFormatter(milliseconds=eta_ms) or "0 s", file_name or ""
+        )
+        text = f"{header}\n\n{body}"
+    try:
+        await msg.edit(text, reply_markup=CANCEL_MARKUP)
+    except Exception:
+        pass
 
 
 def normalize_season_episode(name: str) -> str:
@@ -147,7 +234,8 @@ def plan_names(original_filename, user_data):
         cap_base = f"{cap_base} {suffix}"
 
     final_caption_name = f"{cap_base}.{ext_str}".strip()
-    new_filename = build_clean_filename(info, prefix, suffix, ext_str)
+    new_filename = (renamer.build_filename(info, format_template, prefix, suffix, ext_str, limit=MAX_NAME_LEN)
+                    or build_clean_filename(info, prefix, suffix, ext_str))
     return info, final_caption_name, new_filename
 
 
@@ -162,7 +250,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
         return "⚠️ Default Output Format is not set!\n\nFirst use `/set_type` command to select Document or Video."
     actual_upload_type = "document" if upload_type == "doc" else "video"
 
-    await msg.edit("`🔗 URL Detected... Starting Download...`")
+    await msg.edit("`🔗 Verifying URL...`", reply_markup=CANCEL_MARKUP)
 
     if state is None:
         state = {}
@@ -210,23 +298,21 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
 
                 total_size = int(response.headers.get('content-length', 0) or 0)
 
+                # URL OK -> "URL Verified ✅" (bar illa)
+                await show_verified(msg, new_filename, total_size)
+
                 with open(local_path, 'wb') as f:
                     downloaded = 0
                     start_time = time.time()
-                    last_update = time.time()
+                    last_update = 0          # 0 -> first chunk-laye "Downloading..." kaattum
+                    tick = 0
                     async for chunk in response.content.iter_chunked(1024 * 1024):
                         f.write(chunk)
                         downloaded += len(chunk)
 
                         if time.time() - last_update > 3:
-                            try:
-                                await progress_for_pyrogram(
-                                    downloaded, total_size,
-                                    "**  Download Started...**",
-                                    msg, start_time, new_filename
-                                )
-                            except Exception:
-                                pass
+                            await download_progress(downloaded, total_size, msg, start_time, new_filename, tick)
+                            tick += 1
                             last_update = time.time()
     except asyncio.TimeoutError:
         return "❌ Download timed out. Server response kodukkala."
@@ -246,12 +332,9 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
     os.rename(local_path, new_local_path)
 
     # ---------- Metadata ----------
-    try:
-        await msg.edit("`🏷️ Adding Metadata...`")
-    except Exception:
-        pass
     audio_lang = user_data.get('audio_lang', None)
-    await add_metadata(new_local_path, audio_lang)
+    async with Animated(msg, lambda t: f"`🏷️ Adding Metadata{dots(t)}`"):
+        await add_metadata(new_local_path, audio_lang)
 
     # ---------- 4. Thumbnail & Caption ----------
     c_caption = user_data.get('caption', None)
