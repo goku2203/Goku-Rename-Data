@@ -272,7 +272,7 @@ async def set_format_command(client: Client, message: Message):
             reply_markup=InlineKeyboardMarkup(buttons)
         )
         
-        await asyncio.sleep(60) # User padikka 60 seconds time
+        await asyncio.sleep(120) # User padikka 120 seconds time
         try:
             await message.delete() # User command delete aagum
             await msg.delete() # Bot message delete aagum
