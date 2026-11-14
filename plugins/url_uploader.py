@@ -120,9 +120,11 @@ def build_clean_filename(info, prefix, suffix, ext_str, limit=MAX_NAME_LEN):
     name = " ".join(name.split())
     return f"{name}.{ext_str}" if ext_str else name
 
-async def add_metadata(file_path: str, audio_lang: str = None) -> str:
-    """File renamer maathiri ffmpeg-la script.METADATA_TITLE metadata & audio track add pannum."""
+async def add_metadata(file_path: str, audio_lang: str = None, file_title: str = None) -> str:
+    """File renamer maathiri ffmpeg-la metadata & audio track add pannum.
+    General Title + Video stream Title = output filename (file_title). Matha tags = script.METADATA_TITLE."""
     title = script.METADATA_TITLE
+    main_title = file_title or title
     folder, name = os.path.split(file_path)
     meta_path = os.path.join(folder, f"meta_{name}")
     
@@ -157,14 +159,14 @@ async def add_metadata(file_path: str, audio_lang: str = None) -> str:
             cmd.extend([f"-disposition:a:m:language:{audio_lang}", "default"])
         
     cmd.extend([
-            "-metadata", f"title={title}",
+            "-metadata", f"title={main_title}",
             "-metadata", f"author={title}",
             "-metadata", f"encoder={title}",
             "-metadata", f"uploader={title}",
             "-metadata", f"website={title}",
             "-metadata", f"artist={title}",
             "-metadata", f"notes={title}",
-            "-metadata:s:v", f"title={title}",
+            "-metadata:s:v", f"title={main_title}",
             "-metadata:s:v", f"encoder={title}",
             "-metadata:s:a", f"title={title}",
             "-metadata:s:a", f"encoder={title}",
@@ -328,7 +330,7 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
     # ---------- Metadata ----------
     audio_lang = user_data.get('audio_lang', None)
     async with Animated(msg, lambda t: f"`🏷️ Adding Metadata{dots(t)}`"):
-        await add_metadata(new_local_path, audio_lang)
+        await add_metadata(new_local_path, audio_lang, file_title=new_filename)
 
     # ---------- 4. Thumbnail & Caption ----------
     c_caption = user_data.get('caption', None)

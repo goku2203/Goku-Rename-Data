@@ -377,6 +377,8 @@ async def _upload_doc_inner(bot, update, files, state):
     files.append(out_path)
     
     custom_metadata_title = script.METADATA_TITLE
+    import shlex
+    file_title = shlex.quote(new_filename)   # General + Video stream title = output filename
     audio_lang = user_data.get('audio_lang', None)
     
     # User set panna audio-ah default ah maathum code
@@ -405,7 +407,7 @@ async def _upload_doc_inner(bot, update, files, state):
         if not audio_cmd:
             audio_cmd = f'-disposition:a 0 -disposition:a:m:language:{audio_lang} default '
     
-    cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 {audio_cmd}-metadata title="{custom_metadata_title}" -metadata author="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title="{custom_metadata_title}" -metadata:s:v encoder="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:a encoder="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" -metadata:s:s encoder="{custom_metadata_title}" "{out_path}"'
+    cmd = f'ffmpeg -y -i "{file_path}" -c copy -map 0 {audio_cmd}-metadata title={file_title} -metadata author="{custom_metadata_title}" -metadata encoder="{custom_metadata_title}" -metadata uploader="{custom_metadata_title}" -metadata website="{custom_metadata_title}" -metadata artist="{custom_metadata_title}" -metadata notes="{custom_metadata_title}" -metadata:s:v title={file_title} -metadata:s:v encoder="{custom_metadata_title}" -metadata:s:a title="{custom_metadata_title}" -metadata:s:a encoder="{custom_metadata_title}" -metadata:s:s title="{custom_metadata_title}" -metadata:s:s encoder="{custom_metadata_title}" "{out_path}"'
     
     proc = await asyncio.create_subprocess_shell(cmd)
     try:
