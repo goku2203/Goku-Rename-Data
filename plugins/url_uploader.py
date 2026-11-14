@@ -384,6 +384,7 @@ async def _process_url_queued(client, message, msg, url, user_data, files, state
     3 link anuppinaalum: poster1 -> file1 -> poster2 -> file2 -> poster3 -> file3
     """
     async with file_queue_lock:
+        state['started'] = True        # queue-la irunthu velila vandhaachu (cancel text maarum)
         ok = False
         try:
             status = await _process_url(client, message, msg, url, user_data, files, state)
@@ -401,7 +402,7 @@ async def url_uploader_handler(client, message):
 
     user_data = await goku_stark.get_user_data(user_id)
 
-    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`")
+    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`", reply_markup=CANCEL_MARKUP)
 
     files = []        # temp / partial files (cleanup-ku)
     status = None     # user-ku kaattura final message
@@ -413,7 +414,8 @@ async def url_uploader_handler(client, message):
             _process_url_queued(client, message, rkn_processing, url, user_data, files, state)
         )
         if cancelled:
-            status = "❌ **Process Cancelled.**"
+            # queue-la wait pannum bothe cancel panninaa vera text
+            status = "❌ **Process Cancelled.**" if state.get('started') else "❌ **URL Removed from Queue.**"
     except Exception as e:
         status = f"❌ Error: {e}"
     finally:

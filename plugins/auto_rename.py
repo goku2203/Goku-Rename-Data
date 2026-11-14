@@ -83,8 +83,8 @@ class EnhancedAutoRenamer:
                     release_group="", original_name=cleaned, extension=extension)
 
         t = re.search(
-            r"^(.+?)(?=\s+(?:S\d{1,2}(?:\s?(?:E|EP)\s?\d{1,4})?(?![A-Za-z0-9])|Season\s*\d+|"
-            r"EP?\s?\d{2,4}(?![A-Za-z0-9])|Episode\s*\d+|"          # E383 / EP12 / Episode 5 (season illama)
+            r"^(.+?)(?=\s+(?:[\[(]?S\d{1,2}(?:[\s\-_.]?(?:E|EP)\s?\d{1,4})?(?![A-Za-z0-9])|[\[(]?Season\s*\d+|"
+            r"[\[(]?EP?\s?\d{2,4}(?![A-Za-z0-9])|Episode\s*\d+|"          # E383 / EP12 / Episode 5 (season illama)
             r"(?:19|20)\d{2}(?!\d)|[\[(]?\d{3,4}p(?![A-Za-z0-9])|4K\b)|$)",   # [480p] bracket-kum title mudivu
             cleaned, re.IGNORECASE)
         info["title"] = re.sub(r"[\s\-–—:|]+$", "", t.group(1)).strip() if t else cleaned
@@ -92,7 +92,7 @@ class EnhancedAutoRenamer:
         y = re.search(r"(?<!\d)((?:19|20)\d{2})(?!\d)", cleaned[len(info["title"]):])
         if y: info["year"] = y.group(1)
 
-        se = re.search(r"(?<![A-Za-z0-9])S(\d{1,2})\s?(?:E|EP)\s?(\d{1,4})(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
+        se = re.search(r"(?<![A-Za-z0-9])S(\d{1,2})[\s\-_.]?(?:E|EP)\s?(\d{1,4})(?![A-Za-z0-9])", cleaned, re.IGNORECASE)
         if se:
             info["season"], info["episode"] = f"S{se.group(1).zfill(2)}", f"E{se.group(2).zfill(2)}"
         else:
@@ -139,21 +139,41 @@ class EnhancedAutoRenamer:
             stem = f"{KEEP_TAG} {stem}".strip()
         return f"{stem}{ext}"
 
+    # Filename-la MUKKIYAM-aana parts mattum (matha ellaam = "extras": {source}, {audio_codec}, "Multi Audio" ...)
+    _CORE_PH = ("{title}", "{season}", "{episode}", "{episodes}", "{quality}", "{year}")
+    _RE_NONCORE_PH = re.compile(r"\{(?!(?:title|season|episodes?|quality|year)\})\w+\}")
+    _RE_SE_LITERAL = re.compile(r"^[\[(]*(?:S|E|EP|Season|Episode)[-_ ]?\d+", re.IGNORECASE)
+
+    @classmethod
+    def _core_template(cls, template: str) -> str:
+        """Format-la irunthu title/season/episode/quality (+ (S-18) maari marker) mattum vechukkum."""
+        t = re.sub(r"\.(?:\{ext\}|[A-Za-z0-9]{2,4})\s*$", "", template.strip())
+        keep = []
+        for tok in t.split():
+            if any(k in tok for k in cls._CORE_PH) or cls._RE_SE_LITERAL.match(tok):
+                tok = cls._RE_NONCORE_PH.sub("", tok).strip("-_|")
+                if re.search(r"[A-Za-z0-9{]", tok):
+                    keep.append(tok)
+        return " ".join(keep)
+
     def build_filename(self, info: Dict, template: str, prefix, suffix, ext: str, limit: int = 60):
         """
         FILENAME-ah user-oda auto-rename format padi build pannum (caption maathiri, ana 60 char limit-oda).
-        Limit-ku mela pona TITLE mattum vettum - vera ethum (E-15, quality...) vettaadhu.
+          1) Full format 60-kulla irundha -> appadiyae (Multi, source ellaam sernthu)
+          2) 60 mela ponaa -> extras ({source}, {audio_codec}, 'Multi Audio'...) edutthuttu
+             prefix + title + season + episode + quality + suffix mattum
+          3) appavum 60 mela ponaa -> TITLE mattum vettum
         None return panna -> caller pazhaya (prefix + title + S/E + quality) method use pannum.
         """
-        if not template or "{title}" not in template or "{filename}" in template or "{original}" in template:
+        if not template or "{filename}" in template or "{original}" in template:
             return None
         ext = (ext or "").lstrip(".")
 
-        def render(title: str) -> str:
+        def render(title: str, tmpl: str) -> str:
             i = dict(info)
             i["title"] = title
             i = {k: (v.replace("_", " ") if isinstance(v, str) and k != "extension" else v) for k, v in i.items()}
-            base = self.apply_format_template(i, template)
+            base = self.apply_format_template(i, tmpl)
             if ext and base.lower().endswith(f".{ext.lower()}"):
                 base = base[: -(len(ext) + 1)]
             base = re.sub(r'[\\/:*?"<>|]', "", base)
@@ -162,12 +182,21 @@ class EnhancedAutoRenamer:
             return f"{name}.{ext}" if ext else name
 
         title = (info.get("title") or "").replace("_", " ")
-        out = render(title)
+        out = render(title, template)
+        if len(out) <= limit:
+            return out
+        if "{title}" not in template:
+            return None        # format-la {title} illa -> vettavae mudiyaadhu -> pazhaya method
+
+        core = self._core_template(template)
+        if not core or "{title}" not in core:
+            return None
+        out = render(title, core)
         if len(out) <= limit:
             return out
         t = title[: max(len(title) - (len(out) - limit), 0)].strip()
         while t:
-            out = render(t)
+            out = render(t, core)
             if len(out) <= limit:
                 return out
             t = t[:-1].rstrip()
