@@ -3,7 +3,7 @@ from urllib.parse import urlparse, unquote
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from helper.database import goku_stark
-from helper.utils import humanbytes, TimeFormatter, remove_path, file_queue_lock, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
+from helper.utils import humanbytes, TimeFormatter, remove_path, QueueSlot, progress_for_pyrogram, run_cancellable, safe_delete, cleanup_files
 from plugins.file_rename import upload_files, DUMP_STICKER_ID, renamer
 from script import script
 from plugins.post_forward import send_post_for_title, discard_post, confirm_post, announce_post, finish_post
@@ -381,9 +381,10 @@ async def _process_url(client, message, msg, url, user_data, files, state=None):
 async def _process_url_queued(client, message, msg, url, user_data, files, state):
     """
     QUEUE: lock download -> poster -> upload -> confirm/discard MUZHUSA hold pannum.
-    3 link anuppinaalum: poster1 -> file1 -> poster2 -> file2 -> poster3 -> file3
+    Vera job run aagitu irundha "Link Added to Queue 1/2/3.." nu kaattum,
+    queue-la add aana udane user anuppina link message auto delete aagum.
     """
-    async with file_queue_lock:
+    async with QueueSlot(msg, "Link", CANCEL_MARKUP, on_queued=lambda: safe_delete(message)):
         state['started'] = True        # queue-la irunthu velila vandhaachu (cancel text maarum)
         ok = False
         try:
@@ -402,7 +403,7 @@ async def url_uploader_handler(client, message):
 
     user_data = await goku_stark.get_user_data(user_id)
 
-    rkn_processing = await message.reply_text("`⏳ URL Added to Queue... Please wait your turn...`", reply_markup=CANCEL_MARKUP)
+    rkn_processing = await message.reply_text("`⏳ Please wait...`", reply_markup=CANCEL_MARKUP)
 
     files = []        # temp / partial files (cleanup-ku)
     status = None     # user-ku kaattura final message

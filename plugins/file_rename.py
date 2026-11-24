@@ -11,7 +11,7 @@ from hachoir.parser import createParser
 from PIL import Image
 
 # bots imports
-from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, file_queue_lock, run_cancellable, safe_delete, cleanup_files
+from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix, remove_path, QueueSlot, QUEUE_CANCEL_MARKUP, run_cancellable, safe_delete, cleanup_files
 from helper.database import goku_stark
 from config import Config
 from script import script
@@ -185,12 +185,12 @@ async def _upload_doc_impl(bot, update, files, state=None):
     """
     if state is None:
         state = {}
-    try:
-        await update.message.edit("`⏳ File Added to Queue... Please wait your turn...`")
-    except Exception:
-        pass
 
-    async with file_queue_lock:
+    # Vera job run aagitu irundha "File Added to Queue 1/2/3.." nu kaattum,
+    # queue-la add aana udane user anuppina file message auto delete aagum.
+    # (Download-ku file_id/media object already memory-la irukku, so delete pannina problem illa)
+    original = update.message.reply_to_message
+    async with QueueSlot(update.message, "File", QUEUE_CANCEL_MARKUP, on_queued=lambda: safe_delete(original)):
         try:
             await update.message.edit("`🔄 Processing Started...`")
         except Exception:
