@@ -220,3 +220,76 @@ def cleanup_files(*paths):
                 os.remove(p)
         except Exception:
             pass
+
+
+# =====================================================================
+#  QUEUE NUMBERING  (Queue 1, Queue 2 ... + queue-la add aana udane user message delete)
+# =====================================================================
+# Oru neratula ORU link / file mattum process aagum (file_queue_lock).
+# Mathathu waiting list-la irukkum. 1st waiting = Queue 1, 2nd waiting = Queue 2 ...
+# Munnadi irukkura job mudinja udane numbers thaaney maarum (Queue 2 -> Queue 1).
+QUEUE_WAITING = []                 # waiting irukkura QueueSlot-gal (order-padi)
+_queue_state = {"busy": False}     # oru job ippo run aagitu irukka?
+QUEUE_CANCEL_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
+
+
+async def _refresh_queue_numbers():
+    for pos, slot in enumerate(list(QUEUE_WAITING), 1):
+        await slot.show(pos)
+
+
+class QueueSlot:
+    """
+    async with QueueSlot(msg, "Link", markup, on_queued=...):
+        ... download / upload work ...
+
+    - Vera job run aagitu irundha: msg-la "Link Added to Queue 1" nu kaattum, on_queued() call aagum
+      (user anuppina link / file-a delete panna use pannalam).
+    - Namma turn vandha udane ullaye vittu work run aagum.
+    - Cancel aanaalum (queue-la irukkum pothe) list-la irunthu thaaney remove aagum.
+    """
+    def __init__(self, msg, label, markup=None, on_queued=None):
+        self.msg, self.label, self.markup, self.on_queued = msg, label, markup, on_queued
+        self.waiting = False
+        self._shown = None
+
+    async def show(self, pos):
+        if pos == self._shown:
+            return
+        self._shown = pos
+        try:
+            await self.msg.edit(
+                f"`⏳ {self.label} Added to Queue {pos}`\n`Please wait your turn...`",
+                reply_markup=self.markup
+            )
+        except Exception:
+            pass          # MessageNotModified / FloodWait - ignore
+
+    async def __aenter__(self):
+        self.waiting = _queue_state["busy"] or bool(QUEUE_WAITING)
+        if self.waiting:
+            QUEUE_WAITING.append(self)
+            await _refresh_queue_numbers()
+            if self.on_queued:
+                try:
+                    await self.on_queued()
+                except Exception:
+                    pass
+        try:
+            await file_queue_lock.acquire()
+        except BaseException:
+            # queue-la irukkum pothe cancel -> list-la irunthu remove, matha numbers update
+            if self in QUEUE_WAITING:
+                QUEUE_WAITING.remove(self)
+                asyncio.ensure_future(_refresh_queue_numbers())
+            raise
+        if self in QUEUE_WAITING:
+            QUEUE_WAITING.remove(self)
+        _queue_state["busy"] = True
+        asyncio.ensure_future(_refresh_queue_numbers())   # pinnadi irukkuravanga number kuraiyum
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        _queue_state["busy"] = False
+        file_queue_lock.release()
+        return False
