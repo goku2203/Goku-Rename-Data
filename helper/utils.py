@@ -223,70 +223,120 @@ def cleanup_files(*paths):
 
 
 # =====================================================================
-#  QUEUE NUMBERING  (Queue 1, Queue 2 ... + queue-la add aana udane user message delete)
+#  QUEUE NUMBERING  (Queue 1, Queue 2, Queue 3 ... + queue-la add aana udane user message delete)
 # =====================================================================
 # Oru neratula ORU link / file mattum process aagum (file_queue_lock).
-# Mathathu waiting list-la irukkum. 1st waiting = Queue 1, 2nd waiting = Queue 2 ...
-# Munnadi irukkura job mudinja udane numbers thaaney maarum (Queue 2 -> Queue 1).
-QUEUE_WAITING = []                 # waiting irukkura QueueSlot-gal (order-padi)
+# Number = line-la irukkura position. Ippo run aagura job = Queue 1, adutha = Queue 2, adutha = Queue 3 ...
+# Munnadi irukkura job mudinja / cancel aana udane pinnadi irukkuravanga number thaaney kuraiyum
+# (Queue 3 -> Queue 2 -> Queue 1 -> processing start).
+QUEUE_WAITING = []                 # waiting irukkura QueueSlot-gal (anuppina order-padi)
 _queue_state = {"busy": False}     # oru job ippo run aagitu irukka?
 QUEUE_CANCEL_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
+QUEUE_TURN_HOLD = 1.0              # "Queue 1" message-a user paarkka (seconds) - processing start aagura munnadi
+
+_refresh_lock = asyncio.Lock()     # oru neratula oru refresh mattum -> numbers order thappi / pazhaya number varaadhu
+_bg_tasks = set()
 
 
 async def _refresh_queue_numbers():
-    for pos, slot in enumerate(list(QUEUE_WAITING), 1):
-        await slot.show(pos)
+    async with _refresh_lock:
+        # lock kulla irukkum pothu list-a fresh-a eduthu number podrom (latest order-padi)
+        for i, slot in enumerate(list(QUEUE_WAITING)):
+            running = 1 if _queue_state["busy"] else 0      # run aagitu irukkura job = Queue 1
+            await slot.show(i + 1 + running)
+
+
+def _kick_refresh():
+    """Numbers refresh-a background-la run pannum (queue-la join aagura job-a block pannaadhu)."""
+    t = asyncio.ensure_future(_refresh_queue_numbers())
+    _bg_tasks.add(t)
+    t.add_done_callback(_bg_tasks.discard)
 
 
 class QueueSlot:
     """
-    async with QueueSlot(msg, "Link", markup, on_queued=...):
+    async with QueueSlot(msg, "Link", markup, on_queued=..., order=(msg_id, idx), registered=event):
         ... download / upload work ...
 
-    - Vera job run aagitu irundha: msg-la "Link Added to Queue 1" nu kaattum, on_queued() call aagum
-      (user anuppina link / file-a delete panna use pannalam).
-    - Namma turn vandha udane ullaye vittu work run aagum.
+    - Link / file anuppina udane msg-la "Queue N" kaattum. Vera job run aagitu irundha on_queued() call aagum
+      (user anuppina link / file delete aana APPURAM thaan Queue number message-la varum).
+    - Queue number DYNAMIC: munnadi irukkura job mudinja / cancel aana udane pinnadi irukkura
+      ellaa message-layum number thaaney kuraiyum (Queue 3 -> 2 -> 1 -> processing).
+    - order: user anuppina message id (link-na (message_id, line_no)). Anuppina order-padiye queue-la nikkum.
+    - registered: asyncio.Event - queue-la serndhathum (illa udane run aanathum) set aagum.
     - Cancel aanaalum (queue-la irukkum pothe) list-la irunthu thaaney remove aagum.
     """
-    def __init__(self, msg, label, markup=None, on_queued=None):
+    def __init__(self, msg, label, markup=None, on_queued=None, order=None, registered=None):
         self.msg, self.label, self.markup, self.on_queued = msg, label, markup, on_queued
+        self.order = order if order is not None else (float("inf"), 0)
+        self.registered = registered
         self.waiting = False
         self._shown = None
+        self._left = False        # queue-la irunthu velila vandhaachu -> pazhaya refresh number edit pannaadhu
 
-    async def show(self, pos):
+    async def show(self, pos, final=False):
+        if self._left and not final:
+            return                # stale refresh - ippo already run aagitu irukku, text-a maathaadhey
         if pos == self._shown:
             return
         self._shown = pos
+        note = "Starting now..." if pos == 1 else "Please wait your turn..."
         try:
             await self.msg.edit(
-                f"`⏳ {self.label} Added to Queue {pos}`\n`Please wait your turn...`",
+                f"`⏳ {self.label} Added to Queue {pos}`\n`{note}`",
                 reply_markup=self.markup
             )
-        except Exception:
-            pass          # MessageNotModified / FloodWait - ignore
+        except Exception as e:
+            # MessageNotModified -> already correct number. Vera error (FloodWait) -> next refresh-la retry
+            if "MESSAGE_NOT_MODIFIED" not in str(e).upper():
+                self._shown = None
+
+    def _add_waiting(self):
+        # anuppina order-padi sorted-a insert pannum; same order na pinnadi
+        idx = len(QUEUE_WAITING)
+        for i, other in enumerate(QUEUE_WAITING):
+            if other.order > self.order:
+                idx = i
+                break
+        QUEUE_WAITING.insert(idx, self)
 
     async def __aenter__(self):
         self.waiting = _queue_state["busy"] or bool(QUEUE_WAITING)
         if self.waiting:
-            QUEUE_WAITING.append(self)
-            await _refresh_queue_numbers()
+            self._add_waiting()
+            if self.registered is not None:
+                self.registered.set()
+            # 1) user anuppina link / file MUDHAL-la delete  2) appuram Queue number message
             if self.on_queued:
                 try:
                     await self.on_queued()
                 except Exception:
                     pass
+            _kick_refresh()                      # ellaa waiting message-layum correct number
+        elif self.registered is not None:
+            self.registered.set()
         try:
             await file_queue_lock.acquire()
         except BaseException:
             # queue-la irukkum pothe cancel -> list-la irunthu remove, matha numbers update
+            self._left = True
             if self in QUEUE_WAITING:
                 QUEUE_WAITING.remove(self)
-                asyncio.ensure_future(_refresh_queue_numbers())
+                _kick_refresh()
             raise
         if self in QUEUE_WAITING:
             QUEUE_WAITING.remove(self)
         _queue_state["busy"] = True
-        asyncio.ensure_future(_refresh_queue_numbers())   # pinnadi irukkuravanga number kuraiyum
+        self._left = True
+        _kick_refresh()                          # pinnadi irukkuravanga number kuraiyum (Queue 3 -> 2 ...)
+        # Namma turn: "Queue 1" kaattitu konjam neram (user paarkka) appuram processing start
+        try:
+            await self.show(1, final=True)
+            await asyncio.sleep(QUEUE_TURN_HOLD)
+        except BaseException:
+            _queue_state["busy"] = False
+            file_queue_lock.release()
+            raise
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
