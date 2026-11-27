@@ -190,7 +190,9 @@ async def _upload_doc_impl(bot, update, files, state=None):
     # queue-la add aana udane user anuppina file message auto delete aagum.
     # (Download-ku file_id/media object already memory-la irukku, so delete pannina problem illa)
     original = update.message.reply_to_message
-    async with QueueSlot(update.message, "File", QUEUE_CANCEL_MARKUP, on_queued=lambda: safe_delete(original)):
+    _oid = getattr(original, "id", None)
+    async with QueueSlot(update.message, "File", QUEUE_CANCEL_MARKUP, on_queued=lambda: safe_delete(original),
+                         order=(_oid, 0) if _oid else None):
         try:
             await update.message.edit("`🔄 Processing Started...`")
         except Exception:

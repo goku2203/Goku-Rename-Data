@@ -384,7 +384,8 @@ async def _process_url_queued(client, message, msg, url, user_data, files, state
     Vera job run aagitu irundha "Link Added to Queue 1/2/3.." nu kaattum,
     queue-la add aana udane user anuppina link message auto delete aagum.
     """
-    async with QueueSlot(msg, "Link", CANCEL_MARKUP, on_queued=lambda: safe_delete(message)):
+    async with QueueSlot(msg, "Link", CANCEL_MARKUP, on_queued=lambda: safe_delete(message),
+                         order=state.get('order'), registered=state.get('registered')):
         state['started'] = True        # queue-la irunthu velila vandhaachu (cancel text maarum)
         ok = False
         try:
@@ -396,18 +397,11 @@ async def _process_url_queued(client, message, msg, url, user_data, files, state
             await finish_post(client, state, ok)
 
 
-@Client.on_message(filters.private & filters.regex(r"^https?://"))
-async def url_uploader_handler(client, message):
-    user_id = message.from_user.id
-    url = message.text.strip()
-
-    user_data = await goku_stark.get_user_data(user_id)
-
-    rkn_processing = await message.reply_text("`⏳ Please wait...`", reply_markup=CANCEL_MARKUP)
-
+async def _handle_one_url(client, message, url, user_data, rkn_processing, order=None, registered=None):
+    """Oru link-ku full flow (queue -> download -> upload). Ovvoru link-kum thaniya progress message."""
     files = []        # temp / partial files (cleanup-ku)
     status = None     # user-ku kaattura final message
-    state = {}        # forward pannina post track panna (cancel/fail-na delete)
+    state = {"order": order, "registered": registered}   # forward pannina post track panna (cancel/fail-na delete)
 
     try:
         status, cancelled = await run_cancellable(
@@ -427,6 +421,8 @@ async def url_uploader_handler(client, message):
             else:
                 await discard_post(client, state['post'])   # upload cancel/fail -> post-um dump-la irunthu delete
         await safe_delete(message)     # user anuppina URL message - ELLA case-layum delete
+        if registered is not None:
+            registered.set()           # edhavadhu thappa pona kooda adutha link-a wait panna vaikkaadhu
 
     if status:
         try:
@@ -435,3 +431,36 @@ async def url_uploader_handler(client, message):
         except Exception:
             pass
     await safe_delete(rkn_processing)
+
+
+@Client.on_message(filters.private & filters.regex(r"^https?://"))
+async def url_uploader_handler(client, message):
+    user_id = message.from_user.id
+    text = (message.text or "").strip()
+
+    # Oru message-la 2-3 link (line by line) anuppina ovvoru link-um thaniya queue-la serum
+    urls = re.findall(r"https?://\S+", text)
+    if len(urls) <= 1:
+        urls = [text]
+
+    user_data = await goku_stark.get_user_data(user_id)
+
+    if len(urls) == 1:
+        rkn_processing = await message.reply_text("`⏳ Please wait...`", reply_markup=CANCEL_MARKUP)
+        await _handle_one_url(client, message, urls[0], user_data, rkn_processing, order=(message.id, 0))
+        return
+
+    # MULTI LINK: line order-padiye queue-la register aaganum -> ovvoru link register aagura varaikkum wait
+    tasks = []
+    for idx, url in enumerate(urls):
+        rkn_processing = await message.reply_text("`⏳ Please wait...`", reply_markup=CANCEL_MARKUP)
+        registered = asyncio.Event()
+        tasks.append(asyncio.ensure_future(
+            _handle_one_url(client, message, url, user_data, rkn_processing,
+                            order=(message.id, idx), registered=registered)
+        ))
+        try:
+            await asyncio.wait_for(registered.wait(), timeout=15)
+        except asyncio.TimeoutError:
+            pass
+    await asyncio.gather(*tasks, return_exceptions=True)
