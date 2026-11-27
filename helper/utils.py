@@ -235,7 +235,6 @@ QUEUE_BANNERS = {}                 # chat_id -> {"msg": single queue message, "s
 _queue_state = {"busy": False}     # oru job ippo run aagitu irukka?
 QUEUE_CANCEL_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
 QUEUE_BANNER_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 𝙻𝙰𝚂𝚃 ✖️", callback_data="cancel_queue")]])
-QUEUE_TURN_HOLD = 1.0              # "Queue 1" message-a user paarkka (seconds) - processing start aagura munnadi
 
 _refresh_lock = asyncio.Lock()     # oru neratula oru refresh mattum -> numbers order thappi / pazhaya number varaadhu
 _bg_tasks = set()
@@ -298,7 +297,7 @@ class QueueSlot:
     - Vera job run aagitu irundha: user anuppina link / file MUDHAL-la delete (on_queued), appuram
       antha chat-ku ORE "Queue N" message varum. Adutha link / file vandha ADHE message-la number maarum.
     - Munnadi irukkura job mudinja / cancel aana number thaaney kuraiyum (Queue 3 -> 2 -> 1 -> processing).
-    - Namma turn vandha: "Queue 1" kaattitu processing start (progress message thaniya varum).
+    - Namma turn vandha: Queue message-la irunthu veliya vandhu DIRECT-aa processing start (first link / file-kum delay illa).
     - order: user anuppina message id (link-na (message_id, line_no)). Anuppina order-padiye queue-la nikkum.
     - registered: asyncio.Event - queue-la serndhathum (illa udane run aanathum) set aagum.
     """
@@ -320,23 +319,23 @@ class QueueSlot:
         QUEUE_WAITING.insert(idx, self)
 
     async def _show_turn(self):
-        """Namma turn: "Queue 1" kaattitu konjam neram (user paarkka)."""
-        text = f"`⏳ {self.label} Added to Queue 1`\n`Starting now...`"
+        """
+        Namma turn vandhaachu -> Queue message / delay edhuvum illa, DIRECT-aa processing start.
+        - Queue-la illama munnadiye run aana job (first link / file): thani message already irukku, edhuvum seyyaadhu.
+        - Queue-la wait pannina job: thani message delete aagiduchu -> pudhu message anuppi, adhe message-la progress varum.
+        """
+        if not self._msg_deleted:
+            return
         try:
-            if self._msg_deleted:
-                # thani message delete aagiduchu -> pudhusa oru message anuppi, adhe message object-a use pannuvom
-                old_key = task_key(self.msg)
-                new = await self.msg._client.send_message(self.chat_id, text, reply_markup=self.markup)
-                self.msg.id = new.id
-                task = ACTIVE_TASKS.pop(old_key, None)
-                if task is not None:
-                    ACTIVE_TASKS[task_key(self.msg)] = task      # Cancel button puthu message-ku velai seiyum
-                self._msg_deleted = False
-            else:
-                await self.msg.edit(text, reply_markup=self.markup)
+            old_key = task_key(self.msg)
+            new = await self.msg._client.send_message(self.chat_id, "`🔄 Starting...`", reply_markup=self.markup)
+            self.msg.id = new.id
+            task = ACTIVE_TASKS.pop(old_key, None)
+            if task is not None:
+                ACTIVE_TASKS[task_key(self.msg)] = task          # Cancel button puthu message-ku velai seiyum
+            self._msg_deleted = False
         except Exception:
             pass
-        await asyncio.sleep(QUEUE_TURN_HOLD)
 
     async def __aenter__(self):
         self.waiting = _queue_state["busy"] or bool(QUEUE_WAITING)
