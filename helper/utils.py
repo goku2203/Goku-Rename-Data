@@ -200,6 +200,7 @@ async def run_cancellable(progress_msg, coro):
         raise                      # bot shutdown maathiri veli cancel
     finally:
         ACTIVE_TASKS.pop(key, None)
+        ACTIVE_TASKS.pop(task_key(progress_msg), None)   # queue-la irunthu vandha pin message id maarirukkalaam
 
 
 async def safe_delete(*msgs):
@@ -223,27 +224,63 @@ def cleanup_files(*paths):
 
 
 # =====================================================================
-#  QUEUE NUMBERING  (Queue 1, Queue 2, Queue 3 ... + queue-la add aana udane user message delete)
+#  QUEUE NUMBERING  (ORU single "Queue N" message + queue-la add aana udane user message delete)
 # =====================================================================
 # Oru neratula ORU link / file mattum process aagum (file_queue_lock).
-# Number = line-la irukkura position. Ippo run aagura job = Queue 1, adutha = Queue 2, adutha = Queue 3 ...
-# Munnadi irukkura job mudinja / cancel aana udane pinnadi irukkuravanga number thaaney kuraiyum
-# (Queue 3 -> Queue 2 -> Queue 1 -> processing start).
+# Line-la position: ippo run aagura job = Queue 1, adutha = Queue 2, adutha = Queue 3 ...
+# Waiting irukkuravanga ellarukkum serthu ORE message (banner) - adhula number thaan maarum:
+#   2nd anuppina -> "Queue 2",  3rd anuppina -> same message "Queue 3",  job mudinja -> "Queue 2" ... (waiting illa-na message delete)
 QUEUE_WAITING = []                 # waiting irukkura QueueSlot-gal (anuppina order-padi)
+QUEUE_BANNERS = {}                 # chat_id -> {"msg": single queue message, "shown": N}
 _queue_state = {"busy": False}     # oru job ippo run aagitu irukka?
 QUEUE_CANCEL_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 ✖️", callback_data="cancel_task")]])
+QUEUE_BANNER_MARKUP = InlineKeyboardMarkup([[InlineKeyboardButton("✖️ 𝙲𝙰𝙽𝙲𝙴𝙻 𝙻𝙰𝚂𝚃 ✖️", callback_data="cancel_queue")]])
 QUEUE_TURN_HOLD = 1.0              # "Queue 1" message-a user paarkka (seconds) - processing start aagura munnadi
 
 _refresh_lock = asyncio.Lock()     # oru neratula oru refresh mattum -> numbers order thappi / pazhaya number varaadhu
 _bg_tasks = set()
 
 
+def _banner_text(n):
+    return f"`⏳ Added to Queue {n}`\n`Please wait your turn...`"
+
+
 async def _refresh_queue_numbers():
+    """Ovvoru chat-kum ORE queue message-a create / edit / delete pannum."""
     async with _refresh_lock:
-        # lock kulla irukkum pothu list-a fresh-a eduthu number podrom (latest order-padi)
+        running = 1 if _queue_state["busy"] else 0       # run aagitu irukkura job = Queue 1
+        last, sample = {}, {}
         for i, slot in enumerate(list(QUEUE_WAITING)):
-            running = 1 if _queue_state["busy"] else 0      # run aagitu irukkura job = Queue 1
-            await slot.show(i + 1 + running)
+            last[slot.chat_id] = i + 1 + running           # antha chat-oda kadaisi waiting job-oda number
+            sample.setdefault(slot.chat_id, slot)
+
+        for chat_id, n in last.items():
+            banner = QUEUE_BANNERS.get(chat_id)
+            if banner is None:
+                try:
+                    m = await sample[chat_id].msg._client.send_message(
+                        chat_id, _banner_text(n), reply_markup=QUEUE_BANNER_MARKUP)
+                    QUEUE_BANNERS[chat_id] = {"msg": m, "shown": n}
+                except Exception:
+                    pass
+            elif banner["shown"] != n:
+                try:
+                    await banner["msg"].edit(_banner_text(n), reply_markup=QUEUE_BANNER_MARKUP)
+                    banner["shown"] = n
+                except Exception as e:
+                    if "MESSAGE_NOT_MODIFIED" in str(e).upper():
+                        banner["shown"] = n
+                    elif "FLOOD" not in str(e).upper():
+                        QUEUE_BANNERS.pop(chat_id, None)   # message poiduchu -> next refresh-la thirumba create
+
+        # Waiting yaarum illa -> queue message-a delete
+        for chat_id in [c for c in QUEUE_BANNERS if c not in last]:
+            banner = QUEUE_BANNERS.pop(chat_id, None)
+            if banner:
+                try:
+                    await banner["msg"].delete()
+                except Exception:
+                    pass
 
 
 def _kick_refresh():
@@ -258,38 +295,20 @@ class QueueSlot:
     async with QueueSlot(msg, "Link", markup, on_queued=..., order=(msg_id, idx), registered=event):
         ... download / upload work ...
 
-    - Link / file anuppina udane msg-la "Queue N" kaattum. Vera job run aagitu irundha on_queued() call aagum
-      (user anuppina link / file delete aana APPURAM thaan Queue number message-la varum).
-    - Queue number DYNAMIC: munnadi irukkura job mudinja / cancel aana udane pinnadi irukkura
-      ellaa message-layum number thaaney kuraiyum (Queue 3 -> 2 -> 1 -> processing).
+    - Vera job run aagitu irundha: user anuppina link / file MUDHAL-la delete (on_queued), appuram
+      antha chat-ku ORE "Queue N" message varum. Adutha link / file vandha ADHE message-la number maarum.
+    - Munnadi irukkura job mudinja / cancel aana number thaaney kuraiyum (Queue 3 -> 2 -> 1 -> processing).
+    - Namma turn vandha: "Queue 1" kaattitu processing start (progress message thaniya varum).
     - order: user anuppina message id (link-na (message_id, line_no)). Anuppina order-padiye queue-la nikkum.
     - registered: asyncio.Event - queue-la serndhathum (illa udane run aanathum) set aagum.
-    - Cancel aanaalum (queue-la irukkum pothe) list-la irunthu thaaney remove aagum.
     """
     def __init__(self, msg, label, markup=None, on_queued=None, order=None, registered=None):
         self.msg, self.label, self.markup, self.on_queued = msg, label, markup, on_queued
+        self.chat_id = msg.chat.id
         self.order = order if order is not None else (float("inf"), 0)
         self.registered = registered
         self.waiting = False
-        self._shown = None
-        self._left = False        # queue-la irunthu velila vandhaachu -> pazhaya refresh number edit pannaadhu
-
-    async def show(self, pos, final=False):
-        if self._left and not final:
-            return                # stale refresh - ippo already run aagitu irukku, text-a maathaadhey
-        if pos == self._shown:
-            return
-        self._shown = pos
-        note = "Starting now..." if pos == 1 else "Please wait your turn..."
-        try:
-            await self.msg.edit(
-                f"`⏳ {self.label} Added to Queue {pos}`\n`{note}`",
-                reply_markup=self.markup
-            )
-        except Exception as e:
-            # MessageNotModified -> already correct number. Vera error (FloodWait) -> next refresh-la retry
-            if "MESSAGE_NOT_MODIFIED" not in str(e).upper():
-                self._shown = None
+        self._msg_deleted = False   # waiting-la irukkum pothu namma thani message delete pannitom
 
     def _add_waiting(self):
         # anuppina order-padi sorted-a insert pannum; same order na pinnadi
@@ -300,39 +319,60 @@ class QueueSlot:
                 break
         QUEUE_WAITING.insert(idx, self)
 
+    async def _show_turn(self):
+        """Namma turn: "Queue 1" kaattitu konjam neram (user paarkka)."""
+        text = f"`⏳ {self.label} Added to Queue 1`\n`Starting now...`"
+        try:
+            if self._msg_deleted:
+                # thani message delete aagiduchu -> pudhusa oru message anuppi, adhe message object-a use pannuvom
+                old_key = task_key(self.msg)
+                new = await self.msg._client.send_message(self.chat_id, text, reply_markup=self.markup)
+                self.msg.id = new.id
+                task = ACTIVE_TASKS.pop(old_key, None)
+                if task is not None:
+                    ACTIVE_TASKS[task_key(self.msg)] = task      # Cancel button puthu message-ku velai seiyum
+                self._msg_deleted = False
+            else:
+                await self.msg.edit(text, reply_markup=self.markup)
+        except Exception:
+            pass
+        await asyncio.sleep(QUEUE_TURN_HOLD)
+
     async def __aenter__(self):
         self.waiting = _queue_state["busy"] or bool(QUEUE_WAITING)
         if self.waiting:
             self._add_waiting()
             if self.registered is not None:
                 self.registered.set()
-            # 1) user anuppina link / file MUDHAL-la delete  2) appuram Queue number message
+            # 1) user anuppina link / file MUDHAL-la delete   2) namma "Please wait" message delete
+            # 3) appuram ORE Queue message-la number
             if self.on_queued:
                 try:
                     await self.on_queued()
                 except Exception:
                     pass
-            _kick_refresh()                      # ellaa waiting message-layum correct number
+            try:
+                await self.msg.delete()
+                self._msg_deleted = True
+            except Exception:
+                pass
+            _kick_refresh()
         elif self.registered is not None:
             self.registered.set()
         try:
             await file_queue_lock.acquire()
         except BaseException:
             # queue-la irukkum pothe cancel -> list-la irunthu remove, matha numbers update
-            self._left = True
             if self in QUEUE_WAITING:
                 QUEUE_WAITING.remove(self)
-                _kick_refresh()
+            _kick_refresh()
             raise
         if self in QUEUE_WAITING:
             QUEUE_WAITING.remove(self)
         _queue_state["busy"] = True
-        self._left = True
         _kick_refresh()                          # pinnadi irukkuravanga number kuraiyum (Queue 3 -> 2 ...)
-        # Namma turn: "Queue 1" kaattitu konjam neram (user paarkka) appuram processing start
         try:
-            await self.show(1, final=True)
-            await asyncio.sleep(QUEUE_TURN_HOLD)
+            await self._show_turn()
         except BaseException:
             _queue_state["busy"] = False
             file_queue_lock.release()
@@ -342,4 +382,5 @@ class QueueSlot:
     async def __aexit__(self, exc_type, exc, tb):
         _queue_state["busy"] = False
         file_queue_lock.release()
+        _kick_refresh()                          # waiting yaarum illa-na queue message delete aagum
         return False
