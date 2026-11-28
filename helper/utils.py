@@ -227,9 +227,9 @@ def cleanup_files(*paths):
 #  QUEUE NUMBERING  (ORU single "Queue N" message + queue-la add aana udane user message delete)
 # =====================================================================
 # Oru neratula ORU link / file mattum process aagum (file_queue_lock).
-# Line-la position: ippo run aagura job = Queue 1, adutha = Queue 2, adutha = Queue 3 ...
+# Line-la position: ippo run aagura job count illa. Waiting-la 1st = Queue 1, adutha = Queue 2, adutha = Queue 3 ...
 # Waiting irukkuravanga ellarukkum serthu ORE message (banner) - adhula number thaan maarum:
-#   2nd anuppina -> "Queue 2",  3rd anuppina -> same message "Queue 3",  job mudinja -> "Queue 2" ... (waiting illa-na message delete)
+#   2nd link -> "Queue 1",  3rd link -> same message "Queue 2",  job mudinja -> "Queue 1" ... (waiting illa-na message delete)
 QUEUE_WAITING = []                 # waiting irukkura QueueSlot-gal (anuppina order-padi)
 QUEUE_BANNERS = {}                 # chat_id -> {"msg": single queue message, "shown": N}
 _queue_state = {"busy": False}     # oru job ippo run aagitu irukka?
@@ -260,10 +260,9 @@ async def _refresh_queue_numbers():
     """Ovvoru chat-kum ORE queue message-a create / edit / delete pannum."""
     async with _refresh_lock:
         _prune_waiting()                                  # ghost entries irundha first clean pannum
-        running = 1 if _queue_state["busy"] else 0       # run aagitu irukkura job = Queue 1
         last, sample = {}, {}
         for i, slot in enumerate(list(QUEUE_WAITING)):
-            last[slot.chat_id] = i + 1 + running           # antha chat-oda kadaisi waiting job-oda number
+            last[slot.chat_id] = i + 1                     # run aagura job count illa: waiting-la 1st = Queue 1, 2nd = Queue 2
             sample.setdefault(slot.chat_id, slot)
 
         for chat_id, n in last.items():
