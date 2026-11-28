@@ -244,9 +244,22 @@ def _banner_text(n):
     return f"`⏳ Added to Queue {n}`\n`Please wait your turn...`"
 
 
+def _prune_waiting():
+    """Cancel / crash aagi poyiduchu aana job-oda 'bhoodham' (ghost) entry QUEUE_WAITING-la irundha remove pannum.
+    Ghost irundha thaan first link-kum 'Queue 2' nu varum, number ellam +1 aagum."""
+    for slot in list(QUEUE_WAITING):
+        t = getattr(slot, "task", None)
+        if t is not None and t.done():
+            try:
+                QUEUE_WAITING.remove(slot)
+            except ValueError:
+                pass
+
+
 async def _refresh_queue_numbers():
     """Ovvoru chat-kum ORE queue message-a create / edit / delete pannum."""
     async with _refresh_lock:
+        _prune_waiting()                                  # ghost entries irundha first clean pannum
         running = 1 if _queue_state["busy"] else 0       # run aagitu irukkura job = Queue 1
         last, sample = {}, {}
         for i, slot in enumerate(list(QUEUE_WAITING)):
@@ -338,23 +351,32 @@ class QueueSlot:
             pass
 
     async def __aenter__(self):
+        self.task = asyncio.current_task()       # ghost detect panna (task mudinjaa entry-a remove pannalam)
+        _prune_waiting()                         # munnadi cancel aana job-oda ghost irundha clean (first link-kum Queue 2 varaadhu)
         self.waiting = _queue_state["busy"] or bool(QUEUE_WAITING)
         if self.waiting:
             self._add_waiting()
-            if self.registered is not None:
-                self.registered.set()
-            # 1) user anuppina link / file MUDHAL-la delete   2) namma "Please wait" message delete
-            # 3) appuram ORE Queue message-la number
-            if self.on_queued:
+            try:
+                if self.registered is not None:
+                    self.registered.set()
+                # 1) user anuppina link / file MUDHAL-la delete   2) namma "Please wait" message delete
+                # 3) appuram ORE Queue message-la number
+                if self.on_queued:
+                    try:
+                        await self.on_queued()
+                    except Exception:
+                        pass
                 try:
-                    await self.on_queued()
+                    await self.msg.delete()
+                    self._msg_deleted = True
                 except Exception:
                     pass
-            try:
-                await self.msg.delete()
-                self._msg_deleted = True
-            except Exception:
-                pass
+            except BaseException:
+                # intha idaila cancel aanaalum list-la ghost nikkaadhu
+                if self in QUEUE_WAITING:
+                    QUEUE_WAITING.remove(self)
+                _kick_refresh()
+                raise
             _kick_refresh()
         elif self.registered is not None:
             self.registered.set()
